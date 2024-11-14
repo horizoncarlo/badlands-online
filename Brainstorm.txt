@@ -27,6 +27,7 @@
 - So the Websocket response would be more like an instruction set of what to do to the client state
 
 - Deno on the server
+  - Could consider deploying with Deno Deploy? https://deno.com/deploy/pricing
 
 - Prototype a basic board, no events, no raiders, no water tower
 - Scrape a basic set of 5 cards and 3 camps
