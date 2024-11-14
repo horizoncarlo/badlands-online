@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏜</text></svg>"
+    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lowlighter/matcha@3.0.0/dist/matcha.min.css" />
+    <link rel="stylesheet" href="./css/matcha-override.css" />
+    <link rel="stylesheet" href="./css/central.css" />
+
+    <title>Badlands Online</title>
+
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs/dist/cdn.min.js"
+    ></script>
+  </head>
+  <body
+    x-data="state"
+    style="display: none"
+    x-show="bodyReady"
+    x-transition.opacity
+    x-transition.duration.750ms
+    x-init="Alpine.nextTick(() => { bodyReady = true })"
+  >
+    <section>
+      <header>
+        <menu>
+          <li>
+            Game
+            <menu>
+              <li>New</li>
+              <li>Save Replay</li>
+              <li>Concede</li>
+              <li>
+                Customize Layout
+                <menu>
+                  <li>Show Chat</li>
+                  <li>Show Log</li>
+                  <li>Show Timer</li>
+                </menu>
+              </li>
+            </menu>
+          </li>
+          <li>Rules</li>
+        </menu>
+      </header>
+
+      <div class="slots">
+        <template x-for="slot in slots">
+          <div class="bd-default" x-on:dragover.prevent="$el.classList.add('slot-highlight')" x-on:dragleave="$el.classList.remove('slot-highlight')" x-on:drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)">
+            <template x-if="slot.content">
+              <img :alt="slot.content" :src="'cards/' + slot.content.img" />
+            </template>
+          </div>
+        </template>
+      </div>
+
+      <footer>
+        <div class="cards">
+          <template x-for="card in myCards">
+            <div class="card">
+              <img :alt="card" :src="'cards/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
+            </div>
+          </template>
+        </div>
+      </footer>
+    </section>
+
+    <!-- JS scripts at the bottom like it's 1995 -->
+    <script src="./js/badlands.js"></script>
+  </body>
+</html>

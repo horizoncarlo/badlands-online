@@ -1,0 +1,60 @@
+:root {
+  --slot-width: 260px;
+  --slot-height: 340px;
+  --card-width: 229px;
+  --card-height: 318px;
+}
+
+menu {
+  margin: 0;
+}
+
+.slots,
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 50px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cards {
+  gap: 10px;
+}
+
+.slots div {
+  width: var(--slot-width);
+  height: var(--slot-height);
+}
+
+.card {
+  /* transform: skew(-0.06turn, 18deg); */
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.card:hover {
+  /* transform: scale(1.5); */
+  box-shadow: 0 0 20px var(--active);
+  animation: tilt 2s infinite alternate ease-in-out;
+}
+
+@keyframes tilt {
+  0% {
+    transform: rotateY(-5deg) translateY(-50px) scale(1.2);
+  }
+  100% {
+    transform: rotateY(5deg) translateY(-50px) scale(1.25);
+  }
+}
+
+.slots div,
+.card {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.slot-highlight {
+  background-color: var(--success);
+}
