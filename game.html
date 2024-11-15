@@ -22,17 +22,18 @@
       src="https://cdn.jsdelivr.net/npm/alpinejs/dist/cdn.min.js"
     ></script>
 
-    <script src="./sharedjs/gamestate.mjs" type="module"></script>
-    <script src="./clientjs/utils.js"></script>
-    <script src="./clientjs/client-websocket.js"></script>
-
     <script type="text/javascript">
+      const CLIENT_WEBSOCKET_ADDRESS = '${CLIENT_WEBSOCKET_ADDRESS}';
       let playerId = '${PLAYER_ID}'; // Replaced server side before returning the page
 
       setTimeout(() => {
         console.log('TODO shared code test (browser side)', gs.basicTestCall());
       }, 2000);
     </script>
+    
+    <script src="./sharedjs/gamestate.mjs" type="module"></script>
+    <script src="./clientjs/utils.js"></script>
+    <script src="./clientjs/client-websocket.js"></script>
   </head>
   <body
     x-data="state"

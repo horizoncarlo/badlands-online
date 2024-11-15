@@ -2,8 +2,9 @@ import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { gs } from './sharedjs/gamestate.mjs';
 
-const DEFAULT_PORT = 2000;
-const DEFAULT_HOSTNAME = 'localhost'; // Or 0.0.0.0 for public
+const DEFAULT_PORT = Deno.env.get("isLive") ? 80 : 2000;
+const DEFAULT_HOSTNAME = Deno.env.get("isLive") ? 'badlands-online.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
+const CLIENT_WEBSOCKET_ADDRESS = Deno.env.get('isLive') ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
 
 const handler = async (req: Request) => {
@@ -38,7 +39,8 @@ const handler = async (req: Request) => {
     // Get our main HTML to return, but replace any templating variables first
     let html = await Deno.readTextFile('./game.html');
 
-    html = html.replace('${PLAYER_ID}', uuidv4());
+    html = html.replaceAll('${PLAYER_ID}', uuidv4());
+    html = html.replaceAll('${CLIENT_WEBSOCKET_ADDRESS}', CLIENT_WEBSOCKET_ADDRESS);
     return new Response(html, {
       headers: { 'Content-Type': 'text/html' },
     });

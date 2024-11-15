@@ -1,10 +1,7 @@
-const HOST = 'localhost:2000/';
-
 let socket; // Declared later as a binding for our Websocket
 
 function setupWebsocket() {
-  console.log('Setup websocket');
-  socket = new WebSocket((isHttps() ? 'wss' : 'ws') + '://' + HOST + 'ws');
+  socket = new WebSocket(CLIENT_WEBSOCKET_ADDRESS);
   socket.addEventListener('message', (event) => {
     console.log('Received Event over WS', event);
 
