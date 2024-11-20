@@ -65,12 +65,10 @@ const handler = async (req: Request) => {
   return serveFile(req, '.' + filePath);
 };
 
-const send = (message: any, optionalGroup?: string) => {
+const sendS = (message: any, optionalGroup?: string) => {
   if (!message) {
     return;
   }
-
-  console.log('Going to send to', socketList.get(gameId).length);
 
   socketList.get(gameId).forEach((socketDetails: WebSocketDetails) => {
     if (!optionalGroup || (optionalGroup && optionalGroup === socketDetails.playerId)) {
@@ -87,9 +85,9 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
   }
 
   if (message.type === 'ping') {
-    send({
+    sendS({
       type: 'pong',
-    });
+    }, message.playerId);
   } else if (message.type === 'unsubscribe') {
     const playerId = message.details.playerId;
     if (playerId) {
@@ -118,4 +116,4 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 Deno.serve({ port: DEFAULT_PORT, hostname: DEFAULT_HOSTNAME }, handler);
 
 // Pseudo exports for use in sharedjs and other places
-globalThis.send = send;
+globalThis.sendS = sendS;

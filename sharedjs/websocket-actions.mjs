@@ -4,13 +4,13 @@ globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 const action = {
   handlePlayCard(message) {
     if (onClient) {
-      send({
+      sendC({
         type: 'playCard',
         details: message,
       });
     } else {
       // TODO Check if card is valid to play
-      send({
+      sendS({
         type: 'slot',
         details: { // TODO Directly send details here instead of copying just some properties out?
           index: message.details.slot.index,
@@ -22,9 +22,8 @@ const action = {
   },
 
   removeCard(message) {
-    if (onClient) {
-    } else {
-      send({
+    if (!onClient) {
+      sendS({
         type: 'removeCard',
         details: {
           card: message.details.card,

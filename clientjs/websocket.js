@@ -1,10 +1,10 @@
 const WS_PING_INTERVAL = 30000;
 
 let socket; // Declared later as a binding for our Websocket
-let pingPongInterval;
+let pingPongIntervaler;
 let reconnectAttempts = 0;
 
-function receiveClientWebsocketMessage(message) {
+const receiveClientWebsocketMessage = (message) => {
   if (!message || !message.type || message.type === 'pong') {
     return;
   }
@@ -26,10 +26,10 @@ function receiveClientWebsocketMessage(message) {
 }
 
 function sendType(type) {
-  send({}, type);
+  sendC({}, type);
 }
 
-function send(message, overrideType) {
+function sendC(message, overrideType) {
   if (!socket) {
     setupWebsocket();
   }
@@ -44,7 +44,7 @@ function send(message, overrideType) {
   }
 }
 
-function setupWebsocket() {
+const setupWebsocket = () => {
   // Clean up any old socket
   if (socket) {
     teardownWebsocket();
@@ -85,23 +85,18 @@ function setupWebsocket() {
     }
   });
 
-  if (pingPongInterval) {
-    clearInterval(pingPongInterval);
+  if (pingPongIntervaler) {
+    clearInterval(pingPongIntervaler);
   }
-  pingPongInterval = setInterval(() => {
+  pingPongIntervaler = setInterval(() => {
     sendType('ping');
   }, WS_PING_INTERVAL);
 }
 
-function teardownWebsocket() {
+const teardownWebsocket = () => {
   if (socket) {
     try {
-      send({
-        type: 'unsubscribe',
-        details: {
-          playerId: playerId,
-        },
-      });
+      sendType('unsubscribe');
 
       if (
         socket.readyState !== WebSocket.CLOSED &&
