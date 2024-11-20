@@ -1,12 +1,15 @@
+const WS_PING_INTERVAL = 30000;
+
 let socket; // Declared later as a binding for our Websocket
+let pingPongInterval;
 let reconnectAttempts = 0;
 
 function receiveClientWebsocketMessage(message) {
-  console.log('Received client message', message);
-
-  if (!message || !message.type) {
+  if (!message || !message.type || message.type === 'pong') {
     return;
   }
+
+  console.log('Received client message', message);
 
   switch (message.type) {
     case 'slot':
@@ -42,8 +45,13 @@ function send(message, overrideType) {
 }
 
 function setupWebsocket() {
-  socket = null;
-  socket = new WebSocket(CLIENT_WEBSOCKET_ADDRESS);
+  // Clean up any old socket
+  if (socket) {
+    teardownWebsocket();
+    socket = null;
+  }
+
+  socket = new WebSocket(CLIENT_WEBSOCKET_ADDRESS + (playerId ? `?playerId=${playerId}` : ''));
   socket.addEventListener('message', (event) => {
     if (event && event.data) {
       try {
@@ -58,18 +66,15 @@ function setupWebsocket() {
     console.error('Websocket error', err);
   });
 
-  socket.addEventListener('open', (event) => {
+  socket.addEventListener('open', () => {
     // Open a Websocket connection to the server
     console.log('Opened Websocket, subscribing ' + playerId);
-
     reconnectAttempts = 0;
-
-    sendType('subscribe');
   });
 
   socket.addEventListener('close', (event) => {
     // If our closure code wasn't normal, try to reconnect
-    if (event && event.code !== 1000) { // 1000 is normal Websocket closure
+    if (event && event.code !== WS_NORMAL_CLOSE_CODE) {
       console.error(`Abnormal websocket closure [${event.code}], going to reconnect (attempt ${reconnectAttempts})...`);
 
       reconnectAttempts++;
@@ -80,8 +85,38 @@ function setupWebsocket() {
     }
   });
 
-  setInterval(() => {
-    send('ping');
-  }, 5000);
+  if (pingPongInterval) {
+    clearInterval(pingPongInterval);
+  }
+  pingPongInterval = setInterval(() => {
+    sendType('ping');
+  }, WS_PING_INTERVAL);
 }
+
+function teardownWebsocket() {
+  if (socket) {
+    try {
+      send({
+        type: 'unsubscribe',
+        details: {
+          playerId: playerId,
+        },
+      });
+
+      if (
+        socket.readyState !== WebSocket.CLOSED &&
+        socket.readyState !== WebSocket.CLOSING
+      ) {
+        socket.close(WS_NORMAL_CLOSE_CODE); // Send a normal code that we closed on purpose
+      }
+    } catch (ignored) {}
+  }
+}
+
+// Before we unload, unsubscribe from our Websocket if possible
+window.onbeforeunload = function () {
+  teardownWebsocket();
+};
+
+// Initialize our Websocket
 setupWebsocket();

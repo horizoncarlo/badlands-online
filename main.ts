@@ -1,14 +1,20 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
-import { gs } from './sharedjs/gamestate.mjs';
 import { action } from './sharedjs/websocket-actions.mjs';
+
+type WebSocketDetails = {
+  playerId: string;
+  socket: WebSocket;
+};
 
 const DEFAULT_PORT = Deno.env.get('isLive') ? 80 : 2000;
 const DEFAULT_HOSTNAME = Deno.env.get('isLive') ? 'badlands-online.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
 const CLIENT_WEBSOCKET_ADDRESS = Deno.env.get('isLive') ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
+const DEFAULT_PLAYER_ID = 'newPlayer';
+
 const gameId = uuidv4(); // TODO Generate different game IDs as we add a lobby system
-const socketList = new Map<string, WebSocket[]>();
+const socketList = new Map<string, WebSocketDetails[]>();
 
 const handler = async (req: Request) => {
   const url = new URL(req.url);
@@ -23,11 +29,12 @@ const handler = async (req: Request) => {
     if (!socketList.get(gameId)) {
       socketList.set(gameId, []);
     }
-    socketList.set(gameId, [...socketList.get(gameId), socket]);
 
     socket.addEventListener('open', () => {
-      // TODO Unlike Bun, we'll need to do our own group sub/unsub management to broadcast to each Websocket we're managing that matches some session/game ID we setup. See https://bun.sh/guides/websocket/pubsub
-      // console.log("WS client connected!");
+      socketList.set(gameId, [...socketList.get(gameId), {
+        playerId: url.searchParams.get('playerId') ?? DEFAULT_PLAYER_ID,
+        socket: socket,
+      }]);
     });
     socket.addEventListener('message', (event) => {
       try {
@@ -58,14 +65,18 @@ const handler = async (req: Request) => {
   return serveFile(req, '.' + filePath);
 };
 
-const send = (message: any) => {
+const send = (message: any, optionalGroup?: string) => {
   if (!message) {
     return;
   }
 
-  socketList.get(gameId).forEach((socket) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
+  console.log('Going to send to', socketList.get(gameId).length);
+
+  socketList.get(gameId).forEach((socketDetails: WebSocketDetails) => {
+    if (!optionalGroup || (optionalGroup && optionalGroup === socketDetails.playerId)) {
+      if (socketDetails && socketDetails.socket && socketDetails.socket.readyState === WebSocket.OPEN) {
+        socketDetails.socket.send(JSON.stringify(message));
+      }
     }
   });
 };
@@ -79,6 +90,15 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     send({
       type: 'pong',
     });
+  } else if (message.type === 'unsubscribe') {
+    const playerId = message.details.playerId;
+    if (playerId) {
+      const foundIndex = socketList.get(gameId).findIndex((socketDetails: WebSocketDetails) => playerId === socketDetails.playerId);
+      if (foundIndex !== -1) {
+        socketList.get(gameId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
+        socketList.get(gameId).splice(foundIndex, 1);
+      }
+    }
   } else {
     console.log('Received server message', message);
 
@@ -89,8 +109,6 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     }
   }
 };
-
-console.log('TODO shared code test (Deno side)', gs.basicTestCall());
 
 /* TODO HTTPS support
   port: 443,

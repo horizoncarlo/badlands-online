@@ -1,4 +1,5 @@
 globalThis.onClient = typeof window !== 'undefined';
+globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
 const action = {
   handlePlayCard(message) {
