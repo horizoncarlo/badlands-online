@@ -1,8 +1,0 @@
-#!/bin/sh
-deno fmt
-deno lint
-
-if [ $? -ne 0 ]; then
-  echo "Format or Lint check failed - fix before committing"
-  exit 1
-fi
