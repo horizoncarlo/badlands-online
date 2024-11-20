@@ -59,7 +59,6 @@ function dropCardInSlot(event, slot) {
       return false;
     }
 
-    // TODO Don't manually set our card - let the server response handle it, instead of: slot.content = state.myCards......
     state.myCards.find((card, index) => {
       if (card.id == data) {
         foundIndex = index;
@@ -68,9 +67,10 @@ function dropCardInSlot(event, slot) {
     });
 
     if (foundIndex >= 0) {
-      action.playCard(state.myCards[foundIndex], slot);
-
-      state.myCards.splice(foundIndex, 1);
+      action.handlePlayCard({
+        card: state.myCards[foundIndex],
+        slot: slot,
+      });
     }
   }
 }

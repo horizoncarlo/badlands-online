@@ -8,5 +8,4 @@ const gs = {
 if (typeof window !== 'undefined') {
   window.gs = gs;
 }
-
 export { gs };

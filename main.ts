@@ -1,6 +1,7 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { gs } from './sharedjs/gamestate.mjs';
+import { action } from './sharedjs/websocket-actions.mjs';
 
 const DEFAULT_PORT = Deno.env.get('isLive') ? 80 : 2000;
 const DEFAULT_HOSTNAME = Deno.env.get('isLive') ? 'badlands-online.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
@@ -30,8 +31,7 @@ const handler = async (req: Request) => {
     });
     socket.addEventListener('message', (event) => {
       try {
-        const dataJSON = JSON.parse(event.data);
-        handleWebsocketMessage(dataJSON);
+        receiveServerWebsocketMessage(JSON.parse(event.data));
       } catch (err) {
         console.error('Websocket Message error', err); // TODO Probably can just silently ignore these as it'd just be bad/junk data coming in
       }
@@ -54,6 +54,7 @@ const handler = async (req: Request) => {
     return new Response(null, { status: 401 });
   }
 
+  // Basic server side file hosting by path
   return serveFile(req, '.' + filePath);
 };
 
@@ -69,7 +70,7 @@ const send = (message: any) => {
   });
 };
 
-const handleWebsocketMessage = (message: any) => { // TODO Better typing for receiving Websocket messages once we have a more realistic idea of our incoming format
+const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing for receiving Websocket messages once we have a more realistic idea of our incoming format
   if (!message || !message.type) {
     return;
   }
@@ -79,18 +80,11 @@ const handleWebsocketMessage = (message: any) => { // TODO Better typing for rec
       type: 'pong',
     });
   } else {
-    console.log('Received WS message', message);
+    console.log('Received server message', message);
 
     switch (message.type) {
       case 'playCard':
-        // TODO Check if card is valid to play
-        send({
-          type: 'slot',
-          details: { // TODO Directly send details here instead of copying just some properties out?
-            index: message.details.slot.index,
-            card: message.details.card,
-          },
-        });
+        action.handlePlayCard(message);
         break;
     }
   }
@@ -104,3 +98,6 @@ console.log('TODO shared code test (Deno side)', gs.basicTestCall());
   key: Deno.readTextFileSync("./key.pem"),
 */
 Deno.serve({ port: DEFAULT_PORT, hostname: DEFAULT_HOSTNAME }, handler);
+
+// Pseudo exports for use in sharedjs and other places
+globalThis.send = send;
