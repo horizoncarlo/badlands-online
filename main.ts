@@ -8,7 +8,7 @@ type WebSocketDetails = {
 };
 
 const DEFAULT_PORT = Deno.env.get('isLive') ? 80 : 2000;
-const DEFAULT_HOSTNAME = Deno.env.get('isLive') ? 'badlands-online.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
+const DEFAULT_HOSTNAME = Deno.env.get('isLive') ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
 const CLIENT_WEBSOCKET_ADDRESS = Deno.env.get('isLive') ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
 const DEFAULT_PLAYER_ID = 'newPlayer';
