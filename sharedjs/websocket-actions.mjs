@@ -3,8 +3,8 @@ globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
 const action = {
   handlePlayCard(message) {
-    console.log("Handle Play card", message);
-    console.log("Client?", onClient);
+    console.log('Handle Play card', message);
+    console.log('Client?', onClient);
     if (onClient) {
       sendC({
         type: 'playCard',
