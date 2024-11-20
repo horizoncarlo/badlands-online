@@ -53,7 +53,14 @@ function dropCardInSlot(event, slot) {
   const data = event?.dataTransfer?.getData('text/plain');
   if (data) {
     let foundIndex = -1;
-    slot.content = state.myCards.find((card, index) => {
+
+    if (slot.content) {
+      console.error('Card already here');
+      return false;
+    }
+
+    // TODO Don't manually set our card - let the server response handle it, instead of: slot.content = state.myCards......
+    state.myCards.find((card, index) => {
       if (card.id == data) {
         foundIndex = index;
         return true;
@@ -61,6 +68,8 @@ function dropCardInSlot(event, slot) {
     });
 
     if (foundIndex >= 0) {
+      action.playCard(state.myCards[foundIndex], slot);
+
       state.myCards.splice(foundIndex, 1);
     }
   }

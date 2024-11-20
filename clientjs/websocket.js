@@ -1,5 +1,22 @@
 let socket; // Declared later as a binding for our Websocket
 
+function sendType(type) {
+  send({}, type);
+}
+
+function send(message, optionalType) {
+  if (!socket) {
+    setupWebsocket();
+  }
+
+  message.playerId = playerId;
+  if (optionalType) {
+    message.type = optionalType;
+  }
+
+  socket.send(JSON.stringify(message));
+}
+
 function setupWebsocket() {
   socket = new WebSocket(CLIENT_WEBSOCKET_ADDRESS);
   socket.addEventListener('message', (event) => {
@@ -7,7 +24,14 @@ function setupWebsocket() {
 
     if (event && event.data) {
       try {
-        // const parsedData = JSON.parse(event.data);
+        const parsedData = JSON.parse(event.data);
+        if (parsedData) {
+          if (parsedData.type) {
+            if (parsedData.type === 'slot') {
+              state.slots[parsedData.details.index].content = parsedData.details.card;
+            }
+          }
+        }
       } catch (err) {
         console.error('Error receiving WS message', err);
       }
@@ -21,10 +45,7 @@ function setupWebsocket() {
   socket.addEventListener('open', (event) => {
     // Open a Websocket connection to the server
     console.log('Opened Websocket, subscribing ' + playerId);
-    socket.send(JSON.stringify({
-      playerId: playerId,
-      type: 'subscribe',
-    }));
+    sendType('subscribe');
   });
 
   socket.addEventListener('close', (event) => {
@@ -39,10 +60,7 @@ function setupWebsocket() {
   });
 
   setInterval(() => {
-    socket.send(JSON.stringify({
-      playerId: playerId,
-      field: 'ping',
-    }));
+    send('ping');
   }, 5000);
 }
 setupWebsocket();

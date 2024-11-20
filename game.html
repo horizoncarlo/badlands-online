@@ -30,10 +30,11 @@
         console.log('TODO shared code test (browser side)', gs.basicTestCall());
       }, 2000);
     </script>
-    
+
     <script src="./sharedjs/gamestate.mjs" type="module"></script>
     <script src="./clientjs/utils.js"></script>
-    <script src="./clientjs/client-websocket.js"></script>
+    <script src="./clientjs/websocket.js"></script>
+    <script src="./sharedjs/websocket-actions.mjs" type="module"></script>
   </head>
   <body
     x-data="state"
@@ -68,7 +69,12 @@
 
       <div class="slots">
         <template x-for="slot in slots">
-          <div class="bd-default" x-on:dragover.prevent="$el.classList.add('slot-highlight')" x-on:dragleave="$el.classList.remove('slot-highlight')" x-on:drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)">
+          <div
+            class="bd-default"
+            x-on:dragover.prevent="if (slot.content) { return false; } $el.classList.add('slot-highlight')"
+            x-on:dragleave="$el.classList.remove('slot-highlight')"
+            x-on:drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
+          >
             <template x-if="slot.content">
               <img :alt="slot.content" :src="'cards/' + slot.content.img" />
             </template>

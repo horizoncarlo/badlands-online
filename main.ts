@@ -2,10 +2,12 @@ import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { gs } from './sharedjs/gamestate.mjs';
 
-const DEFAULT_PORT = Deno.env.get("isLive") ? 80 : 2000;
-const DEFAULT_HOSTNAME = Deno.env.get("isLive") ? 'badlands-online.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
+const DEFAULT_PORT = Deno.env.get('isLive') ? 80 : 2000;
+const DEFAULT_HOSTNAME = Deno.env.get('isLive') ? 'badlands-online.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
 const CLIENT_WEBSOCKET_ADDRESS = Deno.env.get('isLive') ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
+const gameId = uuidv4(); // TODO Generate different game IDs as we add a lobby system
+const socketList = new Map<string, WebSocket[]>();
 
 const handler = async (req: Request) => {
   const url = new URL(req.url);
@@ -17,6 +19,10 @@ const handler = async (req: Request) => {
     }
 
     const { socket, response } = Deno.upgradeWebSocket(req, { idleTimeout: 60 });
+    if (!socketList.get(gameId)) {
+      socketList.set(gameId, []);
+    }
+    socketList.set(gameId, [...socketList.get(gameId), socket]);
 
     socket.addEventListener('open', () => {
       // TODO Unlike Bun, we'll need to do our own group sub/unsub management to broadcast to each Websocket we're managing that matches some session/game ID we setup. See https://bun.sh/guides/websocket/pubsub
@@ -25,11 +31,7 @@ const handler = async (req: Request) => {
     socket.addEventListener('message', (event) => {
       try {
         const dataJSON = JSON.parse(event.data);
-        if (dataJSON.field === 'ping') {
-          socket.send(JSON.stringify({
-            'field': 'pong',
-          }));
-        }
+        handleWebsocketMessage(dataJSON);
       } catch (err) {
         console.error('Websocket Message error', err); // TODO Probably can just silently ignore these as it'd just be bad/junk data coming in
       }
@@ -53,6 +55,45 @@ const handler = async (req: Request) => {
   }
 
   return serveFile(req, '.' + filePath);
+};
+
+const send = (message: any) => {
+  if (!message) {
+    return;
+  }
+
+  socketList.get(gameId).forEach((socket) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+    }
+  });
+};
+
+const handleWebsocketMessage = (message: any) => { // TODO Better typing for receiving Websocket messages once we have a more realistic idea of our incoming format
+  if (!message || !message.type) {
+    return;
+  }
+
+  if (message.type === 'ping') {
+    send({
+      type: 'pong',
+    });
+  } else {
+    console.log('Received WS message', message);
+
+    switch (message.type) {
+      case 'playCard':
+        // TODO Check if card is valid to play
+        send({
+          type: 'slot',
+          details: { // TODO Directly send details here instead of copying just some properties out?
+            index: message.details.slot.index,
+            card: message.details.card,
+          },
+        });
+        break;
+    }
+  }
 };
 
 console.log('TODO shared code test (Deno side)', gs.basicTestCall());
