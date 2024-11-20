@@ -1,4 +1,4 @@
-globalThis.onClient = typeof window !== 'undefined';
+globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
 const action = {
