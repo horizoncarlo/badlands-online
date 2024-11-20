@@ -1,4 +1,5 @@
 ## DREAM LIST
+
 - Lobby system
   - Public games, private games w/ password, observers or not
 - Different card backs
@@ -21,6 +22,7 @@
 - Session timeout from idleness
 
 ## TECH
+
 - Websockets for communication entirely - pushing obviously, but also instead of endpoints for player interactions
 - Instead of thinking like HTTP where we need to send everything in a single response, can instead send multiple simple messages that the client reacts to
   - ie: add a chat message, destroy a camp, do 1 damage to card XYZ, etc.

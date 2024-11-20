@@ -89,7 +89,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       type: 'pong',
     }, message.playerId);
   } else if (message.type === 'unsubscribe') {
-    const playerId = message.details.playerId;
+    const playerId = message.playerId;
     if (playerId) {
       const foundIndex = socketList.get(gameId).findIndex((socketDetails: WebSocketDetails) => playerId === socketDetails.playerId);
       if (foundIndex !== -1) {

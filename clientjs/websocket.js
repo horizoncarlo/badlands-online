@@ -23,7 +23,7 @@ const receiveClientWebsocketMessage = (message) => {
       break;
     }
   }
-}
+};
 
 function sendType(type) {
   sendC({}, type);
@@ -91,7 +91,7 @@ const setupWebsocket = () => {
   pingPongIntervaler = setInterval(() => {
     sendType('ping');
   }, WS_PING_INTERVAL);
-}
+};
 
 const teardownWebsocket = () => {
   if (socket) {
@@ -106,7 +106,7 @@ const teardownWebsocket = () => {
       }
     } catch (ignored) {}
   }
-}
+};
 
 // Before we unload, unsubscribe from our Websocket if possible
 window.onbeforeunload = function () {
