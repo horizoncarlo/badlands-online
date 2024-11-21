@@ -32,9 +32,9 @@ const scrapeCardData = async () => {
 const getCards = async (browser, cardType) => {
   const context = await browser.newContext({ userAgent: rua() });
   const baseUrl = 'https://radlands.fandom.com/wiki';
-  const peopleUrl = `${baseUrl}/${cardType}_Cards`;
+  const cardUrl = `${baseUrl}/${cardType}_Cards`;
   const page = await context.newPage();
-  await page.goto(peopleUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(cardUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   const rows = await page.locator('table.fandom-table tbody tr');
   const rowCount = await rows.count();
   console.log(`Found ${rowCount} ${cardType} cards`);
