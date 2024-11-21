@@ -23,9 +23,9 @@ function alpineInit() {
   state = Alpine.reactive(state);
 
   // TODO These would come from the server over the websocket when drawing the initial hand
-  state.myCards.push({ id: 1, img: 'Scout.png' });
-  state.myCards.push({ id: 2, img: 'Sniper.png' });
-  state.myCards.push({ id: 3, img: 'Wounded-Soldier.png' });
+  state.myCards.push({ id: 1, img: 'scout.png' });
+  state.myCards.push({ id: 2, img: 'sniper.png' });
+  state.myCards.push({ id: 3, img: 'wounded_soldier.png' });
 
   state.slots = Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })); // For a 3x2 grid
 
@@ -60,7 +60,7 @@ function dropCardInSlot(event, slot) {
     }
 
     state.myCards.find((card, index) => {
-      if (card.id == data) {
+      if (card.id === data) {
         foundIndex = index;
         return true;
       }

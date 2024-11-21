@@ -1,13 +1,13 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-read --allow-env --watch main.ts",
+    "dev": "deno run --allow-net --allow-read --allow-env --allow-sys --allow-write --allow-run --watch main.ts",
     "check": "deno check main.ts",
     "lint": "deno lint"
   },
   "compilerOptions": {
     "allowUnreachableCode": true,
     "strictNullChecks": false,
-    "noImplicitAny": false // Fight me?
+    "noImplicitAny": false
   },
   "lint": {
     "rules": {
@@ -23,5 +23,6 @@
     "useTabs": false
   },
   "imports": {
+    "playwright": "npm:playwright@^1.49.0"
   }
 }

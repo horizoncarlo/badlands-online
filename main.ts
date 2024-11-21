@@ -1,15 +1,17 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { action } from './sharedjs/websocket-actions.mjs';
+import { startScraper } from './backendjs/scraper.ts';
 
 type WebSocketDetails = {
   playerId: string;
   socket: WebSocket;
 };
 
-const DEFAULT_PORT = Deno.env.get('isLive') ? 80 : 2000;
-const DEFAULT_HOSTNAME = Deno.env.get('isLive') ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
-const CLIENT_WEBSOCKET_ADDRESS = Deno.env.get('isLive') ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
+const IS_LIVE = Deno.env.get('isLive');
+const DEFAULT_PORT = IS_LIVE ? 80 : 2000;
+const DEFAULT_HOSTNAME = IS_LIVE ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
+const CLIENT_WEBSOCKET_ADDRESS = IS_LIVE ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
 const DEFAULT_PLAYER_ID = 'newPlayer';
 
@@ -117,3 +119,19 @@ Deno.serve({ port: DEFAULT_PORT, hostname: DEFAULT_HOSTNAME }, handler);
 
 // Pseudo exports for use in sharedjs and other places
 globalThis.sendS = sendS;
+
+// Dev-specific APIs
+if (!IS_LIVE) {
+  const devHandler = (req: Request) => {
+    const url = new URL(req.url);
+    const filePath = url.pathname;
+
+    if (filePath === '/scraper/start') {
+      return new Response(startScraper(), {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+    return new Response(null, { status: 401 });
+  };
+  Deno.serve({ port: 8080, hostname: 'localhost' }, devHandler);
+}

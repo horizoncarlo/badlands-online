@@ -71,7 +71,7 @@
             x-on:drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
           >
             <template x-if="slot.content">
-              <img :alt="slot.content" :src="'cards/' + slot.content.img" />
+              <img :alt="slot.content" :src="'cards/people/' + slot.content.img" />
             </template>
           </div>
         </template>
@@ -81,7 +81,7 @@
         <div class="cards">
           <template x-for="card in myCards">
             <div class="card">
-              <img :alt="card" :src="'cards/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
+              <img :alt="card" :src="'cards/people/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
             </div>
           </template>
         </div>
