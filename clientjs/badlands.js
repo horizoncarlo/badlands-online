@@ -60,7 +60,7 @@ function dropCardInSlot(event, slot) {
     }
 
     state.myCards.find((card, index) => {
-      if (card.id === data) {
+      if (card.id == data) {
         foundIndex = index;
         return true;
       }
