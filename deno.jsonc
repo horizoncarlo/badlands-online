@@ -23,6 +23,5 @@
     "useTabs": false
   },
   "imports": {
-    "playwright": "npm:playwright@^1.49.0"
   }
 }
