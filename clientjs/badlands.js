@@ -1,36 +1,39 @@
-let state = {
-  bodyReady: false,
-  slots: [
-    /* { index, content } */
-  ],
-  camps: [
-    /* campObj */
-  ],
-  myCards: [
-    /* cardObj */
-  ],
-};
-
 function init() {
+  let alpineReady = false;
+  let sharedReady = false;
+
   // Listen for Alpine to be done setting up
   document.addEventListener('alpine:initialized', () => {
-    alpineInit();
+    alpineReady = true;
+    checkInit(alpineReady && sharedReady);
+  });
+
+  document.addEventListener('sharedReady', (e) => {
+    sharedReady = true;
+    checkInit(alpineReady && sharedReady);
   });
 }
 init();
 
+function checkInit(status) {
+  if (status) {
+    alpineInit();
+  }
+}
+
 function alpineInit() {
-  state = Alpine.reactive(state);
+  gs = Alpine.reactive(gs);
+  gs.bodyReady = true;
 
   // TODO These would come from the server over the websocket when drawing the initial hand
-  state.myCards.push({ id: 1, img: 'scout.png' });
-  state.myCards.push({ id: 2, img: 'sniper.png' });
-  state.myCards.push({ id: 3, img: 'wounded_soldier.png' });
+  gs.player1.cards.push({ id: 1, img: 'scout.png' });
+  gs.player1.cards.push({ id: 2, img: 'sniper.png' });
+  gs.player1.cards.push({ id: 3, img: 'wounded_soldier.png' });
 
-  state.slots = Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })); // For a 3x2 grid
+  gs.slots = Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })); // For a 3x2 grid
 
   // TODO Loose card structure?
-  // state.myCards.push({
+  // gs.player1.cards.push({
   //   id: 1,
   //   name: "Wounded Soldier",
   //   img: "Wounded-Soldier.png",
@@ -59,7 +62,7 @@ function dropCardInSlot(event, slot) {
       return false;
     }
 
-    state.myCards.find((card, index) => {
+    gs.player1.cards.find((card, index) => {
       if (card.id == data) {
         foundIndex = index;
         return true;
@@ -67,8 +70,8 @@ function dropCardInSlot(event, slot) {
     });
 
     if (foundIndex >= 0) {
-      action.handlePlayCard({
-        card: state.myCards[foundIndex],
+      action.playCard({
+        card: gs.player1.cards[foundIndex],
         slot: slot,
       });
     }

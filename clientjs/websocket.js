@@ -13,12 +13,12 @@ const receiveClientWebsocketMessage = (message) => {
 
   switch (message.type) {
     case 'slot':
-      state.slots[message.details.index].content = message.details.card;
+      gs.slots[message.details.index].content = message.details.card;
       break;
     case 'removeCard': {
-      const foundIndex = state.myCards.findIndex((card) => card.id === message.details.card.id);
+      const foundIndex = gs.player1.cards.findIndex((card) => card.id === message.details.card.id);
       if (foundIndex !== -1) {
-        state.myCards.splice(foundIndex, 1);
+        gs.player1.cards.splice(foundIndex, 1);
       }
       break;
     }

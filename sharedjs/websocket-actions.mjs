@@ -1,8 +1,26 @@
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
+const gs = { // Game state
+  player1: {
+    cards: [],
+  },
+  player2: {
+    cards: [],
+  },
+  deck: [
+    /* cardObj */
+  ],
+  slots: [
+    /* { index, content } */
+  ],
+  camps: [
+    /* campObj */
+  ],
+};
+
 const action = {
-  handlePlayCard(message) {
+  playCard(message) {
     if (onClient) {
       sendC({
         type: 'playCard',
@@ -31,9 +49,29 @@ const action = {
       }, message.playerId);
     }
   },
+
+  drawCard(message) {
+    if (onClient) {
+      sendC({
+        type: 'drawCard',
+        details: {
+          // TODO Probably pass if we're using water or initial draw or what?
+        },
+      });
+    } else {
+      sendS({
+        type: 'addCard',
+        details: {
+          card: message.card,
+        },
+      });
+    }
+  },
 };
 
 if (onClient) {
   window.action = action;
+  window.gs = gs;
+  (document || window).dispatchEvent(new Event('sharedReady'));
 }
-export { action };
+export { action, gs };

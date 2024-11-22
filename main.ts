@@ -1,7 +1,7 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
-import { action } from './sharedjs/websocket-actions.mjs';
 import { startScraper } from './backendjs/scraper.ts';
+import { action } from './sharedjs/websocket-actions.mjs';
 
 type WebSocketDetails = {
   playerId: string;
@@ -104,7 +104,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
     switch (message.type) {
       case 'playCard':
-        action.handlePlayCard(message);
+        action.playCard(message);
         break;
     }
   }

@@ -17,11 +17,6 @@
 
     <title>Badlands Online</title>
 
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/alpinejs/dist/cdn.min.js"
-    ></script>
-
     <script type="text/javascript">
       const CLIENT_WEBSOCKET_ADDRESS = '${CLIENT_WEBSOCKET_ADDRESS}';
       let playerId = '${PLAYER_ID}'; // Replaced server side before returning the page
@@ -30,24 +25,20 @@
     <script src="./clientjs/utils.js"></script>
     <script src="./clientjs/websocket.js"></script>
     <script src="./sharedjs/websocket-actions.mjs" type="module"></script>
+
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs/dist/cdn.min.js"
+    ></script>
   </head>
-  <body
-    x-data="state"
-    style="display: none"
-    x-show="bodyReady"
-    x-transition.opacity
-    x-transition.duration.750ms
-    x-init="Alpine.nextTick(() => { bodyReady = true })"
-  >
+  <body x-data="gs">
     <section>
       <header>
         <menu>
           <li>
-            Game
+            Debug
             <menu>
-              <li>New</li>
-              <li>Save Replay</li>
-              <li>Concede</li>
+              <li onclick="action.drawCard()">Draw Hand</li>
               <li>
                 Customize Layout
                 <menu>
@@ -58,7 +49,6 @@
               </li>
             </menu>
           </li>
-          <li>Rules</li>
         </menu>
       </header>
 
@@ -79,7 +69,7 @@
 
       <footer>
         <div class="cards">
-          <template x-for="card in myCards">
+          <template x-for="card in player1.cards">
             <div class="card">
               <img :alt="card" :src="'cards/people/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
             </div>

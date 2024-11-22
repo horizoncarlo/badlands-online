@@ -41,7 +41,7 @@ const getCards = async (browser: Browser, baseUrl: string, cardType: string) => 
   const urls = [];
   for (let i = 0; i < rowCount; i++) {
     const anchor = rows.nth(i).locator('td:first-child').locator('a');
-    const href = await (anchor.getAttribute('href') as unknown as Promise<string|null>);
+    const href = await (anchor.getAttribute('href') as unknown as Promise<string | null>);
     if (href) {
       urls.push(baseUrl.replace('/wiki', href));
     }
@@ -61,7 +61,7 @@ const downloadCardImages = async (browser: Browser, cardType: string, urls: stri
   const imgSrcMatch = `${cardType}_-_`;
   for (const page of pages) {
     const img = page.locator(`img[src*="${imgSrcMatch}"]`);
-    let imgSrc = await (img.first().getAttribute('src') as unknown as Promise<string|null>)
+    let imgSrc = await (img.first().getAttribute('src') as unknown as Promise<string | null>);
     if (imgSrc) {
       imgSrc = imgSrc.split('.png')[0] + '.png';
       console.log(`Downloading ${cardType} img ${imgSrc}...`);
