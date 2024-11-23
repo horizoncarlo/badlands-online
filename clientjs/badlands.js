@@ -1,6 +1,9 @@
 let ui = { // Local state
   playDrawAnimation: false,
   waterCount: 3,
+  draggingCard: false,
+  repositionOffsetX: 0,
+  repositionOffsetY: 0,
 };
 
 function init() {
@@ -31,6 +34,26 @@ function alpineInit() {
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
   gs.slots = Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })); // For a 3x2 grid
+}
+
+function repositionStart(event) {
+  ui.repositionOffsetX = event.offsetX;
+  ui.repositionOffsetY = event.offsetY;
+}
+
+function repositionEnd(event, el, coords) {
+  if (!el) {
+    return;
+  }
+  if (!coords || !Array.isArray(coords) || coords.length < 2) {
+    coords = [0, 0];
+  }
+
+  // Long winded one liner, but basically limit our left and top to within the window dimensions
+  // Also account for where the mouse was on the draggable element when we started (that's coords)
+  // And if we're scrolled on the page
+  el.style.left = Math.min(document.documentElement.scrollWidth - el.offsetWidth, Math.max(0, event.clientX - coords[0] + window.scrollX)) + 'px';
+  el.style.top = Math.min(document.documentElement.scrollHeight - el.offsetHeight, Math.max(0, event.clientY - coords[1] + window.scrollY)) + 'px';
 }
 
 function getMyCards() {

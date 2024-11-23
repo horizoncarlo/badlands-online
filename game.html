@@ -66,7 +66,8 @@
         <img src="images/cards/people/punk.png" class="draw-animation" />
       </template>
 
-      <div class="water-wrap">
+      <!-- Note this approach can be used on ANY element to make it repositionable in the page -->
+      <div draggable="true" @dragstart="repositionStart($event)" @dragend="repositionEnd($event, $el, [ui.repositionOffsetX, ui.repositionOffsetY])" class="water-wrap repositionable">
         <template x-for="water in ui.waterCount">
           <img src="images/water.png" class="water-token" draggable="false" />
         </template>
@@ -76,9 +77,9 @@
         <template x-for="slot in slots">
           <div
             class="bd-default"
-            x-on:dragover.prevent="if (slot.content) { return false; } $el.classList.add('slot-highlight')"
-            x-on:dragleave="$el.classList.remove('slot-highlight')"
-            x-on:drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
+            @dragover.prevent="if (slot.content || !draggingCard) { return false; } $el.classList.add('slot-highlight')"
+            @dragleave="$el.classList.remove('slot-highlight')"
+            @drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
           >
             <template x-if="slot.content">
               <img :alt="slot.content" :src="'images/cards/people/' + slot.content.img" :class="slot.content.damage >= 1 ? 'damaged-card' : ''" />
@@ -92,7 +93,7 @@
           <div class="cards">
             <template x-for="card in getMyCards()">
               <div class="card">
-                <img :alt="card" :src="'images/cards/people/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
+                <img :alt="card" :src="'images/cards/people/' + card.img" draggable="true" @dragstart="ui.draggingCard = true; $event.dataTransfer.setData('text/plain', card.id);" @dragend="ui.draggingCard = false" />
               </div>
             </template>
           </div>

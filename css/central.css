@@ -81,9 +81,12 @@ menu {
 .water-wrap {
   position: absolute;
   left: 2%;
-  bottom: 10%;
+  top: 80%;
   display: flex;
   gap: 15px;
+  background-color: var(--bg-accent);
+  border-radius: 20px;
+  padding: 10px;
 }
 
 .water-token {
@@ -93,4 +96,8 @@ menu {
 .water-token:hover {
   filter: drop-shadow(2px 2px white);
   animation: tiltToken 2s infinite alternate ease-in-out;
+}
+
+.repositionable {
+  position: absolute;
 }
