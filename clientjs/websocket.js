@@ -12,35 +12,65 @@ const receiveClientWebsocketMessage = (message) => {
   console.log('Received client message', message);
 
   switch (message.type) {
+    case 'alert':
+      // TODO Proper alert component on UI
+      console.warn('ALERT:', message.details.text);
+      break;
+    case 'error':
+      // TODO Proper error component on UI
+      console.error(message.details.text);
+      break;
+    case 'setPlayer':
+      gs.who = message.details.player;
+      break;
     case 'slot':
       gs.slots[message.details.index].content = message.details.card;
       break;
-    case 'removeCard': {
-      const foundIndex = gs.player1.cards.findIndex((card) => card.id === message.details.card.id);
-      if (foundIndex !== -1) {
-        gs.player1.cards.splice(foundIndex, 1);
+    case 'damageCard': {
+      const foundCard = findCardInBoard(message.details.card);
+      if (foundCard) {
+        foundCard.damage = (foundCard.damage || 0) + message.details.amount;
+        if (foundCard.damage >= 2) {
+          // TODO Destroy a card
+        }
       }
       break;
     }
+    case 'removeCard': {
+      const foundIndex = getMyCards().findIndex((card) => card.id === message.details.card.id);
+      if (foundIndex !== -1) {
+        getMyCards().splice(foundIndex, 1);
+      }
+      break;
+    }
+    case 'addCard':
+      if (message.details.fromWater) {
+        ui.playDrawAnimation = true;
+        setTimeout(() => {
+          getMyCards().push(message.details.card);
+        }, 1100);
+        setTimeout(() => {
+          ui.playDrawAnimation = false;
+        }, 1400);
+      } else {
+        getMyCards().push(message.details.card);
+      }
+
+      break;
   }
 };
 
-function sendType(type) {
-  sendC({}, type);
-}
-
-function sendC(message, overrideType) {
+function sendC(type, messageDetails) {
   if (!socket) {
     setupWebsocket();
   }
 
-  message.playerId = playerId;
-  if (overrideType) {
-    message.type = overrideType;
-  }
-
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(message));
+    socket.send(JSON.stringify({
+      type: type,
+      playerId: playerId,
+      details: messageDetails ?? {},
+    }));
   }
 }
 
@@ -89,14 +119,14 @@ const setupWebsocket = () => {
     clearInterval(pingPongIntervaler);
   }
   pingPongIntervaler = setInterval(() => {
-    sendType('ping');
+    sendC('ping');
   }, WS_PING_INTERVAL);
 };
 
 const teardownWebsocket = () => {
   if (socket) {
     try {
-      sendType('unsubscribe');
+      sendC('unsubscribe');
 
       if (
         socket.readyState !== WebSocket.CLOSED &&

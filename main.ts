@@ -1,7 +1,7 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { startScraper } from './backendjs/scraper.ts';
-import { action } from './sharedjs/websocket-actions.mjs';
+import { action, gs } from './sharedjs/websocket-actions.mjs';
 
 type WebSocketDetails = {
   playerId: string;
@@ -33,10 +33,13 @@ const handler = async (req: Request) => {
     }
 
     socket.addEventListener('open', () => {
+      const newPlayerId = url.searchParams.get('playerId') ?? DEFAULT_PLAYER_ID;
       socketList.set(gameId, [...socketList.get(gameId), {
-        playerId: url.searchParams.get('playerId') ?? DEFAULT_PLAYER_ID,
+        playerId: newPlayerId,
         socket: socket,
       }]);
+
+      sendS('alert', { text: 'Choose which player you want to be from the menu' }, newPlayerId);
     });
     socket.addEventListener('message', (event) => {
       try {
@@ -67,15 +70,19 @@ const handler = async (req: Request) => {
   return serveFile(req, '.' + filePath);
 };
 
-const sendS = (message: any, optionalGroup?: string) => {
-  if (!message) {
+// TODO Do a set type of...well...type, such as 'playCard' | 'drawCard' | etc.
+const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
+  if (!type) {
     return;
   }
 
   socketList.get(gameId).forEach((socketDetails: WebSocketDetails) => {
     if (!optionalGroup || (optionalGroup && optionalGroup === socketDetails.playerId)) {
       if (socketDetails && socketDetails.socket && socketDetails.socket.readyState === WebSocket.OPEN) {
-        socketDetails.socket.send(JSON.stringify(message));
+        socketDetails.socket.send(JSON.stringify({
+          type: type,
+          details: messageDetails ?? {},
+        }));
       }
     }
   });
@@ -87,9 +94,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
   }
 
   if (message.type === 'ping') {
-    sendS({
-      type: 'pong',
-    }, message.playerId);
+    sendS('pong', null, message.playerId);
   } else if (message.type === 'unsubscribe') {
     const playerId = message.playerId;
     if (playerId) {
@@ -103,12 +108,46 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     console.log('Received server message', message);
 
     switch (message.type) {
+      case 'joinGame':
+        action.joinGame(message);
+        break;
       case 'playCard':
         action.playCard(message);
+        break;
+      case 'drawCard':
+        action.drawCard(message);
         break;
     }
   }
 };
+
+// TODO Loose card structure?
+// {
+//   id: 1,
+//   name: "Wounded Soldier",
+//   img: "Wounded-Soldier.png",
+//   cost: 1,
+//   abilities: [
+//     {
+//       cost: 1,
+//       symbol: "Damage",
+//     }
+//   ],
+//   traits: [
+//     {
+//       text: "When this card enters play, [draw]. Then, damage [damage] this card"
+//     }
+//   ]
+// }
+gs.deck = [
+  // TODO Populate the deck properly
+  { id: 1, img: 'scout.png' },
+  { id: 2, img: 'gunner.png' },
+  { id: 3, img: 'sniper.png' },
+  { id: 4, img: 'pyromaniac.png' },
+  { id: 5, img: 'assassin.png' },
+  { id: 6, img: 'cult_leader.png' },
+];
 
 /* TODO HTTPS support
   port: 443,

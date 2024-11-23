@@ -13,6 +13,7 @@
     />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lowlighter/matcha@3.0.0/dist/matcha.min.css" />
     <link rel="stylesheet" href="./css/matcha-override.css" />
+    <link rel="stylesheet" href="./css/animation.css" />
     <link rel="stylesheet" href="./css/central.css" />
 
     <title>Badlands Online</title>
@@ -32,13 +33,12 @@
     ></script>
   </head>
   <body x-data="gs">
-    <section>
+    <section x-data="ui">
       <header>
         <menu>
           <li>
             Debug
             <menu>
-              <li onclick="action.drawCard()">Draw Hand</li>
               <li>
                 Customize Layout
                 <menu>
@@ -49,8 +49,28 @@
               </li>
             </menu>
           </li>
+          <li>
+            Join As
+            <menu>
+              <li onclick="action.joinGame('player1')">Be Player 1</li>
+              <li onclick="action.joinGame('player2')">Be Player 2</li>
+            </menu>
+          </li>
         </menu>
       </header>
+
+      <div class="draw-pile" title="Draw a card for 2 Water">
+        <img onclick="action.drawCard({ fromWater: true })" src="images/cards/people/punk.png" draggable="false" />
+      </div>
+      <template x-if="playDrawAnimation">
+        <img src="images/cards/people/punk.png" class="draw-animation" />
+      </template>
+
+      <div class="water-wrap">
+        <template x-for="water in ui.waterCount">
+          <img src="images/water.png" class="water-token" draggable="false" />
+        </template>
+      </div>
 
       <div class="slots">
         <template x-for="slot in slots">
@@ -61,20 +81,22 @@
             x-on:drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
           >
             <template x-if="slot.content">
-              <img :alt="slot.content" :src="'cards/people/' + slot.content.img" />
+              <img :alt="slot.content" :src="'images/cards/people/' + slot.content.img" :class="slot.content.damage >= 1 ? 'damaged-card' : ''" />
             </template>
           </div>
         </template>
       </div>
 
       <footer>
-        <div class="cards">
-          <template x-for="card in player1.cards">
-            <div class="card">
-              <img :alt="card" :src="'cards/people/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
-            </div>
-          </template>
-        </div>
+        <template x-if="who">
+          <div class="cards">
+            <template x-for="card in getMyCards()">
+              <div class="card">
+                <img :alt="card" :src="'images/cards/people/' + card.img" draggable="true" x-on:dragstart.self="event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain', card.id);" />
+              </div>
+            </template>
+          </div>
+        </template>
       </footer>
     </section>
 

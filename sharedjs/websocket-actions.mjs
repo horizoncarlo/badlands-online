@@ -2,6 +2,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
 const gs = { // Game state
+  who: null,
   player1: {
     cards: [],
   },
@@ -9,7 +10,7 @@ const gs = { // Game state
     cards: [],
   },
   deck: [
-    /* cardObj */
+    /* { id, img, damage? } */
   ],
   slots: [
     /* { index, content } */
@@ -20,20 +21,28 @@ const gs = { // Game state
 };
 
 const action = {
+  joinGame(message) {
+    if (onClient) {
+      sendC('joinGame', { player: message });
+    } else {
+      sendS('setPlayer', message.details);
+
+      // Draw initial hand
+      action.drawCard(message);
+      action.drawCard(message);
+      action.drawCard(message);
+    }
+  },
+
   playCard(message) {
     if (onClient) {
-      sendC({
-        type: 'playCard',
-        details: message,
-      });
+      sendC('playCard', message);
     } else {
-      // TODO Check if card is valid to play
-      sendS({
-        type: 'slot',
-        details: { // TODO Directly send details here instead of copying just some properties out?
-          index: message.details.slot.index,
-          card: message.details.card,
-        },
+      // TODO Check if card is valid to play on the playCard action
+      sendS('slot', {
+        // TODO Directly send details here instead of copying just some properties out?
+        index: message.details.slot.index,
+        card: message.details.card,
       });
       action.removeCard(message);
     }
@@ -41,29 +50,30 @@ const action = {
 
   removeCard(message) {
     if (!onClient) {
-      sendS({
-        type: 'removeCard',
-        details: {
-          card: message.details.card,
-        },
-      }, message.playerId);
+      sendS('removeCard', { card: message.details.card }, message.playerId);
     }
   },
 
   drawCard(message) {
     if (onClient) {
-      sendC({
-        type: 'drawCard',
-        details: {
-          // TODO Probably pass if we're using water or initial draw or what?
-        },
-      });
+      sendC('drawCard', message);
     } else {
-      sendS({
-        type: 'addCard',
-        details: {
-          card: message.card,
+      const newCard = gs.deck.shift();
+      if (newCard) {
+        sendS('addCard', { card: newCard, ...message.details }, message.playerId);
+      } else {
+        sendS('error', { text: 'No cards left to draw' }, message.playerId);
+      }
+    }
+  },
+
+  damageCard(message) {
+    if (!onClient) {
+      sendS('damageCard', {
+        card: {
+          id: message.card.id,
         },
+        amount: 1,
       });
     }
   },

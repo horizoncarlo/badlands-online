@@ -5,8 +5,28 @@
   --card-height: 318px;
 }
 
+body {
+  /* Avoid jiggling as a scrollbar is added */
+  overflow-y: scroll;
+}
+
 menu {
   margin: 0;
+}
+
+.draw-pile {
+  position: absolute;
+}
+
+.draw-pile:hover {
+  filter: brightness(1.2);
+  transform: scale(1.05);
+}
+
+.draw-animation {
+  position: absolute;
+  animation-timing-function: linear;
+  animation: drawCard 1.5s infinite;
 }
 
 .slots,
@@ -19,13 +39,17 @@ menu {
   margin-right: auto;
 }
 
-.cards {
-  gap: 10px;
+.slots {
+  max-width: calc(var(--slot-width) * 3 + 110px);
 }
 
 .slots div {
   width: var(--slot-width);
   height: var(--slot-height);
+}
+
+.cards {
+  gap: 10px;
 }
 
 .card {
@@ -35,18 +59,8 @@ menu {
 }
 
 .card:hover {
-  /* transform: scale(1.5); */
   box-shadow: 0 0 20px var(--active);
-  animation: tilt 2s infinite alternate ease-in-out;
-}
-
-@keyframes tilt {
-  0% {
-    transform: rotateY(-5deg) translateY(-50px) scale(1.2);
-  }
-  100% {
-    transform: rotateY(5deg) translateY(-50px) scale(1.25);
-  }
+  animation: tiltCard 2s infinite alternate ease-in-out;
 }
 
 .slots div,
@@ -57,4 +71,26 @@ menu {
 
 .slot-highlight {
   background-color: var(--success);
+}
+
+.damaged-card {
+  transition: transform 1s;
+  transform: rotate(90deg);
+}
+
+.water-wrap {
+  position: absolute;
+  left: 2%;
+  bottom: 10%;
+  display: flex;
+  gap: 15px;
+}
+
+.water-token {
+  max-width: 100px;
+}
+
+.water-token:hover {
+  filter: drop-shadow(2px 2px white);
+  animation: tiltToken 2s infinite alternate ease-in-out;
 }

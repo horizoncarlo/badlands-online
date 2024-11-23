@@ -1,5 +1,5 @@
-import { Browser, chromium } from 'npm:playwright';
 import rua from 'https://deno.land/x/rua/mod.js';
+import { Browser, chromium } from 'npm:playwright';
 
 let scraperRunning = false;
 
@@ -70,7 +70,7 @@ const downloadCardImages = async (browser: Browser, cardType: string, urls: stri
         const imageBuffer = await response.arrayBuffer();
         const nameMatch = imgSrc.match(new RegExp(`${imgSrcMatch}([^/]+)\.png`));
         const name = nameMatch ? nameMatch[1].toLowerCase() : `unknown-${new Date().toISOString()}`;
-        const dir = `cards/${cardType === 'Camp' ? 'camps' : cardType.toLowerCase()}`;
+        const dir = `images/cards/${cardType === 'Camp' ? 'camps' : cardType.toLowerCase()}`;
         await Deno.mkdir(dir, { recursive: true });
         await Deno.writeFile(`${dir}/${name}.png`, new Uint8Array(imageBuffer));
       } else {

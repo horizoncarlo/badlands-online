@@ -1,3 +1,8 @@
+let ui = { // Local state
+  playDrawAnimation: false,
+  waterCount: 3,
+};
+
 function init() {
   let alpineReady = false;
   let sharedReady = false;
@@ -22,34 +27,40 @@ function checkInit(status) {
 }
 
 function alpineInit() {
+  ui = Alpine.reactive(ui);
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
-
-  // TODO These would come from the server over the websocket when drawing the initial hand
-  gs.player1.cards.push({ id: 1, img: 'scout.png' });
-  gs.player1.cards.push({ id: 2, img: 'sniper.png' });
-  gs.player1.cards.push({ id: 3, img: 'wounded_soldier.png' });
-
   gs.slots = Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })); // For a 3x2 grid
+}
 
-  // TODO Loose card structure?
-  // gs.player1.cards.push({
-  //   id: 1,
-  //   name: "Wounded Soldier",
-  //   img: "Wounded-Soldier.png",
-  //   cost: 1,
-  //   abilities: [
-  //     {
-  //       cost: 1,
-  //       symbol: "Damage",
-  //     }
-  //   ],
-  //   traits: [
-  //     {
-  //       text: "When this card enters play, [draw]. Then, damage [damage] this card"
-  //     }
-  //   ]
-  // })
+function getMyCards() {
+  if (gs.who) {
+    return gs[gs.who].cards;
+  }
+  return [];
+}
+
+function findCardInHand(card) {
+  const foundIndex = getMyCards().findIndex((loopCard) => loopCard.id === card.id);
+  if (foundIndex !== -1) {
+    return getMyCards()[foundIndex];
+  }
+  return null;
+}
+
+function findCardInBoard(card) {
+  const foundIndex = gs.slots.findIndex((loopSlot) => {
+    console.log('Loop Slot', loopSlot, loopSlot.content && loopSlot.content.id && loopSlot.content.id, card.id);
+    return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
+  });
+  if (foundIndex !== -1) {
+    return gs.slots[foundIndex].content;
+  }
+  return null;
+}
+
+function findCardInGame(card) {
+  return findCardInHand(card) || findCardInBoard(card) || null;
 }
 
 function dropCardInSlot(event, slot) {
@@ -62,7 +73,7 @@ function dropCardInSlot(event, slot) {
       return false;
     }
 
-    gs.player1.cards.find((card, index) => {
+    getMyCards().find((card, index) => {
       if (card.id == data) {
         foundIndex = index;
         return true;
@@ -71,7 +82,7 @@ function dropCardInSlot(event, slot) {
 
     if (foundIndex >= 0) {
       action.playCard({
-        card: gs.player1.cards[foundIndex],
+        card: getMyCards()[foundIndex],
         slot: slot,
       });
     }
