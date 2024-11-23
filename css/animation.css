@@ -1,0 +1,28 @@
+@keyframes drawCard {
+  from {
+    top: 0;
+    left: 0;
+  }
+  to {
+    top: 100vh;
+    left: calc(50vw - var(--card-width) / 2);
+  }
+}
+
+@keyframes tiltCard {
+  0% {
+    transform: rotateY(-5deg) translateY(-50px) scale(1.2);
+  }
+  100% {
+    transform: rotateY(5deg) translateY(-50px) scale(1.25);
+  }
+}
+
+@keyframes tiltToken {
+  0% {
+    transform: rotate(-5deg) rotateY(-10deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(5deg) rotateY(10deg) scale(1.25);
+  }
+}
