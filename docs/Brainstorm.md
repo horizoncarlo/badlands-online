@@ -24,7 +24,8 @@
 ## TECH
 
 - Websockets for communication entirely - pushing obviously, but also instead of endpoints for player interactions
-- Instead of thinking like HTTP where we need to send everything in a single response, can instead send multiple simple messages that the client reacts to
+- Instead of thinking like HTTP where we need to send everything in a single response, can instead send multiple simple
+  messages that the client reacts to
   - ie: add a chat message, destroy a camp, do 1 damage to card XYZ, etc.
 - So the Websocket response would be more like an instruction set of what to do to the client state
 

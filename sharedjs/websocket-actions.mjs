@@ -4,9 +4,13 @@ globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 const gs = { // Game state
   who: null,
   player1: {
+    playerId: null,
+    waterCount: 3,
     cards: [],
   },
   player2: {
+    playerId: null,
+    waterCount: 3,
     cards: [],
   },
   deck: [
@@ -25,7 +29,19 @@ const action = {
     if (onClient) {
       sendC('joinGame', { player: message });
     } else {
-      sendS('setPlayer', message.details);
+      /* TODO TEMPORARY For now it's annoying to check if a player is in our slot, as refreshing our page currently would trigger this
+                        Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid...
+      const desiredPlayer = message.details.player;
+      if (gs[desiredPlayer] && (!gs[desiredPlayer].playerId || gs[desiredPlayer].playerId === message.playerId)) {
+        gs[desiredPlayer].playerId = message.playerId;
+      }
+      else {
+        return action.sendError('Invalid join request or someone already playing', message.playerId);
+      }
+      */
+      gs[message.details.player].playerId = message.playerId;
+
+      sendS('setPlayer', message.details, message.playerId);
 
       // Draw initial hand
       action.drawCard(message);
@@ -44,7 +60,24 @@ const action = {
         index: message.details.slot.index,
         card: message.details.card,
       });
+      const waterCost = message.details.card.cost || 0;
+      if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
+        action.sendError('Not enough water to play that card', message.playerId);
+        return;
+      }
+
+      action.reduceWater(message, waterCost);
       action.removeCard(message);
+    }
+  },
+
+  reduceWater(message, overrideCost) {
+    if (!onClient) {
+      utils.getPlayerDataById(message.playerId).waterCount -= overrideCost || message.details.cost;
+
+      sendS('reduceWater', {
+        cost: overrideCost || message.details.cost,
+      }, message.playerId);
     }
   },
 
@@ -58,11 +91,15 @@ const action = {
     if (onClient) {
       sendC('drawCard', message);
     } else {
+      if (message.details.fromWater) {
+        action.reduceWater(message, 2);
+      }
+
       const newCard = gs.deck.shift();
       if (newCard) {
         sendS('addCard', { card: newCard, ...message.details }, message.playerId);
       } else {
-        sendS('error', { text: 'No cards left to draw' }, message.playerId);
+        action.sendError('No cards left to draw', message.playerId);
       }
     }
   },
@@ -77,11 +114,35 @@ const action = {
       });
     }
   },
+
+  sendError(text, playerId) {
+    if (!onClient) {
+      sendS('error', { text: text }, playerId);
+    }
+  },
+};
+
+const utils = {
+  hasPlayerDataById(playerId) {
+    if (gs && playerId) {
+      return gs.player1.playerId === playerId || gs.player2.playerId === playerId;
+    }
+    return false;
+  },
+
+  getPlayerDataById(playerId) {
+    if (gs && playerId) {
+      if (gs.player1.playerId === playerId) return gs.player1;
+      else if (gs.player2.playerId === playerId) return gs.player2;
+    }
+    return null;
+  },
 };
 
 if (onClient) {
   window.action = action;
   window.gs = gs;
+  window.utils = utils;
   (document || window).dispatchEvent(new Event('sharedReady'));
 }
-export { action, gs };
+export { action, gs, utils };

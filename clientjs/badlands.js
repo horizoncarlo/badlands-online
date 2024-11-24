@@ -1,9 +1,10 @@
 let ui = { // Local state
+  inGame: false,
   playDrawAnimation: false,
-  waterCount: 3,
   draggingCard: false,
   repositionOffsetX: 0,
   repositionOffsetY: 0,
+  waterTokenEles: [],
 };
 
 function init() {
@@ -41,8 +42,8 @@ function repositionStart(event) {
   ui.repositionOffsetY = event.offsetY;
 }
 
-function repositionEnd(event, el, coords) {
-  if (!el) {
+function repositionEnd(event, ele, coords) {
+  if (!ele) {
     return;
   }
   if (!coords || !Array.isArray(coords) || coords.length < 2) {
@@ -52,15 +53,26 @@ function repositionEnd(event, el, coords) {
   // Long winded one liner, but basically limit our left and top to within the window dimensions
   // Also account for where the mouse was on the draggable element when we started (that's coords)
   // And if we're scrolled on the page
-  el.style.left = Math.min(document.documentElement.scrollWidth - el.offsetWidth, Math.max(0, event.clientX - coords[0] + window.scrollX)) + 'px';
-  el.style.top = Math.min(document.documentElement.scrollHeight - el.offsetHeight, Math.max(0, event.clientY - coords[1] + window.scrollY)) + 'px';
+  // TODO Should use a global `ui` var for z-index that increases and applies to the dragged element, so we can nautrally layer them with last dragged on top
+  ele.style.left = Math.min(
+    document.documentElement.scrollWidth - ele.offsetWidth,
+    Math.max(0, event.clientX - coords[0] + window.scrollX),
+  ) + 'px';
+  ele.style.top = Math.min(
+    document.documentElement.scrollHeight - ele.offsetHeight,
+    Math.max(0, event.clientY - coords[1] + window.scrollY),
+  ) + 'px';
 }
 
 function getMyCards() {
+  return getPlayerData()?.cards || [];
+}
+
+function getPlayerData() {
   if (gs.who) {
-    return gs[gs.who].cards;
+    return gs[gs.who];
   }
-  return [];
+  return null;
 }
 
 function findCardInHand(card) {
@@ -86,6 +98,23 @@ function findCardInGame(card) {
   return findCardInHand(card) || findCardInBoard(card) || null;
 }
 
+function showWaterCost(cost) {
+  if (cost > getPlayerData().waterCount) {
+    console.error('Not enough water for desired action');
+    return;
+  }
+
+  for (let i = 0; i < cost; i++) {
+    ui.waterTokenEles[i]?.classList.add('water-token-cost');
+  }
+}
+
+function hideWaterCost() {
+  ui.waterTokenEles.forEach((water) => {
+    water?.classList.remove('water-token-cost');
+  });
+}
+
 function dropCardInSlot(event, slot) {
   const data = event?.dataTransfer?.getData('text/plain');
   if (data) {
@@ -104,6 +133,12 @@ function dropCardInSlot(event, slot) {
     });
 
     if (foundIndex >= 0) {
+      if (getMyCards()[foundIndex].cost > getPlayerData().waterCount) {
+        // TODO Proper error component or logging - maybe shake the water token wrapper panel
+        console.error('Not enough water to play that card');
+        return;
+      }
+
       action.playCard({
         card: getMyCards()[foundIndex],
         slot: slot,

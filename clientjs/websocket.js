@@ -22,6 +22,7 @@ const receiveClientWebsocketMessage = (message) => {
       break;
     case 'setPlayer':
       gs.who = message.details.player;
+      ui.inGame = true;
       break;
     case 'slot':
       gs.slots[message.details.index].content = message.details.card;
@@ -56,6 +57,9 @@ const receiveClientWebsocketMessage = (message) => {
         getMyCards().push(message.details.card);
       }
 
+      break;
+    case 'reduceWater':
+      getPlayerData().waterCount -= message.details.cost;
       break;
   }
 };

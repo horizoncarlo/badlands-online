@@ -63,6 +63,10 @@ menu {
   animation: tiltCard 2s infinite alternate ease-in-out;
 }
 
+.card-error {
+  background-color: red;
+}
+
 .slots div,
 .card {
   text-align: center;
@@ -93,6 +97,10 @@ menu {
   max-width: 100px;
 }
 
+.water-token-cost {
+  filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(5) contrast(1.2);
+}
+
 .water-token:hover {
   filter: drop-shadow(2px 2px white);
   animation: tiltToken 2s infinite alternate ease-in-out;
@@ -100,4 +108,5 @@ menu {
 
 .repositionable {
   position: absolute;
+  /* TODO Feels weird or not to slide the move?: transition: top 100ms, left 100ms; */
 }
