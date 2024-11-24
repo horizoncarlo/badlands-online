@@ -59,6 +59,10 @@
         </menu>
       </header>
 
+      <template x-if="!inGame">
+        <h1>To start the game join as a player from the menu</h1>
+      </template>
+
       <!-- TODO Realistically we wouldn't even GET to this page without being a game (after joining from a lobby), so all these inGame checks will become needless-->
       <template x-if="inGame">
         <div class="draw-pile" title="Draw a card for 2 Water" @mouseover="showWaterCost(2)" @mouseout="hideWaterCost()">
@@ -88,25 +92,27 @@
         </div>
       </template>
 
-      <div class="slots">
-        <template x-for="slot in slots">
-          <div
-            class="bd-default"
-            @dragover.prevent="if (slot.content || !draggingCard) { return false; } $el.classList.add('slot-highlight')"
-            @dragleave="$el.classList.remove('slot-highlight')"
-            @drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
-          >
-            <template x-if="slot.content">
-              <img
-                draggable="false"
-                :alt="slot.content"
-                :src="'images/cards/people/' + slot.content.img"
-                :class="slot.content.damage >= 1 ? 'damaged-card' : ''"
-              />
-            </template>
-          </div>
-        </template>
-      </div>
+      <template x-if="inGame">
+        <div class="slots">
+          <template x-for="slot in slots">
+            <div
+              class="bd-default"
+              @dragover.prevent="if (slot.content || !draggingCard) { return false; } $el.classList.add('slot-highlight')"
+              @dragleave="$el.classList.remove('slot-highlight')"
+              @drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
+            >
+              <template x-if="slot.content">
+                <img
+                  draggable="false"
+                  :alt="slot.content.img"
+                  :src="'images/cards/people/' + slot.content.img"
+                  :class="slot.content.damage >= 1 ? 'damaged-card' : ''"
+                />
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
 
       <footer>
         <template x-if="who">

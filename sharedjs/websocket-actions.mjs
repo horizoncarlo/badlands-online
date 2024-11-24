@@ -54,17 +54,18 @@ const action = {
     if (onClient) {
       sendC('playCard', message);
     } else {
+      const waterCost = message.details.card.cost || 0;
+      if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
+        action.sendError('Not enough water to play that card', message.playerId);
+        return;
+      }
+
       // TODO Check if card is valid to play on the playCard action
       sendS('slot', {
         // TODO Directly send details here instead of copying just some properties out?
         index: message.details.slot.index,
         card: message.details.card,
       });
-      const waterCost = message.details.card.cost || 0;
-      if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
-        action.sendError('Not enough water to play that card', message.playerId);
-        return;
-      }
 
       action.reduceWater(message, waterCost);
       action.removeCard(message);
@@ -92,6 +93,12 @@ const action = {
       sendC('drawCard', message);
     } else {
       if (message.details.fromWater) {
+        // TODO Slightly inconsistent, the play a card blocks at the UI level and on the server, but drawing only does on the server. Should decide which one we want
+        //      Probably just on server as the WS messages are small and fast enough and then we can treat the server as the single source of truth and the client as dumb
+        if (2 > utils.getPlayerDataById(message.playerId).waterCount) {
+          action.sendError('Not enough water to draw a card', message.playerId);
+          return;
+        }
         action.reduceWater(message, 2);
       }
 

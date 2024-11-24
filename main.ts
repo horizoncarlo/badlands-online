@@ -183,18 +183,20 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'vera_vosh', cost: 3 },
     { img: 'zeto_khan', cost: 3 },
   ];
-  const dupeEvents = [
-    { img: 'banish', cost: 1 },
-    { img: 'bombardment', cost: 4 },
-    { img: 'famine', cost: 1 },
-    { img: 'high_ground', cost: 0 },
-    { img: 'interrogate', cost: 1 },
-    { img: 'napalm', cost: 2 },
-    { img: 'radiation', cost: 2 },
-    { img: 'strafe', cost: 2 },
-    { img: 'truce', cost: 2 },
-    { img: 'uprising', cost: 1 },
-  ];
+  // TODO For now keep events out for simplicity
+  const dupeEvents = [];
+  // const dupeEvents = [
+  //   { img: 'banish', cost: 1 },
+  //   { img: 'bombardment', cost: 4 },
+  //   { img: 'famine', cost: 1 },
+  //   { img: 'high_ground', cost: 0 },
+  //   { img: 'interrogate', cost: 1 },
+  //   { img: 'napalm', cost: 2 },
+  //   { img: 'radiation', cost: 2 },
+  //   { img: 'strafe', cost: 2 },
+  //   { img: 'truce', cost: 2 },
+  //   { img: 'uprising', cost: 1 },
+  // ];
 
   function shuffleDeck(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -205,9 +207,9 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
   }
 
   const deck = shuffleDeck([
-    ...structuredClone(dupePeople),
-    ...structuredClone(dupePeople),
     ...uniqPeople,
+    ...structuredClone(dupePeople),
+    ...structuredClone(dupePeople),
     ...structuredClone(dupeEvents),
     ...structuredClone(dupeEvents),
   ]);

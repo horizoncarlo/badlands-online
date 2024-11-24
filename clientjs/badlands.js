@@ -85,7 +85,6 @@ function findCardInHand(card) {
 
 function findCardInBoard(card) {
   const foundIndex = gs.slots.findIndex((loopSlot) => {
-    console.log('Loop Slot', loopSlot, loopSlot.content && loopSlot.content.id && loopSlot.content.id, card.id);
     return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
   });
   if (foundIndex !== -1) {
