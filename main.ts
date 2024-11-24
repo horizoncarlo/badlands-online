@@ -129,8 +129,50 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       case 'drawCard':
         action.drawCard(message);
         break;
+      case 'doneCamps':
+        action.doneCamps(message);
+        break;
     }
   }
+};
+
+const createCampDeck = (): Array<any> => { // TODO Camp typing
+  return shuffleNewDeck([
+    { img: 'adrenaline_lab', drawCount: 1 },
+    { img: 'arcade', drawCount: 1 },
+    { img: 'atomic_garden', drawCount: 1 },
+    { img: 'bonfire', drawCount: 1 },
+    { img: 'blood_bank', drawCount: 1 },
+    { img: 'cannon', drawCount: 1 },
+    { img: 'cache', drawCount: 1 },
+    { img: 'catapult', drawCount: 0 },
+    { img: 'command_post', drawCount: 2 },
+    { img: 'construction_yard', drawCount: 2 },
+    { img: 'garage', drawCount: 0 },
+    { img: 'juggernaut', drawCount: 0 },
+    { img: 'labor_camp', drawCount: 1 },
+    { img: 'mercenary_camp', drawCount: 0 },
+    { img: 'mulcher', drawCount: 0 },
+    { img: 'nest_of_spies', drawCount: 1 },
+    { img: 'oasis', drawCount: 1 },
+    { img: 'obelisk', drawCount: 3 },
+    { img: 'omen_clock', drawCount: 1 },
+    { img: 'outpost', drawCount: 1 },
+    { img: 'parachute_base', drawCount: 1 },
+    { img: 'pillbox', drawCount: 1 },
+    { img: 'railgun', drawCount: 0 },
+    { img: 'reactor', drawCount: 1 },
+    { img: 'resonator', drawCount: 1 },
+    { img: 'scavenger_camp', drawCount: 1 },
+    { img: 'scud_launcher', drawCount: 0 },
+    { img: 'supply_depot', drawCount: 2 },
+    { img: 'the_octagon', drawCount: 0 },
+    { img: 'training_camp', drawCount: 1 },
+    { img: 'transplant_lab', drawCount: 2 },
+    { img: 'victory_totem', drawCount: 1 },
+    { img: 'warehouse', drawCount: 1 },
+    { img: 'watchtower', drawCount: 0 },
+  ]);
 };
 
 const createNewDeck = (): Array<any> => { // TODO Card typing
@@ -198,15 +240,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
   //   { img: 'uprising', cost: 1 },
   // ];
 
-  function shuffleDeck(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  }
-
-  const deck = shuffleDeck([
+  const deck = shuffleNewDeck([
     ...uniqPeople,
     ...structuredClone(dupePeople),
     ...structuredClone(dupePeople),
@@ -214,16 +248,30 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     ...structuredClone(dupeEvents),
   ]);
 
-  // Assign image extensions to every item and a random ID
-  deck.forEach((card, index) => {
-    card.img += DECK_IMAGE_EXTENSION;
-    card.id = index + 1; // Do 1-based IDs
-  });
-
   return deck;
 };
 
+function shuffleNewDeck(array) {
+  array = shuffleDeck(array);
+
+  // Assign image extensions to every item and a random ID
+  array.forEach((card, index) => {
+    card.img += DECK_IMAGE_EXTENSION;
+    card.id = index + 1; // Do 1-based IDs
+  });
+  return array;
+}
+
+function shuffleDeck(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 gs.deck = createNewDeck();
+gs.campDeck = createCampDeck();
 
 /* TODO HTTPS support example for a self hosted setup with our own certs
   port: 443,

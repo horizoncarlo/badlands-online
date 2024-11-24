@@ -135,6 +135,28 @@
           </div>
         </template>
       </footer>
+
+      <template x-if="inGame" x-teleport="body">
+        <dialog id="campPromptDialog" class="camps-dialog">
+          <header>
+            <h2>Choose Your 3 Camps</h2>
+          </header>
+          <p>To start the game you choose <span x-text="3 - selectedCampCount()"></span> camps from a random option of 6</p>
+          <div class="camps-dialog-wrap">
+            <template x-for="camp in getMyCamps()">
+              <div @click="chooseCamp(camp)" :class="'camp-choice-wrap' + (camp.selected ? ' camp-choice-sel' : '')">
+                <img :alt="camp.img" :src="'images/cards/camps/' + camp.img" draggable="false" class="camp-choice" />
+              </div>
+            </template>
+          </div>
+          <footer>
+            <template x-if="selectedCampCount() > 0">
+              <span>Your starting hand size will be <span x-text="selectedCampDrawCount()"></span> cards</span>
+            </template>
+            <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== 3">Done Choices</button>
+          </footer>
+        </dialog>
+      </template>
     </section>
 
     <!-- JS scripts at the bottom like it's 1995 -->

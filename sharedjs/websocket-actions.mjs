@@ -7,20 +7,22 @@ const gs = { // Game state
     playerId: null,
     waterCount: 3,
     cards: [],
+    camps: [],
   },
   player2: {
     playerId: null,
     waterCount: 3,
     cards: [],
+    camps: [],
   },
   deck: [
     /* { id, img, damage? } */
   ],
+  campDeck: [
+    /* Deck that camps are drawn from at the start of the game */
+  ],
   slots: [
     /* { index, content } */
-  ],
-  camps: [
-    /* campObj */
   ],
 };
 
@@ -43,10 +45,8 @@ const action = {
 
       sendS('setPlayer', message.details, message.playerId);
 
-      // Draw initial hand
-      action.drawCard(message);
-      action.drawCard(message);
-      action.drawCard(message);
+      // Draw our initial set of camps to choose from
+      action.promptCamps(message);
     }
   },
 
@@ -104,6 +104,7 @@ const action = {
 
       const newCard = gs.deck.shift();
       if (newCard) {
+        // TTODO Maintain card state on the server as well, similar to camps (bonus is easy approach for now to persist between refreshes)
         sendS('addCard', { card: newCard, ...message.details }, message.playerId);
       } else {
         action.sendError('No cards left to draw', message.playerId);
@@ -119,6 +120,38 @@ const action = {
         },
         amount: 1,
       });
+    }
+  },
+
+  promptCamps(message) {
+    if (!onClient) {
+      let campOptions = utils.getPlayerDataById(message.playerId).camps;
+      if (!campOptions || campOptions.length === 0) {
+        campOptions = gs.campDeck.splice(0, 6);
+        utils.getPlayerDataById(message.playerId).camps = campOptions;
+      }
+
+      if (campOptions.length !== 3) {
+        sendS('promptCamps', {
+          camps: campOptions,
+        }, message.playerId);
+      }
+    }
+  },
+
+  doneCamps(message) {
+    if (onClient) {
+      sendC('doneCamps', {
+        camps: message,
+      });
+    } else {
+      // TODO Validate the camps were available choices and there's the proper number
+      utils.getPlayerDataById(message.playerId).camps = message.details.camps;
+
+      const totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
+      for (let i = 0; i < totalDrawCount; i++) {
+        action.drawCard(message);
+      }
     }
   },
 

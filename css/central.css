@@ -58,8 +58,12 @@ menu {
   height: var(--card-height);
 }
 
+.camp-choice:hover,
 .card:hover {
   box-shadow: 0 0 20px var(--active);
+}
+
+.card:hover {
   animation: tiltCard 2s infinite alternate ease-in-out;
 }
 
@@ -109,4 +113,24 @@ menu {
 .repositionable {
   position: absolute;
   /* TODO Feels weird or not to slide the move?: transition: top 100ms, left 100ms; */
+}
+
+.camps-dialog {
+  min-width: calc(var(--card-width) * 3 + 200px);
+}
+
+.camps-dialog-wrap {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: calc(var(--card-width) * 3 + 50px);
+}
+
+.camp-choice-wrap {
+  display: inline-block;
+  border: 5px solid transparent;
+}
+
+.camp-choice-sel {
+  filter: brightness(1.5);
+  border: 5px solid var(--active);
 }

@@ -61,6 +61,10 @@ const receiveClientWebsocketMessage = (message) => {
     case 'reduceWater':
       getPlayerData().waterCount -= message.details.cost;
       break;
+    case 'promptCamps':
+      getPlayerData().camps = message.details.camps;
+      showCampPromptDialog();
+      break;
   }
 };
 
