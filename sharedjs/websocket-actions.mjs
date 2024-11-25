@@ -2,6 +2,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
 // Game state - server has the single source of truth copy, and each client has their own in-browser copy that the UI reflects
+// NOTE Any drastic changes here should be double checked in the `action.sync` function to ensure we're not sending huge or private data, and in websocket.js on the client to ensure we handle the receive
 const gs = {
   myPlayerNum: null, // player1 or player2 as a string, only used on client
   player1: {
@@ -16,6 +17,15 @@ const gs = {
     cards: [],
     camps: [],
   },
+  turn: {
+    currentPlayer: null, // player1 or player2
+    player1: {
+      turnCount: 0,
+    },
+    player2: {
+      turnCount: 0,
+    },
+  },
   deck: [
     /* { id, img, damage? } */
   ],
@@ -25,7 +35,7 @@ const gs = {
   slots: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })), // For a 3x2 grid containing { index, content }
 };
 
-const action = {
+const rawAction = {
   joinGame(message) {
     if (onClient) {
       sendC('joinGame', { player: message });
@@ -46,6 +56,30 @@ const action = {
 
       // Draw our initial set of camps to choose from
       action.promptCamps(message);
+    }
+  },
+
+  startTurn(message) {
+    if (onClient) {
+      sendC('startTurn');
+    } else {
+      gs.turn[utils.getPlayerNumById(message.playerId)].turnCount++;
+      gs.turn.currentPlayer = utils.getPlayerNumById(message.playerId);
+
+      action.sync(); // Sync to update turn status
+
+      action.drawCard(message, true);
+    }
+  },
+
+  endTurn(message) {
+    if (onClient) {
+      sendC('endTurn');
+    } else {
+      gs.turn.currentPlayer = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
+      action.startTurn({
+        playerId: utils.getPlayerIdByNum(gs.turn.currentPlayer),
+      });
     }
   },
 
@@ -94,11 +128,15 @@ const action = {
     }
   },
 
-  drawCard(message) {
+  drawCard(message, fromServerRequest) {
     if (onClient) {
       sendC('drawCard', message);
     } else {
-      if (message.details.fromWater) {
+      if (!fromServerRequest && !utils.isPlayersTurn(message.playerId)) {
+        return;
+      }
+
+      if (message.details?.fromWater) {
         // TODO Slightly inconsistent, the play a card blocks at the UI level and on the server, but drawing only does on the server. Should decide which one we want
         //      Probably just on server as the WS messages are small and fast enough and then we can treat the server as the single source of truth and the client as dumb
         if (2 > utils.getPlayerDataById(message.playerId).waterCount) {
@@ -112,7 +150,16 @@ const action = {
       const newCard = gs.deck.shift();
       if (newCard) {
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
-        sendS('addCard', { card: newCard, ...message.details }, message.playerId);
+
+        const newMessage = {
+          card: newCard,
+          ...message.details,
+        };
+        if (message.details?.fromWater || fromServerRequest) {
+          newMessage.showAnimation = true;
+        }
+
+        sendS('addCard', newMessage, message.playerId);
       } else {
         action.sendError('No cards left to draw', message.playerId);
       }
@@ -131,7 +178,7 @@ const action = {
 
       // TODO Send a separate message to request a damage animation (explosions?) on the client
 
-      action.sync(message.playerId);
+      action.sync();
     }
   },
 
@@ -164,7 +211,12 @@ const action = {
 
       const totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
       for (let i = 0; i < totalDrawCount; i++) {
-        action.drawCard(message);
+        action.drawCard({
+          ...message,
+          details: {
+            multiAnimation: totalDrawCount > 1,
+          },
+        }, true);
       }
     }
   },
@@ -175,7 +227,7 @@ const action = {
     }
   },
 
-  sync(playerId) {
+  sync(playerIdOrNullForBoth) {
     /* Dev notes: when to sync vs not
      Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
      But that's also a huge worry about premature optimization given that a realistic game state is still under 5kb
@@ -185,28 +237,78 @@ const action = {
       a card or destroying a camp)
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
-    const updatedGs = structuredClone(gs);
-    const playerNum = utils.getPlayerNumById(playerId);
-    const opponentNum = utils.getOppositePlayerNum(playerNum);
 
-    // Send a minimal version of our current server game state that the UI can apply to itself
-    // TODO Could further trim down minor packet size savings like delete slot.content if null, etc.
-    delete updatedGs[playerNum].playerId;
-    delete updatedGs.myPlayerNum;
-    delete updatedGs.campDeck;
-    delete updatedGs.deck;
+    function internalSync(playerNum) {
+      const updatedGs = structuredClone(gs);
+      const currentPlayerId = utils.getPlayerIdByNum(playerNum);
+      const opponentNum = utils.getOppositePlayerNum(playerNum);
 
-    // Strip out any sensitive information from the opponent
-    const { [opponentNum]: opponentData } = updatedGs;
-    opponentData.cards = []; // TODO Should put a length here so we can see opponent hand size at least?
-    delete opponentData.playerId;
-    updatedGs[opponentNum] = opponentData;
+      // Send a minimal version of our current server game state that the UI can apply to itself
+      // TODO Could further trim down minor packet size savings like delete slot.content if null, etc.
+      delete updatedGs[playerNum].playerId;
+      delete updatedGs.myPlayerNum;
+      delete updatedGs.campDeck;
+      delete updatedGs.deck;
 
-    sendS('sync', {
-      gs: updatedGs,
-    }, playerId);
+      // Strip out any sensitive information from the opponent
+      const { [opponentNum]: opponentData } = updatedGs;
+      opponentData.cards = []; // TODO Should put a length here so we can see opponent hand size at least?
+      delete opponentData.playerId;
+      updatedGs[opponentNum] = opponentData;
+
+      // TODO Need a way to send a sync to both players, such as when playerId that's passed in is null
+      sendS('sync', {
+        gs: updatedGs,
+      }, currentPlayerId);
+    }
+
+    // Request a sync to both if no
+    if (!playerIdOrNullForBoth) {
+      internalSync('player1');
+      internalSync('player2');
+    } else {
+      internalSync(utils.getPlayerNumById(playerIdOrNullForBoth));
+    }
   },
 };
+
+// Certain actions can be done outside of our turn, which means skipping the preprocessor
+rawAction.joinGame.skipPreprocess = true;
+rawAction.promptCamps.skipPreprocess = true;
+rawAction.doneCamps.skipPreprocess = true;
+rawAction.startTurn.skipPreprocess = true;
+rawAction.drawCard.skipPreprocess = true;
+rawAction.sendError.skipPreprocess = true;
+rawAction.sync.skipPreprocess = true;
+
+const actionHandler = {
+  get(target, prop) {
+    const originalMethod = target[prop];
+    if (typeof originalMethod === 'function') {
+      return function (...args) {
+        if (originalMethod?.skipPreprocess) {
+          return originalMethod.apply(this, args);
+        }
+
+        // TODO Although cool this proxy approach is probably overengineered given how many messages we skipPreprocess on anyway
+        //      Likely can just do on a function by function basis in actions (see drawCard for an example of a manual isPlayersTurn check)
+        //      Or just in main.ts itself as the Websocket messages come in (ignore or process them accordingly)
+        //      Reminder that the entire intent was to have server side protection from out of turn client actions like playing a card
+        // PRE PROCESS hook for all actions
+        if (!onClient && !utils.isPlayersTurn(args[0].playerId)) {
+          console.error(`Ignored action out of turn order by playerId=${args[0].playerId}`);
+          return;
+        }
+
+        return originalMethod.apply(this, args);
+      };
+    }
+
+    return originalMethod;
+  },
+};
+
+const action = new Proxy(rawAction, actionHandler);
 
 const utils = {
   hasPlayerDataById(playerId) {
@@ -218,6 +320,12 @@ const utils = {
 
   getOppositePlayerNum(playerNum) {
     return playerNum === 'player1' ? 'player2' : 'player1';
+  },
+
+  getPlayerIdByNum(playerNum) {
+    if (gs && playerNum) {
+      return gs[playerNum].playerId;
+    }
   },
 
   getPlayerNumById(playerId) {
@@ -239,6 +347,10 @@ const utils = {
     return null;
   },
 
+  isPlayersTurn(playerId) {
+    return gs.turn.currentPlayer && gs.turn.currentPlayer === utils.getPlayerNumById(playerId);
+  },
+
   findCardInBoard(card) {
     const foundIndex = gs.slots.findIndex((loopSlot) => {
       return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
@@ -247,6 +359,20 @@ const utils = {
       return gs.slots[foundIndex].content;
     }
     return null;
+  },
+
+  randomRange(min, max) {
+    // TODO Probably rock and roll as good as a random generator we can find - given that it's a game and all
+    let randomNumber = 0;
+    if ((globalThis && globalThis.crypto) || (window && window.crypto)) {
+      const randomBuffer = new Uint32Array(1);
+      ((globalThis && globalThis.crypto) || (window && window.crypto)).getRandomValues(randomBuffer);
+      randomNumber = randomBuffer[0] / (0xffffffff + 1);
+    } else {
+      randomNumber = Math.random();
+    }
+
+    return Math.floor(randomNumber * (max - min + 1)) + min;
   },
 };
 

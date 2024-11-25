@@ -1,6 +1,6 @@
 let ui = { // Local state
   inGame: false,
-  playDrawAnimation: false,
+  drawAnimationCount: 0,
   draggingCard: false,
   repositionOffsetX: 0,
   repositionOffsetY: 0,

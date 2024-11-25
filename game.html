@@ -70,7 +70,33 @@
             </li>
           </template>
           <template x-if="inGame">
-            <li>Start Turn</li>
+            <template x-if="!turn.currentPlayer || myPlayerNum !== turn.currentPlayer">
+              <li @click="action.startTurn()">Start Turn</li>
+            </template>
+          </template>
+          <template x-if="inGame">
+            <template x-if="myPlayerNum === turn.currentPlayer">
+              <li @click="action.endTurn()">End Turn</li>
+            </template>
+          </template>
+          <template x-if="inGame">
+            <!-- TODO Need to disable various UI elements when it's not our turn, such as drawing or playing a card -->
+            <!-- TODO Menu UI is an overlapping ugly thing due to <template> not allowing more than a single child -->
+            <li class="menu-right">
+              <template x-if="turn.currentPlayer">
+                <div>
+                  <template x-if="myPlayerNum === turn.currentPlayer">
+                    <span x-text="`Your Turn ${turn[myPlayerNum].turnCount}`"></span>
+                  </template>
+                  <template x-if="myPlayerNum !== turn.currentPlayer">
+                    <span x-text="`Opponent Turn ${turn[utils.getOppositePlayerNum(myPlayerNum)].turnCount}`"></span>
+                  </template>
+                </div>
+              </template>
+              <template x-if="!turn.currentPlayer">
+                <span>Waiting for Opponent...</span>
+              </template>
+            </li>
           </template>
         </menu>
       </header>
@@ -99,8 +125,10 @@
           />
         </div>
       </template>
-      <template x-if="playDrawAnimation">
-        <img src="images/cards/people/punk.png" class="draw-animation card-size" />
+      <template x-if="drawAnimationCount > 0">
+        <template x-for="anim in drawAnimationCount">
+          <img src="images/cards/people/punk.png" class="draw-animation card-size" />
+        </template>
       </template>
 
       <template x-if="inGame">
@@ -160,7 +188,6 @@
       </template>
 
       <footer>
-        <hr />
         <template x-if="myPlayerNum">
           <div class="cards">
             <template x-for="card in getMyCards()">

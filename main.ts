@@ -123,6 +123,12 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       case 'joinGame':
         action.joinGame(message);
         break;
+      case 'startTurn':
+        action.startTurn(message);
+        break;
+      case 'endTurn':
+        action.endTurn(message);
+        break;
       case 'playCard':
         action.playCard(message);
         break;

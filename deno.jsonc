@@ -12,7 +12,7 @@
   "lint": {
     "rules": {
       "include": [],
-      "exclude": ["no-explicit-any", "no-empty", "no-window", "no-unused-vars", "no-unreachable"]
+      "exclude": ["no-explicit-any", "no-empty", "no-window", "no-window-prefix", "no-unused-vars", "no-unreachable"]
     }
   },
   "fmt": {

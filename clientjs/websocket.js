@@ -17,6 +17,7 @@ const receiveClientWebsocketMessage = (message) => {
       gs.player1 = updatedGs.player1;
       gs.player2 = updatedGs.player2;
       gs.slots = updatedGs.slots;
+      gs.turn = updatedGs.turn;
       break;
     }
     case 'alert':
@@ -35,14 +36,16 @@ const receiveClientWebsocketMessage = (message) => {
       gs.slots[message.details.index].content = message.details.card;
       break;
     case 'addCard':
-      if (message.details.fromWater) {
-        ui.playDrawAnimation = true;
+      if (message.details.showAnimation) {
         setTimeout(() => {
-          getMyCards().push(message.details.card);
-        }, 1100);
-        setTimeout(() => {
-          ui.playDrawAnimation = false;
-        }, 1400);
+          ui.drawAnimationCount++;
+          setTimeout(() => {
+            getMyCards().push(message.details.card);
+          }, 1100);
+          setTimeout(() => {
+            ui.drawAnimationCount--;
+          }, 1400);
+        }, message.details.multiAnimation ? utils.randomRange(0, 500) : 0); // Some variance so fast cards, such as initial hand, don't overlap
       } else {
         getMyCards().push(message.details.card);
       }
