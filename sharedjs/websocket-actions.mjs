@@ -1,3 +1,5 @@
+const FAST_AND_LOOSE = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
+
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 
@@ -41,15 +43,16 @@ const rawAction = {
       sendC('joinGame', { player: message });
     } else {
       /* TODO TEMPORARY For now it's annoying to check if a player already joined for our playerNum, as refreshing our page currently would trigger this
-                        Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid...
-      const desiredPlayer = message.details.player;
-      if (gs[desiredPlayer] && (!gs[desiredPlayer].playerId || gs[desiredPlayer].playerId === message.playerId)) {
-        gs[desiredPlayer].playerId = message.playerId;
+                        Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
+      if (!FAST_AND_LOOSE) {
+        const desiredPlayer = message.details.player;
+        if (gs[desiredPlayer] && (!gs[desiredPlayer].playerId || gs[desiredPlayer].playerId === message.playerId)) {
+          gs[desiredPlayer].playerId = message.playerId;
+        } else {
+          return action.sendError('Invalid join request or someone already playing', message.playerId);
+        }
       }
-      else {
-        return action.sendError('Invalid join request or someone already playing', message.playerId);
-      }
-      */
+
       gs[message.details.player].playerId = message.playerId;
 
       sendS('setPlayer', message.details, message.playerId);
@@ -63,6 +66,14 @@ const rawAction = {
     if (onClient) {
       sendC('startTurn');
     } else {
+      // Don't allow starting the game until an opponent is present
+      if (!FAST_AND_LOOSE) {
+        if (!gs.player1.playerId || !gs.player2.playerId) {
+          action.sendError('Cannot start the turn, no opponent yet', message.playerId);
+          return;
+        }
+      }
+
       gs.turn[utils.getPlayerNumById(message.playerId)].turnCount++;
       gs.turn.currentPlayer = utils.getPlayerNumById(message.playerId);
 
@@ -239,8 +250,12 @@ const rawAction = {
     */
 
     function internalSync(playerNum) {
-      const updatedGs = structuredClone(gs);
       const currentPlayerId = utils.getPlayerIdByNum(playerNum);
+      if (!currentPlayerId) {
+        return;
+      }
+
+      const updatedGs = structuredClone(gs);
       const opponentNum = utils.getOppositePlayerNum(playerNum);
 
       // Send a minimal version of our current server game state that the UI can apply to itself
@@ -296,7 +311,7 @@ const actionHandler = {
         //      Reminder that the entire intent was to have server side protection from out of turn client actions like playing a card
         // PRE PROCESS hook for all actions
         if (!onClient && !utils.isPlayersTurn(args[0].playerId)) {
-          console.error(`Ignored action out of turn order by playerId=${args[0].playerId}`);
+          console.error(`Ignored action [${originalMethod.name}] out of turn order by playerId=${args[0].playerId}`);
           return;
         }
 
