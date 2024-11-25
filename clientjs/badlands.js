@@ -5,6 +5,7 @@ let ui = { // Local state
   repositionOffsetX: 0,
   repositionOffsetY: 0,
   waterTokenEles: [],
+  cardScale: 100,
 };
 
 function init() {
@@ -34,7 +35,6 @@ function alpineInit() {
   ui = Alpine.reactive(ui);
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
-  gs.slots = Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })); // For a 3x2 grid
 }
 
 function repositionStart(event) {
@@ -73,32 +73,10 @@ function getMyCamps() {
 }
 
 function getPlayerData() {
-  if (gs.who) {
-    return gs[gs.who];
+  if (gs.myPlayerNum) {
+    return gs[gs.myPlayerNum];
   }
   return null;
-}
-
-function findCardInHand(card) {
-  const foundIndex = getMyCards().findIndex((loopCard) => loopCard.id === card.id);
-  if (foundIndex !== -1) {
-    return getMyCards()[foundIndex];
-  }
-  return null;
-}
-
-function findCardInBoard(card) {
-  const foundIndex = gs.slots.findIndex((loopSlot) => {
-    return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
-  });
-  if (foundIndex !== -1) {
-    return gs.slots[foundIndex].content;
-  }
-  return null;
-}
-
-function findCardInGame(card) {
-  return findCardInHand(card) || findCardInBoard(card) || null;
 }
 
 function showCampPromptDialog() {
@@ -128,17 +106,21 @@ function doneChooseCamps() {
     return;
   }
 
-  // TODO Need to better decide where we handle UI updates - probably should be moved to the action itself instead of split here and in the action
-  //      For example should update our player data in a single place. Similar to the validation and finding logic in dropCardInSlot
-  //      I think some of the confusion comes from having to pass a message, when really we should pass state and build a message on the client for the action.*
-  //      But that works less great for the idea of a consistent function both client and server can call. So maybe all the pre-logic SHOULD be here before the action
-  //      In either case it's client JS - just need to know where it should be and stick to it
-  //      action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
+  // TTODO Need to better decide where we handle UI updates - probably should be moved to the action itself instead of split here and in the action
+  //       For example should update our player data in a single place. Similar to the validation and finding logic in dropCardInSlot
+  //       I think some of the confusion comes from having to pass a message, when really we should pass state and build a message on the client for the action.*
+  //       But that works less great for the idea of a consistent function both client and server can call. So maybe all the pre-logic SHOULD be here before the action
+  //       In either case it's client JS - just need to know where it should be and stick to it
+  //       action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
   getPlayerData().camps = getMyCamps().filter((camp) => camp.selected);
 
   action.doneCamps(getPlayerData().camps);
 
   hideCampPromptDialog();
+}
+
+function applyCardScale() {
+  document.documentElement.style.setProperty('--card-scale', ui.cardScale / 100);
 }
 
 function showWaterCost(cost) {

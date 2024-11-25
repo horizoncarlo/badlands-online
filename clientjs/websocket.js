@@ -12,6 +12,13 @@ const receiveClientWebsocketMessage = (message) => {
   console.log('Received client message', message);
 
   switch (message.type) {
+    case 'sync': {
+      const updatedGs = message.details.gs;
+      gs.player1 = updatedGs.player1;
+      gs.player2 = updatedGs.player2;
+      gs.slots = updatedGs.slots;
+      break;
+    }
     case 'alert':
       // TODO Proper alert component on UI
       console.warn('ALERT:', message.details.text);
@@ -21,29 +28,12 @@ const receiveClientWebsocketMessage = (message) => {
       console.error(message.details.text);
       break;
     case 'setPlayer':
-      gs.who = message.details.player;
+      gs.myPlayerNum = message.details.player;
       ui.inGame = true;
       break;
     case 'slot':
       gs.slots[message.details.index].content = message.details.card;
       break;
-    case 'damageCard': {
-      const foundCard = findCardInBoard(message.details.card);
-      if (foundCard) {
-        foundCard.damage = (foundCard.damage || 0) + message.details.amount;
-        if (foundCard.damage >= 2) {
-          // TODO Destroy a card
-        }
-      }
-      break;
-    }
-    case 'removeCard': {
-      const foundIndex = getMyCards().findIndex((card) => card.id === message.details.card.id);
-      if (foundIndex !== -1) {
-        getMyCards().splice(foundIndex, 1);
-      }
-      break;
-    }
     case 'addCard':
       if (message.details.fromWater) {
         ui.playDrawAnimation = true;

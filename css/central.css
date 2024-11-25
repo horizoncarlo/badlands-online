@@ -1,13 +1,23 @@
 :root {
-  --slot-width: 260px;
-  --slot-height: 340px;
-  --card-width: 229px;
-  --card-height: 318px;
+  --card-width-full: 229px;
+  --card-height-full: 318px;
+  --card-padding-full: 10px;
+  --gap-full: 30px;
+  --card-scale: 1;
+  --card-width: calc(var(--card-width-full) * var(--card-scale));
+  --card-height: calc(var(--card-height-full) * var(--card-scale));
+  --card-padding: calc(var(--card-padding-full) * var(--card-scale));
+  --gap: calc(var(--gap-full) * var(--card-scale));
 }
 
 body {
   /* Avoid jiggling as a scrollbar is added */
   overflow-y: scroll;
+}
+
+body:has(dialog[open]) {
+  /* Prevent accidental background scrolling when a dialog is open */
+  overflow: hidden;
 }
 
 menu {
@@ -19,7 +29,7 @@ menu {
 }
 
 .draw-pile:hover {
-  filter: brightness(1.2);
+  filter: brightness(120%);
   transform: scale(1.05);
 }
 
@@ -34,28 +44,32 @@ menu {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 50px;
+  gap: var(--gap);
   margin-left: auto;
   margin-right: auto;
 }
 
 .slots {
-  max-width: calc(var(--slot-width) * 3 + 110px);
-}
-
-.slots div {
-  width: var(--slot-width);
-  height: var(--slot-height);
+  min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
+  max-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
 }
 
 .cards {
   gap: 10px;
 }
 
-.card {
-  /* transform: skew(-0.06turn, 18deg); */
+.camps {
+  padding-top: var(--gap);
+}
+
+.card-size,
+.slots div {
   width: var(--card-width);
   height: var(--card-height);
+}
+
+.slots div {
+  padding: var(--card-padding);
 }
 
 .camp-choice:hover,
@@ -71,8 +85,7 @@ menu {
   background-color: red;
 }
 
-.slots div,
-.card {
+.slots div {
   text-align: center;
   vertical-align: middle;
 }
@@ -102,7 +115,7 @@ menu {
 }
 
 .water-token-cost {
-  filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(5) contrast(1.2);
+  filter: brightness(50%) sepia(1) hue-rotate(-50deg) saturate(5) contrast(1.2);
 }
 
 .water-token:hover {
@@ -127,10 +140,10 @@ menu {
 
 .camp-choice-wrap {
   display: inline-block;
-  border: 5px solid transparent;
+  margin: 0 5px 0 5px;
 }
 
 .camp-choice-sel {
-  filter: brightness(1.5);
-  border: 5px solid var(--active);
+  outline: 5px solid var(--active);
+  filter: brightness(120%) saturate(150%);
 }

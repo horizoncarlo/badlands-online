@@ -37,7 +37,7 @@
       <header>
         <menu>
           <li>
-            Debug
+            Debug Menu
             <menu>
               <li>
                 Customize Layout
@@ -49,13 +49,29 @@
               </li>
             </menu>
           </li>
-          <li>
-            Join As
-            <menu>
-              <li onclick="action.joinGame('player1')">Be Player 1</li>
-              <li onclick="action.joinGame('player2')">Be Player 2</li>
-            </menu>
-          </li>
+          <template x-if="!inGame">
+            <li>
+              Join As
+              <menu>
+                <li onclick="action.joinGame('player1')">Be Player 1</li>
+                <li onclick="action.joinGame('player2')">Be Player 2</li>
+              </menu>
+            </li>
+          </template>
+          <template x-if="inGame">
+            <li>
+              Card Scale
+              <menu>
+                <li>
+                  <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
+                  <span x-text="cardScale + '%'"></span>
+                </li>
+              </menu>
+            </li>
+          </template>
+          <template x-if="inGame">
+            <li>Start Turn</li>
+          </template>
         </menu>
       </header>
 
@@ -65,12 +81,26 @@
 
       <!-- TODO Realistically we wouldn't even GET to this page without being a game (after joining from a lobby), so all these inGame checks will become needless-->
       <template x-if="inGame">
-        <div class="draw-pile" title="Draw a card for 2 Water" @mouseover="showWaterCost(2)" @mouseout="hideWaterCost()">
-          <img onclick="action.drawCard({ fromWater: true })" src="images/cards/people/punk.png" draggable="false" />
+        <div
+          class="draw-pile"
+          title="Draw a card for 2 Water"
+          @mouseover="showWaterCost(2)"
+          @mouseout="hideWaterCost()"
+          draggable="true"
+          @dragstart="repositionStart($event)"
+          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+          class="repositionable"
+        >
+          <img
+            class="card-size"
+            onclick="action.drawCard({ fromWater: true })"
+            src="images/cards/people/punk.png"
+            draggable="false"
+          />
         </div>
       </template>
       <template x-if="playDrawAnimation">
-        <img src="images/cards/people/punk.png" class="draw-animation" />
+        <img src="images/cards/people/punk.png" class="draw-animation card-size" />
       </template>
 
       <template x-if="inGame">
@@ -79,7 +109,7 @@
           draggable="true"
           @dragstart="repositionStart($event)"
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-          class="water-wrap repositionable"
+          class="repositionable water-wrap"
         >
           <template x-if="getPlayerData().waterCount > 0">
             <template x-for="water in getPlayerData().waterCount">
@@ -106,7 +136,7 @@
                   draggable="false"
                   :alt="slot.content.img"
                   :src="'images/cards/people/' + slot.content.img"
-                  :class="slot.content.damage >= 1 ? 'damaged-card' : ''"
+                  :class="'card-size' + (slot.content.damage >= 1 ? ' damaged-card' : '')"
                 />
               </template>
             </div>
@@ -114,21 +144,38 @@
         </div>
       </template>
 
+      <template x-if="inGame">
+        <div class="camps slots">
+          <template x-for="camp in getMyCamps()">
+            <div class="bd-muted">
+              <img
+                draggable="false"
+                :alt="camp.img"
+                :src="'images/cards/camps/' + camp.img"
+                class="card-size"
+              />
+            </div>
+          </template>
+        </div>
+      </template>
+
       <footer>
-        <template x-if="who">
+        <hr />
+        <template x-if="myPlayerNum">
           <div class="cards">
             <template x-for="card in getMyCards()">
-              <div class="card">
+              <div>
                 <img
                   :alt="card.img"
                   :src="'images/cards/people/' + card.img"
+                  :title="'Click and drag to play for ' + card.cost + ' Water'"
                   draggable="true"
                   @dragstart="draggingCard = true; $event.dataTransfer.setData('text/plain', card.id);"
                   @dragend="draggingCard = false"
                   @mouseover="showWaterCost(card.cost)"
                   @mouseout="hideWaterCost()"
                   @error="$el.classList.add('card-error')"
-                  :title="'Click and drag to play for ' + card.cost + ' Water'"
+                  class="card card-size"
                 />
               </div>
             </template>
@@ -144,8 +191,13 @@
           <p>To start the game you choose <span x-text="3 - selectedCampCount()"></span> camps from a random option of 6</p>
           <div class="camps-dialog-wrap">
             <template x-for="camp in getMyCamps()">
-              <div @click="chooseCamp(camp)" :class="'camp-choice-wrap' + (camp.selected ? ' camp-choice-sel' : '')">
-                <img :alt="camp.img" :src="'images/cards/camps/' + camp.img" draggable="false" class="camp-choice" />
+              <div @click="chooseCamp(camp)" class="camp-choice-wrap">
+                <img
+                  :alt="camp.img"
+                  :src="'images/cards/camps/' + camp.img"
+                  draggable="false"
+                  :class="'camp-choice' + (camp.selected ? ' camp-choice-sel' : '')"
+                />
               </div>
             </template>
           </div>
