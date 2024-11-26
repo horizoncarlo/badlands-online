@@ -25,13 +25,16 @@ const gs = {
       turnCount: 0,
     },
   },
+  slots: {
+    player1: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })), // For a 3x2 grid containing { index, content }
+    player2: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })),
+  },
   deck: [
     /* { id, img, damage? } */
   ],
   campDeck: [
     /* Deck that camps are drawn from at the start of the game */
   ],
-  slots: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })), // For a 3x2 grid containing { index, content }
 };
 
 if (onClient) {

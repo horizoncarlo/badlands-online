@@ -152,25 +152,27 @@
       </template>
 
       <template x-if="inGame">
-        <div class="slots">
-          <template x-for="slot in slots">
-            <div
-              class="bd-default"
-              @dragover.prevent="if (slot.content || !draggingCard) { return false; } $el.classList.add('slot-highlight')"
-              @dragleave="$el.classList.remove('slot-highlight')"
-              @drop.prevent="$el.classList.remove('slot-highlight'); dropCardInSlot(event, slot)"
-            >
-              <template x-if="slot.content">
-                <img
-                  draggable="false"
-                  :alt="slot.content.img"
-                  :src="'images/cards/people/' + slot.content.img"
-                  :class="'card-size' + (slot.content.damage >= 1 ? ' damaged-card' : '')"
-                />
-              </template>
-            </div>
-          </template>
-        </div>
+        <template x-for="(playerSlots, playerNum) in getSlots()">
+          <div :class="'slots ' + (playerNum === myPlayerNum ? 'my-slots' : 'opponent-slots')">
+            <template x-for="slot in playerSlots">
+              <div
+                class="bd-default"
+                @dragleave="dragLeaveSlot($el)"
+                @dragover.prevent="dragOverSlot(slot, playerNum, $el)"
+                @drop.prevent="dropCardInSlot(slot, playerNum, $el, event)"
+              >
+                <template x-if="slot.content">
+                  <img
+                    draggable="false"
+                    :alt="slot.content.img"
+                    :src="'images/cards/people/' + slot.content.img"
+                    :class="'card-size' + (slot.content.damage >= 1 ? ' damaged-card' : '')"
+                  />
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
       </template>
 
       <template x-if="inGame">

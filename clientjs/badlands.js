@@ -91,6 +91,21 @@ function getMyCamps() {
   return getPlayerData()?.camps || [];
 }
 
+function getSlots() {
+  return {
+    [utils.getOppositePlayerNum(gs.myPlayerNum)]: getOpponentSlots(),
+    [gs.myPlayerNum]: getMySlots(),
+  };
+}
+
+function getMySlots() {
+  return gs.slots[gs.myPlayerNum];
+}
+
+function getOpponentSlots() {
+  return gs.slots[utils.getOppositePlayerNum(gs.myPlayerNum)];
+}
+
 function getPlayerData() {
   if (gs.myPlayerNum) {
     return gs[gs.myPlayerNum];
@@ -173,7 +188,25 @@ function hideWaterCost() {
   });
 }
 
-function dropCardInSlot(event, slot) {
+function dragOverSlot(slot, playerNum, ele) {
+  if (gs.myPlayerNum !== playerNum || slot.content || !ui.draggingCard) {
+    return false;
+  }
+
+  ele.classList.add('slot-highlight');
+}
+
+function dragLeaveSlot(ele) {
+  ele.classList.remove('slot-highlight');
+}
+
+function dropCardInSlot(slot, playerNum, ele, event) {
+  dragLeaveSlot(ele);
+
+  if (gs.myPlayerNum !== playerNum) {
+    return;
+  }
+
   const data = event?.dataTransfer?.getData('text/plain');
   if (data) {
     let foundIndex = -1;

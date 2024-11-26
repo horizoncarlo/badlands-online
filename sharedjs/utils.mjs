@@ -45,12 +45,17 @@ const utils = {
   },
 
   findCardInBoard(card) {
-    const foundIndex = gs.slots.findIndex((loopSlot) => {
-      return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
-    });
-    if (foundIndex !== -1) {
-      return gs.slots[foundIndex].content;
+    function findCardInPlayerBoard(card, playerNum) {
+      const foundIndex = gs.slots[playerNum].findIndex((loopSlot) => {
+        return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
+      });
+      if (foundIndex !== -1) {
+        return gs.slots[playerNum][foundIndex].content;
+      }
     }
+
+    return findCardInPlayerBoard(card, 'player1') || findCardInPlayerBoard(card, 'player2');
+
     return null;
   },
 

@@ -33,7 +33,7 @@ const receiveClientWebsocketMessage = (message) => {
       ui.inGame = true;
       break;
     case 'slot':
-      gs.slots[message.details.index].content = message.details.card;
+      gs.slots[message.details.playerNum][message.details.index].content = message.details.card;
       break;
     case 'addCard':
       if (message.details.showAnimation) {

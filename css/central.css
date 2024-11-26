@@ -74,6 +74,29 @@ menu {
   max-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
 }
 
+.my-slots {
+  border-top: 5px solid black;
+  background: linear-gradient(180deg, var(--bg-danger) 0, transparent 50%);
+  padding-top: 10px;
+}
+
+.opponent-slots {
+  /* TODO Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in badlands.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
+  transform: rotate(180deg);
+  background: linear-gradient(180deg, var(--bg-accent) 0, transparent 50%);
+  padding-top: 10px; /* With the rotation this is actually...bottom */
+
+  /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent color colors:
+  filter: saturate(0.2);
+  filter: invert(1);
+  */
+}
+
+.opponent-slots div {
+  /* TODO Could optionally allow players to have opponent cards facing them (aka rotated like this) or facing their opponent (no rotation, then the parent slot rotation handles it). OR just rotate on hover? */
+  /* transform: rotate(180deg); */
+}
+
 .tray {
   min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
   max-width: fit-content;

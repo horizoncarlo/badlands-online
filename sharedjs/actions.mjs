@@ -76,8 +76,9 @@ const rawAction = {
 
       // TODO Check if card is valid to play on the playCard action
 
-      gs.slots[message.details.slot.index].content = message.details.card;
+      gs.slots[utils.getPlayerNumById(message.playerId)][message.details.slot.index].content = message.details.card;
       sendS('slot', {
+        playerNum: utils.getPlayerNumById(message.playerId),
         index: message.details.slot.index,
         card: message.details.card,
       });
