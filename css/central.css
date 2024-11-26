@@ -20,6 +20,17 @@ body:has(dialog[open]) {
   overflow: hidden;
 }
 
+.repositionable {
+  position: absolute;
+  /* TODO Feels weird or not to slide the move?: transition: top 100ms, left 100ms; */
+}
+
+.panel {
+  padding: 10px;
+  background-color: var(--bg-accent);
+  border-radius: 20px;
+}
+
 menu {
   margin: 0;
 }
@@ -40,7 +51,7 @@ menu {
 }
 
 .slots,
-.cards {
+.tray {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -49,17 +60,19 @@ menu {
   margin-right: auto;
 }
 
-.slots {
+.slots,
+.tray {
   min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
   max-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
 }
 
-.cards {
-  gap: 10px;
+.tray {
+  margin-top: var(--gap);
 }
 
-.camps {
-  padding-top: var(--gap);
+.flip-tray {
+  font-size: 32px;
+  margin-right: calc(var(--gap) * 2);
 }
 
 .card-size,
@@ -69,6 +82,8 @@ menu {
 }
 
 .slots div {
+  text-align: center;
+  vertical-align: middle;
   padding: var(--card-padding);
 }
 
@@ -85,11 +100,6 @@ menu {
   background-color: red;
 }
 
-.slots div {
-  text-align: center;
-  vertical-align: middle;
-}
-
 .slot-highlight {
   background-color: var(--success);
 }
@@ -100,14 +110,10 @@ menu {
 }
 
 .water-wrap {
-  position: absolute;
   left: 2%;
-  top: 80%;
+  bottom: 5%;
   display: flex;
   gap: 15px;
-  background-color: var(--bg-accent);
-  border-radius: 20px;
-  padding: 10px;
 }
 
 .water-token {
@@ -123,19 +129,15 @@ menu {
   animation: tiltToken 2s infinite alternate ease-in-out;
 }
 
-.repositionable {
-  position: absolute;
-  /* TODO Feels weird or not to slide the move?: transition: top 100ms, left 100ms; */
-}
-
-.camps-dialog {
-  min-width: calc(var(--card-width) * 3 + 200px);
+.camps-dialog,
+.camps-dialog-wrap {
+  text-align: center;
+  min-width: calc(var(--card-width) * 3 + 300px);
 }
 
 .camps-dialog-wrap {
   margin-left: auto;
   margin-right: auto;
-  max-width: calc(var(--card-width) * 3 + 50px);
 }
 
 .camp-choice-wrap {

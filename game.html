@@ -137,7 +137,7 @@
           draggable="true"
           @dragstart="repositionStart($event)"
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-          class="repositionable water-wrap"
+          class="repositionable panel water-wrap bd-accent"
         >
           <template x-if="getPlayerData().waterCount > 0">
             <template x-for="water in getPlayerData().waterCount">
@@ -173,42 +173,53 @@
       </template>
 
       <template x-if="inGame">
-        <div class="camps slots">
-          <template x-for="camp in getMyCamps()">
-            <div class="bd-muted">
-              <img
-                draggable="false"
-                :alt="camp.img"
-                :src="'images/cards/camps/' + camp.img"
-                class="card-size"
-              />
-            </div>
-          </template>
-        </div>
-      </template>
+        <footer>
+          <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
+            <legend><span x-text="getTrayLegend()"></span></legend>
 
-      <footer>
-        <template x-if="myPlayerNum">
-          <div class="cards">
-            <template x-for="card in getMyCards()">
-              <div>
-                <img
-                  :alt="card.img"
-                  :src="'images/cards/people/' + card.img"
-                  :title="'Click and drag to play for ' + card.cost + ' Water'"
-                  draggable="true"
-                  @dragstart="draggingCard = true; $event.dataTransfer.setData('text/plain', card.id);"
-                  @dragend="draggingCard = false"
-                  @mouseover="showWaterCost(card.cost)"
-                  @mouseout="hideWaterCost()"
-                  @error="$el.classList.add('card-error')"
-                  class="card card-size"
-                />
-              </div>
+            <!-- TODO Hotkey for this swap -->
+            <button
+              @click="trayIsCards = !trayIsCards"
+              :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
+              title="Flip tray between your camps and hand"
+            >
+              🗘
+            </button>
+
+            <template x-if="trayIsCamps">
+              <template x-for="camp in getMyCamps()">
+                <div>
+                  <img
+                    draggable="false"
+                    :alt="camp.img"
+                    :src="'images/cards/camps/' + camp.img"
+                    class="card-size"
+                  />
+                </div>
+              </template>
             </template>
-          </div>
-        </template>
-      </footer>
+
+            <template x-if="trayIsCards && myPlayerNum">
+              <template x-for="card in getMyCards()">
+                <div>
+                  <img
+                    :alt="card.img"
+                    :src="'images/cards/people/' + card.img"
+                    :title="'Click and drag to play for ' + card.cost + ' Water'"
+                    draggable="true"
+                    @dragstart="draggingCard = true; $event.dataTransfer.setData('text/plain', card.id);"
+                    @dragend="draggingCard = false"
+                    @mouseover="showWaterCost(card.cost)"
+                    @mouseout="hideWaterCost()"
+                    @error="$el.classList.add('card-error')"
+                    class="card card-size"
+                  />
+                </div>
+              </template>
+            </template>
+          </fieldset>
+        </footer>
+      </template>
 
       <template x-if="inGame" x-teleport="body">
         <dialog id="campPromptDialog" class="camps-dialog">

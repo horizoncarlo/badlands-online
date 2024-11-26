@@ -5,7 +5,9 @@ let ui = { // Local state
   repositionOffsetX: 0,
   repositionOffsetY: 0,
   waterTokenEles: [],
-  cardScale: 100,
+  cardScale: 70, // Percent of card and board size
+  trayIsCamps: false,
+  trayIsCards: true,
 };
 
 function init() {
@@ -28,6 +30,7 @@ init();
 function checkInit(status) {
   if (status) {
     alpineInit();
+    applyCardScale();
   }
 }
 
@@ -35,6 +38,12 @@ function alpineInit() {
   ui = Alpine.reactive(ui);
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
+
+  Alpine.effect(() => {
+    // Marginally less readable variables (wHy TWo flAgS?!) here but easy concise state in the UI
+    ui.trayIsCamps = !ui.trayIsCards;
+    ui.trayIsCards = !ui.trayIsCamps;
+  });
 }
 
 function repositionStart(event) {
@@ -62,6 +71,15 @@ function repositionEnd(event, ele, coords) {
     document.documentElement.scrollHeight - ele.offsetHeight,
     Math.max(0, event.clientY - coords[1] + window.scrollY),
   ) + 'px';
+  ele.style.bottom = 'auto';
+}
+
+function getTrayLegend() {
+  if (ui.trayIsCards) {
+    return `Your Hand (${getMyCards().length})`;
+  } else {
+    return 'Your Camps';
+  }
 }
 
 function getMyCards() {
