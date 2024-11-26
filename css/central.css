@@ -10,9 +10,18 @@
   --gap: calc(var(--gap-full) * var(--card-scale));
 }
 
+html,
+body {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100vh;
+}
+
 body {
   /* Avoid jiggling as a scrollbar is added */
   overflow-y: scroll;
+  position: relative;
 }
 
 body:has(dialog[open]) {
@@ -55,24 +64,32 @@ menu {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: var(--gap);
   margin-left: auto;
   margin-right: auto;
 }
 
-.slots,
-.tray {
-  min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
+.slots {
   max-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
 }
 
 .tray {
+  min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
+  max-width: fit-content;
   margin-top: var(--gap);
 }
 
 .flip-tray {
-  font-size: 32px;
-  margin-right: calc(var(--gap) * 2);
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 150px;
+  height: 150px;
+}
+
+.flip-tray div {
+  font-size: 45px;
 }
 
 .card-size,

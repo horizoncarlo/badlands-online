@@ -31,6 +31,7 @@ function checkInit(status) {
   if (status) {
     alpineInit();
     applyCardScale();
+    setupHotkeys();
   }
 }
 
@@ -139,6 +140,20 @@ function doneChooseCamps() {
 
 function applyCardScale() {
   document.documentElement.style.setProperty('--card-scale', ui.cardScale / 100);
+}
+
+function setupHotkeys() {
+  window.addEventListener('keyup', (event) => {
+    if (!event) {
+      return;
+    }
+
+    if (event.key === 't' || event.key === 'T') flipTray();
+  });
+}
+
+function flipTray() {
+  ui.trayIsCards = !ui.trayIsCards;
 }
 
 function showWaterCost(cost) {

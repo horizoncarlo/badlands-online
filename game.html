@@ -174,17 +174,17 @@
 
       <template x-if="inGame">
         <footer>
+          <!-- TODO Hotkey for this swap -->
+          <button
+            @click="flipTray()"
+            :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
+            title="Flip tray between your camps and hand"
+          >
+            Flip <u>T</u>ray<div>🗘</div>
+          </button>
+
           <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
             <legend><span x-text="getTrayLegend()"></span></legend>
-
-            <!-- TODO Hotkey for this swap -->
-            <button
-              @click="trayIsCards = !trayIsCards"
-              :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
-              title="Flip tray between your camps and hand"
-            >
-              🗘
-            </button>
 
             <template x-if="trayIsCamps">
               <template x-for="camp in getMyCamps()">
