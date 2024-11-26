@@ -23,9 +23,10 @@
       let playerId = '${PLAYER_ID}'; // Replaced server side before returning the page
     </script>
 
-    <script src="./clientjs/utils.js"></script>
     <script src="./clientjs/websocket.js"></script>
-    <script src="./sharedjs/websocket-actions.mjs" type="module"></script>
+    <script src="./sharedjs/gamestate.mjs" type="module"></script>
+    <script src="./sharedjs/utils.mjs" type="module"></script>
+    <script src="./sharedjs/actions.mjs" type="module"></script>
 
     <script
       defer
@@ -200,6 +201,7 @@
             </template>
 
             <template x-if="trayIsCards && myPlayerNum">
+              <!-- TODO Space properly when no cards are in hand-->
               <template x-for="card in getMyCards()">
                 <div>
                   <img

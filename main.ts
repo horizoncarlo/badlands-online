@@ -1,7 +1,9 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { startScraper } from './backendjs/scraper.ts';
-import { action, gs, utils } from './sharedjs/websocket-actions.mjs';
+import { action } from './sharedjs/actions.mjs';
+import { gs } from './sharedjs/gamestate.mjs';
+import { utils } from './sharedjs/utils.mjs';
 
 type WebSocketDetails = {
   playerId: string;
