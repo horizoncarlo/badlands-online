@@ -158,15 +158,14 @@ const rawAction = {
   junkCard(message) {
     if (onClient) {
       sendC('junkCard', message);
-    }
-    else {
+    } else {
       // TODO: Validate
       switch (message.details.card.junkEffect) {
         case 'damage':
           action.damageCard(message);
           break;
         case 'injure':
-          action.injurePerson(message)
+          action.injurePerson(message);
           break;
         case 'restore':
           action.restore(message);
@@ -204,7 +203,7 @@ const rawAction = {
 
   injurePerson(message) {
     if (!onClient) {
-      action.damageCard({...message, damage: 1});
+      action.damageCard({ ...message, damage: 1 });
     }
   },
 

@@ -54,8 +54,8 @@
             <li>
               Join As
               <menu>
-                <li onclick="action.joinGame({ player: 'player1'})">Be Player 1</li>
-                <li onclick="action.joinGame({ player: 'player2'})">Be Player 2</li>
+                <li onclick="action.joinGame({player: 'player1'})">Be Player 1</li>
+                <li onclick="action.joinGame({player: 'player2'})">Be Player 2</li>
               </menu>
             </li>
           </template>
@@ -122,12 +122,12 @@
               draggable="false"
             />
           </div>
-          <template x-if="draggingCard">
+          <template x-if="draggedCard">
             <div
               class="junk-pile card-size bd-attention"
               title="Drag your card here to use the Junk effect"
               @dragover.prevent="dragOverHighlight(myPlayerNum, $el, 'fg-attention')"
-              @drop.prevent="dropCardInJunk($el, event)"
+              @drop.prevent="dropCardInJunk($el)"
             >
               Junk Card
               <div class="icon">🗑</div>
@@ -168,7 +168,7 @@
                 class="bd-default"
                 @dragleave="dragLeaveHighlight($el)"
                 @dragover.prevent="dragOverSlot(slot, playerNum, $el)"
-                @drop.prevent="dropCardInSlot(slot, playerNum, $el, event)"
+                @drop.prevent="dropCardInSlot(slot, playerNum, $el)"
               >
                 <template x-if="slot.content">
                   <img
@@ -220,8 +220,8 @@
                     :src="'images/cards/people/' + card.img"
                     :title="'Click and drag to play for ' + card.cost + ' Water'"
                     draggable="true"
-                    @dragstart="draggingCard = true; $event.dataTransfer.setData('text/plain', card.id);"
-                    @dragend="draggingCard = false"
+                    @dragstart="draggedCard = card"
+                    @dragend="draggedCard = null"
                     @mouseover="showWaterCost(card.cost)"
                     @mouseout="hideWaterCost()"
                     @error="$el.classList.add('card-error')"

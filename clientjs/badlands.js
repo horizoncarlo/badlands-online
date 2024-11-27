@@ -1,7 +1,7 @@
 let ui = { // Local state
   inGame: false,
   drawAnimationCount: 0,
-  draggingCard: false,
+  draggedCard: false,
   repositionOffsetX: 0,
   repositionOffsetY: 0,
   waterTokenEles: [],
@@ -189,7 +189,7 @@ function hideWaterCost() {
 }
 
 function dragOverSlot(slot, playerNum, ele) {
-  if (gs.myPlayerNum !== playerNum || slot.content || !ui.draggingCard) {
+  if (gs.myPlayerNum !== playerNum || slot.content || !ui.draggedCard) {
     return false;
   }
 
@@ -197,7 +197,7 @@ function dragOverSlot(slot, playerNum, ele) {
 }
 
 function dragOverHighlight(playerNum, ele, overrideHighlight) {
-  if (gs.myPlayerNum !== playerNum || !ui.draggingCard) {
+  if (gs.myPlayerNum !== playerNum || !ui.draggedCard) {
     return false;
   }
 
@@ -208,15 +208,15 @@ function dragLeaveHighlight(ele) {
   ele.classList.remove('slot-highlight');
 }
 
-function dropCardInJunk(ele, event) {
+function dropCardInJunk(ele) {
   dragLeaveHighlight(ele);
 
   action.junkCard({
-    card: getDroppedCard(event),
+    card: ui.draggedCard,
   });
 }
 
-function dropCardInSlot(slot, playerNum, ele, event) {
+function dropCardInSlot(slot, playerNum, ele) {
   dragLeaveHighlight(ele);
 
   if (slot.content) {
@@ -224,19 +224,16 @@ function dropCardInSlot(slot, playerNum, ele, event) {
     return false;
   }
 
-  const droppedCard = getDroppedCard(event);
-  if (droppedCard) {
-    if (droppedCard.cost > getPlayerData().waterCount) {
-      // TODO Proper error component or logging - maybe shake the water token wrapper panel
-      console.error('Not enough water to play that card');
-      return;
-    }
-
-    action.playCard({
-      card: droppedCard,
-      slot: slot,
-    });
+  if (ui.draggedCard.cost > getPlayerData().waterCount) {
+    // TODO Proper error component or logging - maybe shake the water token wrapper panel
+    console.error('Not enough water to play that card');
+    return;
   }
+
+  action.playCard({
+    card: ui.draggedCard,
+    slot: slot,
+  });
 }
 
 function getDroppedCard(event) {
