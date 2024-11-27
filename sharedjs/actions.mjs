@@ -8,7 +8,7 @@ const FAST_AND_LOOSE = true; // Debugging flag to avoid a few checks to make it 
 const rawAction = {
   joinGame(message) {
     if (onClient) {
-      sendC('joinGame', { player: message });
+      sendC('joinGame', message);
     } else {
       /* TODO TEMPORARY For now it's annoying to check if a player already joined for our playerNum, as refreshing our page currently would trigger this
                         Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
@@ -88,6 +88,13 @@ const rawAction = {
     }
   },
 
+  gainWater(message) {
+    if (!onClient) {
+      utils.getPlayerDataById(message.playerId).waterCount += 1;
+      sendS('gainWater', {}, message.playerId);
+    }
+  },
+
   reduceWater(message, overrideCost) {
     if (!onClient) {
       utils.getPlayerDataById(message.playerId).waterCount -= overrideCost || message.details.cost;
@@ -148,6 +155,59 @@ const rawAction = {
     }
   },
 
+  junkCard(message) {
+    if (onClient) {
+      sendC('junkCard', message);
+    }
+    else {
+      // TODO: Validate
+      switch (message.details.card.junkEffect) {
+        case 'damage':
+          action.damageCard(message);
+          break;
+        case 'injure':
+          action.injurePerson(message)
+          break;
+        case 'restore':
+          action.restore(message);
+          break;
+        case 'draw':
+          action.drawCard(message, true);
+          break;
+        case 'water':
+          action.gainWater(message);
+          break;
+        case 'gainPunk':
+          action.gainPunk(message);
+          break;
+        case 'raid':
+          action.raid(message);
+          break;
+      }
+      action.removeCard(message);
+
+      action.sync(); // TODO: Remove
+    }
+  },
+
+  gainPunk(message) {
+    if (!onClient) {
+      // TODO draw card from top face down, select target
+    }
+  },
+
+  raid(message) {
+    if (!onClient) {
+      // TODO insert or advance raiders
+    }
+  },
+
+  injurePerson(message) {
+    if (!onClient) {
+      action.damageCard({...message, damage: 1});
+    }
+  },
+
   damageCard(message) {
     if (!onClient) {
       const foundCard = utils.findCardInBoard(message.details.card);
@@ -158,9 +218,21 @@ const rawAction = {
         }
       }
 
-      // TODO Send a separate message to request a damage animation (explosions?) on the client
+      // TODO Send a separate message to request for injure and damage animations (explosions?) on the client
 
       action.sync();
+    }
+  },
+
+  restore(message) {
+    if (!onClient) {
+      const foundCard = utils.findCardInBoard(message.details.card);
+      if (foundCard) {
+        foundCard.damage = (foundCard.damage || 0) - 1;
+        if (foundCard.damage === 0) {
+          // TODO Rotate card
+        }
+      }
     }
   },
 
@@ -184,9 +256,7 @@ const rawAction = {
 
   doneCamps(message) {
     if (onClient) {
-      sendC('doneCamps', {
-        camps: message,
-      });
+      sendC('doneCamps', message);
     } else {
       // TODO Validate the camps were available choices and there's the proper number
       utils.getPlayerDataById(message.playerId).camps = message.details.camps;

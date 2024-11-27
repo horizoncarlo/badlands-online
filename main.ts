@@ -121,25 +121,10 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
     console.log('Received server message', message);
 
-    switch (message.type) {
-      case 'joinGame':
-        action.joinGame(message);
-        break;
-      case 'startTurn':
-        action.startTurn(message);
-        break;
-      case 'endTurn':
-        action.endTurn(message);
-        break;
-      case 'playCard':
-        action.playCard(message);
-        break;
-      case 'drawCard':
-        action.drawCard(message);
-        break;
-      case 'doneCamps':
-        action.doneCamps(message);
-        break;
+    if (typeof action[message.type] === 'function') {
+      action[message.type](message);
+    } else {
+      action.sendError(`Invalid action ${message.type}`, message.playerId);
     }
   }
 };

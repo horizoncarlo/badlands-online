@@ -55,8 +55,6 @@ const utils = {
     }
 
     return findCardInPlayerBoard(card, 'player1') || findCardInPlayerBoard(card, 'player2');
-
-    return null;
   },
 
   randomRange(min, max) {
