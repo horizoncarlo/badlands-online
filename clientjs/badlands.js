@@ -148,7 +148,7 @@ function doneChooseCamps() {
   //       action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
   getPlayerData().camps = getMyCamps().filter((camp) => camp.selected);
 
-  action.doneCamps(getPlayerData().camps);
+  action.doneCamps({ camps: getPlayerData().camps });
 
   hideCampPromptDialog();
 }
@@ -193,47 +193,58 @@ function dragOverSlot(slot, playerNum, ele) {
     return false;
   }
 
-  ele.classList.add('slot-highlight');
+  dragOverHighlight(playerNum, ele);
 }
 
-function dragLeaveSlot(ele) {
+function dragOverHighlight(playerNum, ele, overrideHighlight) {
+  if (gs.myPlayerNum !== playerNum || !ui.draggingCard) {
+    return false;
+  }
+
+  ele.classList.add(overrideHighlight ?? 'slot-highlight');
+}
+
+function dragLeaveHighlight(ele) {
   ele.classList.remove('slot-highlight');
 }
 
-function dropCardInSlot(slot, playerNum, ele, event) {
-  dragLeaveSlot(ele);
+function dropCardInJunk(ele, event) {
+  dragLeaveHighlight(ele);
 
-  if (gs.myPlayerNum !== playerNum) {
-    return;
+  action.junkCard({
+    card: getDroppedCard(event),
+  });
+}
+
+function dropCardInSlot(slot, playerNum, ele, event) {
+  dragLeaveHighlight(ele);
+
+  if (slot.content) {
+    console.error('Card already here');
+    return false;
   }
 
-  const data = event?.dataTransfer?.getData('text/plain');
-  if (data) {
-    let foundIndex = -1;
-
-    if (slot.content) {
-      console.error('Card already here');
-      return false;
+  const droppedCard = getDroppedCard(event);
+  if (droppedCard) {
+    if (droppedCard.cost > getPlayerData().waterCount) {
+      // TODO Proper error component or logging - maybe shake the water token wrapper panel
+      console.error('Not enough water to play that card');
+      return;
     }
 
-    getMyCards().find((card, index) => {
-      if (card.id == data) {
-        foundIndex = index;
-        return true;
-      }
+    action.playCard({
+      card: droppedCard,
+      slot: slot,
     });
+  }
+}
 
-    if (foundIndex >= 0) {
-      if (getMyCards()[foundIndex].cost > getPlayerData().waterCount) {
-        // TODO Proper error component or logging - maybe shake the water token wrapper panel
-        console.error('Not enough water to play that card');
-        return;
-      }
+function getDroppedCard(event) {
+  let droppedCardId = event?.dataTransfer?.getData('text/plain');
+  if (droppedCardId) {
+    // Cast our droppedCardId from string to int
+    droppedCardId = Number(droppedCardId);
 
-      action.playCard({
-        card: getMyCards()[foundIndex],
-        slot: slot,
-      });
-    }
+    return getMyCards().find((card) => card.id === droppedCardId);
   }
 }

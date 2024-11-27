@@ -204,26 +204,26 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
   // }
   // TODO Populate the deck properly
   const dupePeople = [
-    { img: 'assassin', cost: 1 },
-    { img: 'cult_leader', cost: 1 },
-    { img: 'doomsayer', cost: 1 },
-    { img: 'exterminator', cost: 1 },
-    { img: 'gunner', cost: 1 },
-    { img: 'holdout', cost: 2 },
-    { img: 'looter', cost: 1 },
-    { img: 'mimic', cost: 1 },
-    { img: 'muse', cost: 1 },
-    { img: 'mutant', cost: 1 },
-    { img: 'pyromaniac', cost: 1 },
-    { img: 'rabble_rouser', cost: 1 },
-    { img: 'repair_bot', cost: 1 },
-    { img: 'rescue_team', cost: 1 },
-    { img: 'scientist', cost: 1 },
-    { img: 'scout', cost: 1 },
-    { img: 'sniper', cost: 1 },
-    { img: 'vanguard', cost: 1 },
-    { img: 'vigilante', cost: 1 },
-    { img: 'wounded_soldier', cost: 1 },
+    { img: 'assassin', cost: 1, junkEffect: 'raid' },
+    { img: 'cult_leader', cost: 1, junkEffect: 'draw' },
+    { img: 'doomsayer', cost: 1, junkEffect: 'draw' },
+    { img: 'exterminator', cost: 1, junkEffect: 'draw' },
+    { img: 'gunner', cost: 1, junkEffect: 'restore' },
+    { img: 'holdout', cost: 2, junkEffect: 'raid' },
+    { img: 'looter', cost: 1, junkEffect: 'water' },
+    { img: 'mimic', cost: 1, junkEffect: 'injure' },
+    { img: 'muse', cost: 1, junkEffect: 'water' },
+    { img: 'mutant', cost: 1, junkEffect: 'injure' },
+    { img: 'pyromaniac', cost: 1, junkEffect: 'injure' },
+    { img: 'rabble_rouser', cost: 1, junkEffect: 'raid' },
+    { img: 'repair_bot', cost: 1, junkEffect: 'injure' },
+    { img: 'rescue_team', cost: 1, junkEffect: 'injure' },
+    { img: 'scientist', cost: 1, junkEffect: 'raid' },
+    { img: 'scout', cost: 1, junkEffect: 'water' },
+    { img: 'sniper', cost: 1, junkEffect: 'restore' },
+    { img: 'vanguard', cost: 1, junkEffect: 'raid' },
+    { img: 'vigilante', cost: 1, junkEffect: 'raid' },
+    { img: 'wounded_soldier', cost: 1, junkEffect: 'injure' },
   ];
   const uniqPeople = [
     { img: 'argo_yesky', cost: 3 },
@@ -232,7 +232,10 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'molgur_stang', cost: 4 },
     { img: 'vera_vosh', cost: 3 },
     { img: 'zeto_khan', cost: 3 },
-  ];
+  ].map((uniq) => {
+    uniq['junkEffect'] = 'gainPunk';
+    return uniq;
+  });
   // TODO For now keep events out for simplicity
   const dupeEvents = [];
   // const dupeEvents = [

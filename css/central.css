@@ -8,6 +8,7 @@
   --card-height: calc(var(--card-height-full) * var(--card-scale));
   --card-padding: calc(var(--card-padding-full) * var(--card-scale));
   --gap: calc(var(--gap-full) * var(--card-scale));
+  --icon-size: 45px;
 }
 
 html,
@@ -44,13 +45,14 @@ menu {
   margin: 0;
 }
 
-.draw-pile {
-  position: absolute;
-}
-
 .draw-pile:hover {
   filter: brightness(120%);
   transform: scale(1.05);
+}
+
+.junk-pile {
+  text-align: center;
+  padding: var(--gap);
 }
 
 .draw-animation {
@@ -97,6 +99,10 @@ menu {
   /* transform: rotate(180deg); */
 }
 
+.icon {
+  font-size: var(--icon-size);
+}
+
 .tray {
   min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
   max-width: fit-content;
@@ -109,10 +115,6 @@ menu {
   bottom: 0;
   width: 150px;
   height: 150px;
-}
-
-.flip-tray div {
-  font-size: 45px;
 }
 
 .card-size,
