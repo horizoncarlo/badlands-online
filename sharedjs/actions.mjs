@@ -278,6 +278,17 @@ const rawAction = {
     }
   },
 
+  chat(message) {
+    if (onClient) {
+      sendC('chat', message);
+    } else {
+      // TODO Don't blindly append chat messages - validate first
+      const text = utils.getPlayerNumById(message.playerId) + ': ' + message.details.text;
+      gs.chat.push(text);
+      sendS('chat', { text: text });
+    }
+  },
+
   sync(playerIdOrNullForBoth) {
     /* Dev notes: when to sync vs not
      Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
@@ -334,6 +345,7 @@ rawAction.doneCamps.skipPreprocess = true;
 rawAction.startTurn.skipPreprocess = true;
 rawAction.drawCard.skipPreprocess = true;
 rawAction.sendError.skipPreprocess = true;
+rawAction.chat.skipPreprocess = true;
 rawAction.sync.skipPreprocess = true;
 
 const actionHandler = {

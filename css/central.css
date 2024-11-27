@@ -32,6 +32,7 @@ body:has(dialog[open]) {
 
 .repositionable {
   position: absolute;
+  cursor: move;
   /* TODO Feels weird or not to slide the move?: transition: top 100ms, left 100ms; */
 }
 
@@ -194,4 +195,9 @@ menu {
 .camp-choice-sel {
   outline: 5px solid var(--success);
   filter: brightness(120%) saturate(100%);
+}
+
+.chat {
+  top: 5%;
+  right: 2%;
 }

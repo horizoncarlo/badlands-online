@@ -35,6 +35,7 @@ const gs = {
   campDeck: [
     /* Deck that camps are drawn from at the start of the game */
   ],
+  chat: [],
 };
 
 if (onClient) {

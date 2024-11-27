@@ -18,6 +18,7 @@ const receiveClientWebsocketMessage = (message) => {
       gs.player2 = updatedGs.player2;
       gs.slots = updatedGs.slots;
       gs.turn = updatedGs.turn;
+      gs.chat = updatedGs.chat;
       break;
     }
     case 'alert':
@@ -57,6 +58,10 @@ const receiveClientWebsocketMessage = (message) => {
     case 'promptCamps':
       getPlayerData().camps = message.details.camps;
       showCampPromptDialog();
+      break;
+    case 'chat':
+      console.log('Chat received', message, gs.chat);
+      gs.chat.push(message.details.text);
       break;
   }
 };

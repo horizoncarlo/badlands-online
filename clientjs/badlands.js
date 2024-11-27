@@ -8,6 +8,7 @@ let ui = { // Local state
   cardScale: 70, // Percent of card and board size
   trayIsCamps: false,
   trayIsCards: true,
+  currentChat: '',
 };
 
 function init() {
@@ -73,6 +74,7 @@ function repositionEnd(event, ele, coords) {
     Math.max(0, event.clientY - coords[1] + window.scrollY),
   ) + 'px';
   ele.style.bottom = 'auto';
+  ele.style.right = 'auto';
 }
 
 function getTrayLegend() {
@@ -244,4 +246,11 @@ function getDroppedCard(event) {
 
     return getMyCards().find((card) => card.id === droppedCardId);
   }
+}
+
+function submitChat(ele) {
+  action.chat({
+    text: ui.currentChat,
+  });
+  ele.value = '';
 }

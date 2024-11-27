@@ -234,6 +234,26 @@
         </footer>
       </template>
 
+      <template x-if="inGame">
+        <div
+          class="repositionable chat panel"
+          draggable="true"
+          @dragstart="repositionStart($event)"
+          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+        >
+          <fieldset>
+            <legend>Chat Log</legend>
+            <template x-if="chat.length === 0">
+              <span>No messages yet...</span>
+            </template>
+            <template x-for="message in chat">
+              <div x-text="message"></div>
+            </template>
+            <input x-model="currentChat" @keyup.enter="submitChat($el)" />
+          </fieldset>
+        </div>
+      </template>
+
       <template x-if="inGame" x-teleport="body">
         <dialog id="campPromptDialog" class="camps-dialog">
           <header>
