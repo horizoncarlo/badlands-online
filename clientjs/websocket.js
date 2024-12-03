@@ -60,7 +60,6 @@ const receiveClientWebsocketMessage = (message) => {
       showCampPromptDialog();
       break;
     case 'chat':
-      console.log('Chat received', message, gs.chat);
       gs.chat.push(message.details.text);
       break;
   }

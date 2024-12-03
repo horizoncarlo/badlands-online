@@ -4,6 +4,7 @@
   --card-padding-full: 10px;
   --gap-full: 30px;
   --card-scale: 1;
+  --chat-max-height: 50vh;
   --card-width: calc(var(--card-width-full) * var(--card-scale));
   --card-height: calc(var(--card-height-full) * var(--card-scale));
   --card-padding: calc(var(--card-padding-full) * var(--card-scale));
@@ -104,6 +105,10 @@ menu {
   font-size: var(--icon-size);
 }
 
+.icon-sm {
+  font-size: calc(var(--icon-size) * 0.6);
+}
+
 .tray {
   min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
   max-width: fit-content;
@@ -200,4 +205,15 @@ menu {
 .chat {
   top: 5%;
   right: 2%;
+}
+
+.chat-wrap {
+  scroll-behavior: smooth;
+  max-width: 20vw;
+  max-height: var(--chat-max-height);
+  overflow-y: hidden;
+}
+
+.chat-wrap:hover {
+  overflow-y: scroll;
 }

@@ -6,6 +6,7 @@ let ui = { // Local state
   repositionOffsetY: 0,
   waterTokenEles: [],
   cardScale: 70, // Percent of card and board size
+  chatMax: 50, // As a view height property
   trayIsCamps: false,
   trayIsCards: true,
   currentChat: '',
@@ -32,6 +33,7 @@ function checkInit(status) {
   if (status) {
     alpineInit();
     applyCardScale();
+    applyChatMax();
     setupHotkeys();
   }
 }
@@ -142,12 +144,12 @@ function doneChooseCamps() {
     return;
   }
 
-  // TTODO Need to better decide where we handle UI updates - probably should be moved to the action itself instead of split here and in the action
-  //       For example should update our player data in a single place. Similar to the validation and finding logic in dropCardInSlot
-  //       I think some of the confusion comes from having to pass a message, when really we should pass state and build a message on the client for the action.*
-  //       But that works less great for the idea of a consistent function both client and server can call. So maybe all the pre-logic SHOULD be here before the action
-  //       In either case it's client JS - just need to know where it should be and stick to it
-  //       action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
+  // TODO Need to better decide where we handle UI updates - probably should be moved to the action itself instead of split here and in the action
+  //      For example should update our player data in a single place. Similar to the validation and finding logic in dropCardInSlot
+  //      I think some of the confusion comes from having to pass a message, when really we should pass state and build a message on the client for the action.*
+  //      But that works less great for the idea of a consistent function both client and server can call. So maybe all the pre-logic SHOULD be here before the action
+  //      In either case it's client JS - just need to know where it should be and stick to it
+  //      action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
   getPlayerData().camps = getMyCamps().filter((camp) => camp.selected);
 
   action.doneCamps({ camps: getPlayerData().camps });
@@ -159,18 +161,43 @@ function applyCardScale() {
   document.documentElement.style.setProperty('--card-scale', ui.cardScale / 100);
 }
 
+function applyChatMax(params) {
+  if (params?.alsoUpdate) {
+    // Reduce our max height to a minimum, then cycle back and start over
+    ui.chatMax = ui.chatMax - 10 <= 0 ? 90 : ui.chatMax - 10;
+  }
+  document.documentElement.style.setProperty('--chat-max-height', ui.chatMax + 'vh');
+}
+
 function setupHotkeys() {
   window.addEventListener('keyup', (event) => {
-    if (!event) {
+    if (!event || document.activeElement?.tagName === 'INPUT') { // Skip hotkeys if we're typing in an input field
       return;
     }
 
-    if (event.key === 't' || event.key === 'T') flipTray();
+    const key = event.key.toLowerCase();
+
+    if (key === 'f') flipTray();
+    else if (key === 't') focusChatIn();
   });
 }
 
 function flipTray() {
   ui.trayIsCards = !ui.trayIsCards;
+}
+
+function focusChatIn() {
+  if (ui.$refs?.chatIn) {
+    ui.$refs.chatIn.focus();
+  }
+}
+
+function scrollChatToBottom(ele) {
+  Alpine.nextTick(() => {
+    if (ele) {
+      ele.scrollTop = ele.scrollHeight;
+    }
+  });
 }
 
 function showWaterCost(cost) {

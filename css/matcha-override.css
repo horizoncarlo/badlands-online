@@ -6,6 +6,10 @@ img {
   border-radius: 0;
 }
 
+fieldset {
+  margin-bottom: 0;
+}
+
 .menu-right {
   margin-left: auto;
 }

@@ -49,7 +49,7 @@ const rawAction = {
 
       action.sync(); // Sync to update turn status
 
-      action.drawCard(message, true);
+      action.drawCard(message, { fromServerRequest: true });
     }
   },
 
@@ -117,11 +117,11 @@ const rawAction = {
     }
   },
 
-  drawCard(message, fromServerRequest) {
+  drawCard(message, params) { // params has params.fromServerRequest boolean
     if (onClient) {
       sendC('drawCard', message);
     } else {
-      if (!fromServerRequest && !utils.isPlayersTurn(message.playerId)) {
+      if (!params?.fromServerRequest && !utils.isPlayersTurn(message.playerId)) {
         return;
       }
 
@@ -144,7 +144,7 @@ const rawAction = {
           card: newCard,
           ...message.details,
         };
-        if (message.details?.fromWater || fromServerRequest) {
+        if (message.details?.fromWater || params?.fromServerRequest) {
           newMessage.showAnimation = true;
         }
 
@@ -171,7 +171,7 @@ const rawAction = {
           action.restore(message);
           break;
         case 'draw':
-          action.drawCard(message, true);
+          action.drawCard(message, { fromServerRequest: true });
           break;
         case 'water':
           action.gainWater(message);
@@ -267,7 +267,7 @@ const rawAction = {
           details: {
             multiAnimation: totalDrawCount > 1,
           },
-        }, true);
+        }, { fromServerRequest: true });
       }
     }
   },
@@ -283,6 +283,7 @@ const rawAction = {
       sendC('chat', message);
     } else {
       // TODO Don't blindly append chat messages - validate first
+      // TODO Have the concept of a System level message too, maybe special formatting on the client
       const text = utils.getPlayerNumById(message.playerId) + ': ' + message.details.text;
       gs.chat.push(text);
       sendS('chat', { text: text });
@@ -315,6 +316,8 @@ const rawAction = {
       delete updatedGs.myPlayerNum;
       delete updatedGs.campDeck;
       delete updatedGs.deck;
+
+      // TODO Should have an option to sync with or without Chat Log as that could add a TON of data depending on the size
 
       // Strip out any sensitive information from the opponent
       const { [opponentNum]: opponentData } = updatedGs;
