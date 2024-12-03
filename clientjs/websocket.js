@@ -9,7 +9,7 @@ const receiveClientWebsocketMessage = (message) => {
     return;
   }
 
-  console.log('Received client message', message);
+  console.log('Received client message', JSON.parse(JSON.stringify(message)));
 
   switch (message.type) {
     case 'sync': {
@@ -31,27 +31,36 @@ const receiveClientWebsocketMessage = (message) => {
       break;
     case 'setPlayer':
       gs.myPlayerNum = message.details.player;
+      gs.opponentPlayerNum = utils.getOppositePlayerNum(gs.myPlayerNum);
       ui.inGame = true;
       break;
     case 'slot':
       gs.slots[message.details.playerNum][message.details.index].content = message.details.card;
       break;
-    case 'addCard':
+    case 'addCard': {
+      const addUniqCard = (cardToAdd) => {
+        const myCards = getMyCards();
+        if (!myCards.some((card) => card.id === cardToAdd.id)) {
+          myCards.push(cardToAdd);
+        }
+      };
+
       if (message.details.showAnimation) {
         setTimeout(() => {
           ui.drawAnimationCount++;
           setTimeout(() => {
-            getMyCards().push(message.details.card);
+            addUniqCard(message.details.card);
           }, 1100);
           setTimeout(() => {
             ui.drawAnimationCount--;
           }, 1400);
         }, message.details.multiAnimation ? utils.randomRange(0, 500) : 0); // Some variance so fast cards, such as initial hand, don't overlap
       } else {
-        getMyCards().push(message.details.card);
+        addUniqCard(message.details.card);
       }
 
       break;
+    }
     case 'reduceWater':
       getPlayerData().waterCount -= message.details.cost;
       break;
@@ -61,6 +70,10 @@ const receiveClientWebsocketMessage = (message) => {
       break;
     case 'chat':
       gs.chat.push(message.details.text);
+      break;
+    case 'targetMode':
+      ui.targetMode = message.details;
+      ui.targetMode.enabled = true;
       break;
   }
 };

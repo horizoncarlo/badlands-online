@@ -4,17 +4,20 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 // NOTE Any drastic changes here should be double checked in the `action.sync` function to ensure we're not sending huge or private data, and in websocket.js on the client to ensure we handle the receive
 const gs = {
   myPlayerNum: null, // player1 or player2 as a string, only used on client
+  opponentPlayerNum: null,
   player1: {
     playerId: null,
     waterCount: 3,
     cards: [],
     camps: [],
+    chosenCamps: false,
   },
   player2: {
     playerId: null,
     waterCount: 3,
     cards: [],
     camps: [],
+    chosenCamps: false,
   },
   turn: {
     currentPlayer: null, // player1 or player2

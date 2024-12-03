@@ -26,6 +26,7 @@ const rawAction = {
       sendS('setPlayer', message.details, message.playerId);
 
       // Draw our initial set of camps to choose from
+      action.sync(message.playerId);
       action.promptCamps(message);
     }
   },
@@ -47,9 +48,9 @@ const rawAction = {
       gs.turn[nextPlayerNum].turnCount++;
       gs.turn.currentPlayer = nextPlayerNum;
 
-      action.sync(); // Sync to update turn status
-
       action.drawCard(message, { fromServerRequest: true });
+
+      action.sync(); // Sync to update turn status
     }
   },
 
@@ -85,6 +86,14 @@ const rawAction = {
 
       action.reduceWater(message, waterCost);
       action.removeCard(message);
+    }
+  },
+
+  useCard(message) {
+    if (onClient) {
+      sendC('useCard', message);
+    } else {
+      // TODO Deal with trying to use a card ability - check if card is not ready, reduce water cost if possible, mark unready, request client targets with a valid list of targets sent by the server
     }
   },
 
@@ -160,21 +169,30 @@ const rawAction = {
       sendC('junkCard', message);
     } else {
       // TODO: Validate
+      let hasValidTargets = false;
+
       switch (message.details.card.junkEffect) {
         case 'damage':
-          action.damageCard(message);
+          // TTODO Note there are no current cards that have straight pure Damage as a junk effect
+          action.damageCard(message); // Done, just needs target and damage amount
           break;
         case 'injure':
-          action.injurePerson(message);
+          // TTODO Do injure person junk effect first
+          // action.injurePerson(message); // Done, just needs target and damage amount
+          // action.targetMode({
+          //   validTargets: determineValidTargets(message.playerId, ...?)
+          // });
+          hasValidTargets = true; // There is a chance we don't have any valid targets
+          action.targetMode({ ...message, type: 'injure', help: 'Select an unprotected person to Injure' });
           break;
         case 'restore':
-          action.restore(message);
+          action.restoreCard(message);
           break;
         case 'draw':
-          action.drawCard(message, { fromServerRequest: true });
+          action.drawCard(message, { fromServerRequest: true }); // Done
           break;
         case 'water':
-          action.gainWater(message);
+          action.gainWater(message); // Done
           break;
         case 'gainPunk':
           action.gainPunk(message);
@@ -183,9 +201,14 @@ const rawAction = {
           action.raid(message);
           break;
       }
-      action.removeCard(message);
 
-      action.sync(); // TODO: Remove
+      if (hasValidTargets) {
+        action.removeCard(message);
+      } else {
+        action.sendError('No valid targets for that Junk effect', message.playerId);
+      }
+
+      action.sync(); // TODO: Remove - each sub-action should handle it's own updates
     }
   },
 
@@ -203,7 +226,7 @@ const rawAction = {
 
   injurePerson(message) {
     if (!onClient) {
-      action.damageCard({ ...message, damage: 1 });
+      action.damageCard({ ...message });
     }
   },
 
@@ -211,7 +234,7 @@ const rawAction = {
     if (!onClient) {
       const foundCard = utils.findCardInBoard(message.details.card);
       if (foundCard) {
-        foundCard.damage = (foundCard.damage || 0) + message.details.amount;
+        foundCard.damage = (foundCard.damage ?? 0) + (message.details.amount ?? 1);
         if (foundCard.damage >= 2) {
           // TODO Destroy a card
         }
@@ -223,14 +246,13 @@ const rawAction = {
     }
   },
 
-  restore(message) {
+  restoreCard(message) {
     if (!onClient) {
       const foundCard = utils.findCardInBoard(message.details.card);
-      if (foundCard) {
-        foundCard.damage = (foundCard.damage || 0) - 1;
-        if (foundCard.damage === 0) {
-          // TODO Rotate card
-        }
+      if (foundCard && typeof foundCard.damage === 'number') {
+        foundCard.damage = Math.min(0, foundCard.damage - 1);
+
+        action.sync();
       }
     }
   },
@@ -258,7 +280,9 @@ const rawAction = {
       sendC('doneCamps', message);
     } else {
       // TODO Validate the camps were available choices and there's the proper number
-      utils.getPlayerDataById(message.playerId).camps = message.details.camps;
+      const playerData = utils.getPlayerDataById(message.playerId);
+      playerData.camps = message.details.camps;
+      playerData.chosenCamps = true;
 
       const totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
       for (let i = 0; i < totalDrawCount; i++) {
@@ -269,6 +293,8 @@ const rawAction = {
           },
         }, { fromServerRequest: true });
       }
+
+      action.sync();
     }
   },
 
@@ -290,6 +316,12 @@ const rawAction = {
     }
   },
 
+  targetMode(message) {
+    if (!onClient) {
+      sendS('targetMode', message);
+    }
+  },
+
   sync(playerIdOrNullForBoth) {
     /* Dev notes: when to sync vs not
      Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
@@ -300,6 +332,7 @@ const rawAction = {
       a card or destroying a camp)
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
+    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app?
 
     function internalSync(playerNum) {
       const currentPlayerId = utils.getPlayerIdByNum(playerNum);
@@ -314,6 +347,7 @@ const rawAction = {
       // TODO Could further trim down minor packet size savings like delete slot.content if null, etc.
       delete updatedGs[playerNum].playerId;
       delete updatedGs.myPlayerNum;
+      delete updatedGs.opponentPlayerNum;
       delete updatedGs.campDeck;
       delete updatedGs.deck;
 
@@ -321,7 +355,10 @@ const rawAction = {
 
       // Strip out any sensitive information from the opponent
       const { [opponentNum]: opponentData } = updatedGs;
-      opponentData.cards = []; // TODO Should put a length here so we can see opponent hand size at least?
+      opponentData.cards = Array.from({ length: opponentData.cards.length }, (_, index) => index);
+      if (!opponentData.chosenCamps) {
+        opponentData.camps = [];
+      }
       delete opponentData.playerId;
       updatedGs[opponentNum] = opponentData;
 

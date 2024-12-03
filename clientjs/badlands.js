@@ -10,6 +10,17 @@ let ui = { // Local state
   trayIsCamps: false,
   trayIsCards: true,
   currentChat: '',
+  // // TTODO Setup targetMode on the client - colored border, custom cursor, very obviously highlight all targets (via saturate?), disallow EVERYTHING else until target is chosen
+  // targetMode: {
+  //   enabled: true,
+  //   type: 'injure', // Would be 'injure', 'restore', etc. drawn directly from junkEffect in the deck
+  //   help: 'Select an unprotected person to Injure'
+  // }
+  targetMode: {
+    enabled: false,
+    type: '',
+    help: '',
+  },
 };
 
 function init() {
@@ -95,7 +106,23 @@ function getMyCamps() {
   return getPlayerData()?.camps || [];
 }
 
+function getOpponentCardCount() {
+  if (gs.opponentPlayerNum) {
+    return gs[gs.opponentPlayerNum]?.cards?.length || 0;
+  }
+  return 0;
+}
+
+function getOpponentCamps() {
+  if (gs.opponentPlayerNum) {
+    return gs[gs.opponentPlayerNum]?.camps || [];
+  }
+  return [];
+}
+
 function getSlots() {
+  // Split our slots up into the opponent (index 0) and our player slots (index 1)
+  // This allows us to share the same loop in the UI but easily differentiate which set of slots we're on
   return {
     [utils.getOppositePlayerNum(gs.myPlayerNum)]: getOpponentSlots(),
     [gs.myPlayerNum]: getMySlots(),
@@ -107,7 +134,10 @@ function getMySlots() {
 }
 
 function getOpponentSlots() {
-  return gs.slots[utils.getOppositePlayerNum(gs.myPlayerNum)];
+  if (gs.opponentPlayerNum) {
+    return gs.slots[gs.opponentPlayerNum];
+  }
+  return [];
 }
 
 function getPlayerData() {
@@ -217,35 +247,35 @@ function hideWaterCost() {
   });
 }
 
-function dragOverSlot(slot, playerNum, ele) {
-  if (gs.myPlayerNum !== playerNum || slot.content || !ui.draggedCard) {
+function dragOverSlot(slot, ele) {
+  if (slot.content || !ui.draggedCard) {
     return false;
   }
 
-  dragOverHighlight(playerNum, ele);
+  dragOverHighlight(ele);
 }
 
-function dragOverHighlight(playerNum, ele, overrideHighlight) {
-  if (gs.myPlayerNum !== playerNum || !ui.draggedCard) {
+function dragOverHighlight(ele, overrideHighlight) {
+  if (!ui.draggedCard) {
     return false;
   }
 
   ele.classList.add(overrideHighlight ?? 'slot-highlight');
 }
 
-function dragLeaveHighlight(ele) {
-  ele.classList.remove('slot-highlight');
+function dragLeaveHighlight(ele, overrideHighlight) {
+  ele.classList.remove(overrideHighlight ?? 'slot-highlight');
 }
 
 function dropCardInJunk(ele) {
-  dragLeaveHighlight(ele);
+  dragLeaveHighlight(ele, 'fg-attention');
 
   action.junkCard({
     card: ui.draggedCard,
   });
 }
 
-function dropCardInSlot(slot, playerNum, ele) {
+function dropCardInSlot(slot, ele) {
   dragLeaveHighlight(ele);
 
   if (slot.content) {

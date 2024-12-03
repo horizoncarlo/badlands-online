@@ -47,7 +47,7 @@ menu {
   margin: 0;
 }
 
-.draw-pile:hover {
+.bright-hover:hover {
   filter: brightness(120%);
   transform: scale(1.05);
 }
@@ -85,9 +85,13 @@ menu {
 }
 
 .opponent-slots {
+  background: linear-gradient(180deg, var(--bg-accent) 0, transparent 50%);
+}
+
+.opponent-slots,
+.opponent-camps {
   /* TODO Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in badlands.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
   transform: rotate(180deg);
-  background: linear-gradient(180deg, var(--bg-accent) 0, transparent 50%);
   padding-top: 10px; /* With the rotation this is actually...bottom */
 
   /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent color colors:
@@ -99,6 +103,26 @@ menu {
 .opponent-slots div {
   /* TODO Could optionally allow players to have opponent cards facing them (aka rotated like this) or facing their opponent (no rotation, then the parent slot rotation handles it). OR just rotate on hover? */
   /* transform: rotate(180deg); */
+}
+
+.opponent-camps {
+  height: calc(var(--card-height) / 2.5);
+  overflow-y: hidden;
+}
+
+.opponent-camp:hover {
+  height: var(--card-height);
+  transform: rotate(180deg);
+}
+
+.opponent-card-count {
+  position: absolute;
+  left: 0;
+  padding: 5px;
+  text-align: center;
+  white-space: pre-line;
+  font-size: smaller;
+  transform: rotate(180deg);
 }
 
 .icon {
@@ -135,6 +159,11 @@ menu {
   padding: var(--card-padding);
 }
 
+.slot-card:hover {
+  filter: brightness(120%);
+  transform: scale(1.05);
+}
+
 .camp-choice:hover,
 .card:hover {
   box-shadow: 0 0 20px var(--active);
@@ -145,15 +174,18 @@ menu {
 }
 
 .card-error {
-  background-color: red;
+  background-color: var(--bg-danger);
 }
 
 .slot-highlight {
   background-color: var(--success);
 }
 
-.damaged-card {
+.slot-card {
   transition: transform 1s;
+}
+
+.damaged-card {
   transform: rotate(90deg);
 }
 
@@ -216,4 +248,28 @@ menu {
 
 .chat-wrap:hover {
   overflow-y: scroll;
+}
+
+.target-mode-section {
+  box-shadow: 0 0 50px var(--danger) inset;
+  cursor: crosshair;
+}
+
+.target-mode-section-injure {
+  cursor: url('../images/cursors/cursor-injure.png'), crosshair;
+}
+
+.target-mode-help {
+  position: fixed;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 1;
+  background-color: var(--bg-danger);
+  color: var(--fg-danger);
+  box-shadow: 5px 5px 5px var(--danger);
+  padding: 20px 40px 20px 40px;
+  opacity: 0.9;
 }
