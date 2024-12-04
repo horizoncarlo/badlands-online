@@ -58,10 +58,18 @@ const rawAction = {
     if (onClient) {
       sendC('endTurn');
     } else {
-      gs.turn.currentPlayer = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-      action.startTurn({
-        playerId: utils.getPlayerIdByNum(gs.turn.currentPlayer),
-      });
+      const nextPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
+      const nextPlayerId = utils.getPlayerIdByNum(nextPlayerNum);
+
+      if (nextPlayerId) {
+        gs.turn.currentPlayer = nextPlayerNum;
+        action.startTurn({
+          playerId: nextPlayerId,
+        });
+      } else {
+        action.sendError('No opponent yet', message.playerId);
+        return;
+      }
     }
   },
 
