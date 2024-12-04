@@ -60,9 +60,26 @@ const receiveClientWebsocketMessage = (message) => {
       getPlayerData().camps = message.details.camps;
       showCampPromptDialog();
       break;
-    case 'chat':
+    case 'chat': {
+      // Some cutesy behaviour to ensure spammed messages just note their count. So 'Hey dude' becomes 'Hey dude (x1)' then x2 and so on
+      if (gs.chat.length > 0 && gs.chat[gs.chat.length - 1].startsWith(message.details.text)) {
+        let count = gs.chat[gs.chat.length - 1].substring(message.details.text.length).trim();
+        if (count.length === 0) {
+          count = '(x1)';
+        }
+        if (count.startsWith('(x')) {
+          count = count.substring('(x'.length);
+          count = count.substring(0, count.length - 1);
+          if (!isNaN(Number(count))) {
+            // Replace our last message
+            gs.chat.splice(gs.chat.length - 1, 1, `${message.details.text} (x${Number(count) + 1})`);
+            break;
+          }
+        }
+      }
       gs.chat.push(message.details.text);
       break;
+    }
     case 'targetMode':
       enableTargetMode(message.details);
       break;
