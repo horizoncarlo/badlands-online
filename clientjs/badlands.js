@@ -321,27 +321,21 @@ function submitChat(ele) {
 }
 
 function setValidTargetsFromIds(validTargets) { // Pass a list of card/camp/whatever IDs and we'll search the board and get them all
-  console.log('Cruz untrustworthingly passed me', validTargets);
-  console.log('Filter on slots', utils.getContentIdFromSlots(gs.slots.player1));
-  const targetThings = [];
+  console.log('setValidTargetsFromIds, incoming=', validTargets);
   [
     ...gs.player1.camps,
-    ...gs.slots.player1.filter((slot) => slot.content),
+    ...utils.getContentFromSlots(gs.slots.player1),
     ...gs.player2.camps,
-    ...gs.slots.player2.filter((slot) => slot.content),
+    ...utils.getContentFromSlots(gs.slots.player2),
     ...gs[gs.myPlayerNum].cards,
   ].forEach((thing) => {
     console.log('Checking', thing.id);
     if (thing?.id && validTargets.includes(thing.id)) {
-      targetThings.push(structuredClone(thing));
-
       const ele = document.getElementById(`target_${thing.id}`);
       if (ele) {
-        console.log('Ele matching is', ele);
+        // TTODO Style the valid targets. Also have a way to click them. Then remove styling/etc. when done targetting (check expectedTargetCount from message). Apply colorType to border etc.
         ele.style.border = '5px solid red';
       }
     }
   });
-
-  console.log('Get Valid Targets From IDs', targetThings); // TTODO
 }

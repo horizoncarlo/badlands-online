@@ -15,17 +15,17 @@ const utils = {
     return playerNum === 'player1' ? 'player2' : 'player1';
   },
 
-  getContentIdFromSlots(checkSlots) {
+  getContentFromSlots(checkSlots, params) { // params.idOnly: boolean
     return checkSlots.reduce((slots, s) => {
       if (s?.content?.id) {
-        slots.push(s.content.id);
+        slots.push(params?.idOnly ? s.content.id : s.content);
       }
       return slots;
     }, []);
   },
 
   determineValidTargets() {
-    return utils.getContentIdFromSlots([...gs.slots.player1, ...gs.slots.player2]);
+    return utils.getContentFromSlots([...gs.slots.player1, ...gs.slots.player2], { idOnly: true });
   },
 
   getPlayerIdByNum(playerNum) {
