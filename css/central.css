@@ -34,7 +34,7 @@ body:has(dialog[open]) {
 .repositionable {
   position: absolute;
   cursor: move;
-  /* TODO Feels weird or not to slide the move?: transition: top 100ms, left 100ms; */
+  /* TODO Feels weird or not to slide the move? Might be browser dependent as Firefox does it own d&d animation: transition: top 100ms, left 100ms; */
 }
 
 .panel {
@@ -212,7 +212,7 @@ menu {
 .camps-dialog,
 .camps-dialog-wrap {
   text-align: center;
-  min-width: calc(var(--card-width) * 3 + 300px);
+  min-width: calc(var(--card-width-full) * 3 + 200px);
 }
 
 .camps-dialog-wrap {

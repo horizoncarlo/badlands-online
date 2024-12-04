@@ -1,6 +1,6 @@
 const DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
 
-let maxCardId = 0;
+let currentCardId = 0;
 
 const createCampDeck = (): Array<any> => { // TODO Camp typing
   return _shuffleNewDeck([
@@ -60,7 +60,6 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
   //     }
   //   ]
   // }
-  // TODO Populate the deck properly
   const dupePeople = [
     { img: 'assassin', cost: 1, junkEffect: 'raid' },
     { img: 'cult_leader', cost: 1, junkEffect: 'draw' },
@@ -123,11 +122,11 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
 const _shuffleNewDeck = (array) => {
   array = shuffleDeck(array);
 
-  // Assign image extensions to every item and a random ID
+  // Assign image extensions to every item and a sequential ID
   array.forEach((card, index) => {
-    maxCardId++;
+    currentCardId++;
     card.img += DECK_IMAGE_EXTENSION;
-    card.id = maxCardId + index + 1;
+    card.id = currentCardId + index + 1;
   });
   return array;
 };

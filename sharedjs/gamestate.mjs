@@ -10,14 +10,14 @@ const gs = {
     waterCount: 3,
     cards: [],
     camps: [],
-    chosenCamps: false,
+    doneCamps: false,
   },
   player2: {
     playerId: null,
     waterCount: 3,
     cards: [],
     camps: [],
-    chosenCamps: false,
+    doneCamps: false,
   },
   turn: {
     currentPlayer: null, // player1 or player2

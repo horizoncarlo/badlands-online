@@ -69,15 +69,19 @@ const rawAction = {
     if (onClient) {
       sendC('playCard', message);
     } else {
+      const targetSlot = gs.slots[utils.getPlayerNumById(message.playerId)][message.details.slot.index];
+      if (targetSlot?.content) {
+        action.sendError('Card already here');
+        return;
+      }
+
       const waterCost = message.details.card.cost || 0;
       if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
         action.sendError('Not enough water to play that card', message.playerId);
         return;
       }
 
-      // TODO Check if card is valid to play on the playCard action
-
-      gs.slots[utils.getPlayerNumById(message.playerId)][message.details.slot.index].content = message.details.card;
+      targetSlot.content = message.details.card;
       sendS('slot', {
         playerNum: utils.getPlayerNumById(message.playerId),
         index: message.details.slot.index,
@@ -135,8 +139,6 @@ const rawAction = {
       }
 
       if (message.details?.fromWater) {
-        // TODO Slightly inconsistent, the play a card blocks at the UI level and on the server, but drawing only does on the server. Should decide which one we want
-        //      Probably just on server as the WS messages are small and fast enough and then we can treat the server as the single source of truth and the client as dumb
         if (2 > utils.getPlayerDataById(message.playerId).waterCount) {
           action.sendError('Not enough water to draw a card', message.playerId);
           return;
@@ -259,10 +261,20 @@ const rawAction = {
     if (onClient) {
       sendC('doneCamps', message);
     } else {
-      // TODO Validate the camps were available choices and there's the proper number
+      // Validate that we have the right number of camps and they were valid choices (in the case of malicious use)
       const playerData = utils.getPlayerDataById(message.playerId);
+      if (message?.details?.camps?.length !== 3) {
+        action.sendError('Select 3 camps', message.playerId);
+        return;
+      }
+      const incomingCampIds = message.details.camps.map((camp) => camp.id);
+      if (playerData.camps.filter((camp) => incomingCampIds.includes(camp.id)).length !== 3) {
+        action.sendError('Invalid camp selections', message.playerId);
+        return;
+      }
+
       playerData.camps = message.details.camps;
-      playerData.chosenCamps = true;
+      playerData.doneCamps = true;
 
       const totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
       for (let i = 0; i < totalDrawCount; i++) {
@@ -341,7 +353,7 @@ const rawAction = {
       a card or destroying a camp)
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
-    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app?
+    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?)
 
     function internalSync(playerNum) {
       const currentPlayerId = utils.getPlayerIdByNum(playerNum);
@@ -353,7 +365,7 @@ const rawAction = {
       const opponentNum = utils.getOppositePlayerNum(playerNum);
 
       // Send a minimal version of our current server game state that the UI can apply to itself
-      // TODO Could further trim down minor packet size savings like delete slot.content if null, etc.
+      // TODO Could further trim down minor packet size savings like delete slot.content if null, etc. - do this all once the format is finalized
       delete updatedGs[playerNum].playerId;
       delete updatedGs.myPlayerNum;
       delete updatedGs.opponentPlayerNum;
@@ -365,13 +377,12 @@ const rawAction = {
       // Strip out any sensitive information from the opponent
       const { [opponentNum]: opponentData } = updatedGs;
       opponentData.cards = Array.from({ length: opponentData.cards.length }, (_, index) => index * -1); // Just fill with numbered junk, but negative in case this ever gets looped over looking for IDs
-      if (!opponentData.chosenCamps) {
+      if (!opponentData.doneCamps) {
         opponentData.camps = [];
       }
       delete opponentData.playerId;
       updatedGs[opponentNum] = opponentData;
 
-      // TODO Need a way to send a sync to both players, such as when playerId that's passed in is null
       sendS('sync', {
         gs: updatedGs,
       }, currentPlayerId);

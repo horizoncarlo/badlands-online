@@ -4,6 +4,7 @@ let ui = { // Local state
   draggedCard: false,
   repositionOffsetX: 0,
   repositionOffsetY: 0,
+  repositionZIndex: 0,
   waterTokenEles: [],
   cardScale: 70, // Percent of card and board size
   chatMax: 50, // As a view height property
@@ -86,7 +87,6 @@ function repositionEnd(event, ele, coords) {
   // Long winded one liner, but basically limit our left and top to within the window dimensions
   // Also account for where the mouse was on the draggable element when we started (that's coords)
   // And if we're scrolled on the page
-  // TODO Should use a global `ui` var for z-index that increases and applies to the dragged element, so we can nautrally layer them with last dragged on top
   ele.style.left = Math.min(
     document.documentElement.scrollWidth - ele.offsetWidth,
     Math.max(0, event.clientX - coords[0] + window.scrollX),
@@ -97,6 +97,7 @@ function repositionEnd(event, ele, coords) {
   ) + 'px';
   ele.style.bottom = 'auto';
   ele.style.right = 'auto';
+  ele.style.zIndex = ++ui.repositionZIndex;
 }
 
 function getTrayLegend() {
@@ -187,6 +188,7 @@ function doneChooseCamps() {
   //      In either case it's client JS - just need to know where it should be and stick to it
   //      action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
   getPlayerData().camps = getMyCamps().filter((camp) => camp.selected);
+  getPlayerData().doneCamps = true;
 
   action.doneCamps({ camps: getPlayerData().camps });
 
@@ -284,17 +286,6 @@ function dropCardInJunk(ele) {
 function dropCardInSlot(slot, ele) {
   dragLeaveHighlight(ele);
 
-  if (slot.content) {
-    console.error('Card already here');
-    return false;
-  }
-
-  if (ui.draggedCard.cost > getPlayerData().waterCount) {
-    // TODO Proper error component or logging - maybe shake the water token wrapper panel
-    console.error('Not enough water to play that card');
-    return;
-  }
-
   action.playCard({
     card: ui.draggedCard,
     slot: slot,
@@ -333,8 +324,6 @@ function handleTargetClick(event) {
     } else {
       event.target.classList.add('valid-target-selected');
     }
-  } else {
-    // TODO Handle error in a centralized way, like 'alert' action type in websocket.js
   }
 }
 

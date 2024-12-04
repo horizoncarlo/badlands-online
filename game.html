@@ -55,7 +55,7 @@
             </menu>
           </li>
           <template x-if="!inGame">
-            <li>
+            <li class="success">
               Join As
               <menu>
                 <!-- TODO One potential issue with our Alpine.js approach is the mix of heavy lifting here in the UI and heavy lifting in the "backing" plain JS. Like should this action call be wrapped in a function? -->
@@ -77,12 +77,12 @@
           </template>
           <template x-if="inGame">
             <template x-if="!turn.currentPlayer || myPlayerNum !== turn.currentPlayer">
-              <li @click="action.startTurn()">Start Turn</li>
+              <li @click="action.startTurn()" class="success">Start Turn</li>
             </template>
           </template>
           <template x-if="inGame">
             <template x-if="myPlayerNum === turn.currentPlayer">
-              <li @click="action.endTurn()">End Turn</li>
+              <li @click="action.endTurn()" class="attention">End Turn</li>
             </template>
           </template>
           <template x-if="inGame">
@@ -108,7 +108,11 @@
       </header>
 
       <template x-if="!inGame">
-        <h1>To start the game join as a player from the menu</h1>
+        <div>
+          <h1>To start the game join as a player</h1>
+          <button onclick="action.joinGame({player: 'player1'})" class="success">Be Player 1</button>
+          <button onclick="action.joinGame({player: 'player2'})" class="success">Be Player 2</button>
+        </div>
       </template>
 
       <template x-if="inGame && targetMode.enabled && targetMode.help">
@@ -158,7 +162,7 @@
         </template>
       </template>
 
-      <template x-if="inGame && !targetMode.enabled">
+      <template x-if="inGame && !targetMode.enabled && turn.currentPlayer && turn.currentPlayer === myPlayerNum">
         <!-- Note this approach can be used on ANY element to make it repositionable in the page -->
         <div
           draggable="true"
@@ -227,7 +231,6 @@
 
       <template x-if="inGame">
         <footer>
-          <!-- TODO Hotkey for this swap -->
           <button
             @click="flipTray()"
             :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
@@ -298,8 +301,11 @@
       </template>
 
       <template x-if="inGame" x-teleport="body">
-        <!-- TODO This dialog can be closed with Escape which is a biiiiiig problem - reopen with event if camps not done? -->
-        <dialog id="campPromptDialog" class="camps-dialog">
+        <dialog
+          id="campPromptDialog"
+          class="camps-dialog"
+          @close="!getPlayerData().doneCamps ? showCampPromptDialog() : null"
+        >
           <header>
             <h2>Choose Your 3 Camps</h2>
           </header>
@@ -320,7 +326,7 @@
             <template x-if="selectedCampCount() > 0">
               <span>Your starting hand size will be <span x-text="selectedCampDrawCount()"></span> cards</span>
             </template>
-            <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== 3">Done Choices</button>
+            <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== 3" class="success">Done Choices</button>
           </footer>
         </dialog>
       </template>

@@ -14,17 +14,13 @@ const receiveClientWebsocketMessage = (message) => {
   switch (message.type) {
     case 'sync': {
       const updatedGs = message.details.gs;
-      gs.player1 = updatedGs.player1;
-      gs.player2 = updatedGs.player2;
-      gs.slots = updatedGs.slots;
-      gs.turn = updatedGs.turn;
-      gs.chat = updatedGs.chat;
+      gs.player1 = updatedGs.player1 ?? gs.player1;
+      gs.player2 = updatedGs.player2 ?? gs.player2;
+      gs.slots = updatedGs.slots ?? gs.slots;
+      gs.turn = updatedGs.turn ?? gs.turn;
+      gs.chat = updatedGs.chat ?? gs.chat;
       break;
     }
-    case 'alert':
-      // TODO Proper alert component on UI
-      console.warn('ALERT:', message.details.text);
-      break;
     case 'setPlayer':
       gs.myPlayerNum = message.details.player;
       gs.opponentPlayerNum = utils.getOppositePlayerNum(gs.myPlayerNum);

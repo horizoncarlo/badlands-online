@@ -41,8 +41,6 @@ const handler = async (req: Request) => {
         playerId: newPlayerId,
         socket: socket,
       }]);
-
-      sendS('alert', { text: 'Choose which player you want to be from the menu' }, newPlayerId);
     });
     socket.addEventListener('message', (event) => {
       try {
