@@ -22,6 +22,9 @@ let ui = { // Local state
     help: '',
   },
 };
+const LOCAL_STORAGE = {
+  cardScale: 'cardScale',
+};
 
 function init() {
   let alpineReady = false;
@@ -43,7 +46,6 @@ init();
 function checkInit(status) {
   if (status) {
     alpineInit();
-    applyCardScale();
     applyChatMax();
     setupHotkeys();
   }
@@ -54,10 +56,19 @@ function alpineInit() {
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
 
+  if (localStorage.getItem(LOCAL_STORAGE.cardScale)) {
+    ui.cardScale = localStorage.getItem(LOCAL_STORAGE.cardScale);
+  }
+  applyCardScale();
+
   Alpine.effect(() => {
     // Marginally less readable variables (wHy TWo flAgS?!) here but easy concise state in the UI
     ui.trayIsCamps = !ui.trayIsCards;
     ui.trayIsCards = !ui.trayIsCamps;
+  });
+
+  Alpine.effect(() => {
+    localStorage.setItem(LOCAL_STORAGE.cardScale, ui.cardScale);
   });
 }
 
