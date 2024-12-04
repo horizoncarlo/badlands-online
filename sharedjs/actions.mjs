@@ -232,7 +232,7 @@ const rawAction = {
 
   damageCard(message) {
     if (!onClient) {
-      const foundCard = utils.findCardInBoard(message.details.card);
+      const foundCard = utils.findCardInSlots(message.details.card);
       if (foundCard) {
         foundCard.damage = (foundCard.damage ?? 0) + (message.details.amount ?? 1);
         if (foundCard.damage >= 2) {
@@ -248,7 +248,7 @@ const rawAction = {
 
   restoreCard(message) {
     if (!onClient) {
-      const foundCard = utils.findCardInBoard(message.details.card);
+      const foundCard = utils.findCardInSlots(message.details.card);
       if (foundCard && typeof foundCard.damage === 'number') {
         foundCard.damage = Math.min(0, foundCard.damage - 1);
 
@@ -355,7 +355,7 @@ const rawAction = {
 
       // Strip out any sensitive information from the opponent
       const { [opponentNum]: opponentData } = updatedGs;
-      opponentData.cards = Array.from({ length: opponentData.cards.length }, (_, index) => index);
+      opponentData.cards = Array.from({ length: opponentData.cards.length }, (_, index) => index * -1); // Just fill with numbered junk, but negative in case this ever gets looped over looking for IDs
       if (!opponentData.chosenCamps) {
         opponentData.camps = [];
       }
