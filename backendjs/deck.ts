@@ -1,5 +1,7 @@
 const DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
 
+let maxCardId = 0;
+
 const createCampDeck = (): Array<any> => { // TODO Camp typing
   return _shuffleNewDeck([
     { img: 'adrenaline_lab', drawCount: 1 },
@@ -123,8 +125,9 @@ const _shuffleNewDeck = (array) => {
 
   // Assign image extensions to every item and a random ID
   array.forEach((card, index) => {
+    maxCardId++;
     card.img += DECK_IMAGE_EXTENSION;
-    card.id = index + 1; // Do 1-based IDs
+    card.id = maxCardId + index + 1;
   });
   return array;
 };
