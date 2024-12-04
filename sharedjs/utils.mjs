@@ -15,6 +15,15 @@ const utils = {
     return playerNum === 'player1' ? 'player2' : 'player1';
   },
 
+  getOpponentSlots() {
+    return gs.slots[utils.getOppositePlayerNum(gs.myPlayerNum)];
+  },
+
+  determineValidTargets() {
+    const opponentSlots = this.getOpponentSlots();
+    return opponentSlots.filter(slot => !!slot?.content?.id)
+  },
+
   getPlayerIdByNum(playerNum) {
     if (gs && playerNum) {
       return gs[playerNum].playerId;

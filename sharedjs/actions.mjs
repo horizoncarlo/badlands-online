@@ -165,48 +165,32 @@ const rawAction = {
   },
 
   junkCard(message) {
+    console.log(`received junkCard with message=${JSON.stringify(message)}`);
     if (onClient) {
       sendC('junkCard', message);
     } else {
       // TODO: Validate
-      let hasValidTargets = false;
 
-      switch (message.details.card.junkEffect) {
-        case 'damage':
-          // TTODO Note there are no current cards that have straight pure Damage as a junk effect
-          action.damageCard(message); // Done, just needs target and damage amount
-          break;
-        case 'injure':
-          // TTODO Do injure person junk effect first
-          // action.injurePerson(message); // Done, just needs target and damage amount
-          // action.targetMode({
-          //   validTargets: determineValidTargets(message.playerId, ...?)
-          // });
-          hasValidTargets = true; // There is a chance we don't have any valid targets
-          action.targetMode({ ...message, type: 'injure', help: 'Select an unprotected person to Injure' });
-          break;
-        case 'restore':
-          action.restoreCard(message);
-          break;
-        case 'draw':
-          action.drawCard(message, { fromServerRequest: true }); // Done
-          break;
-        case 'water':
-          action.gainWater(message); // Done
-          break;
-        case 'gainPunk':
-          action.gainPunk(message);
-          break;
-        case 'raid':
-          action.raid(message);
-          break;
+      // damage
+      // TTODO Note there are no current cards that have straight pure Damage as a junk effect
+
+      // injure
+      // TTODO Do injure person junk effect first
+      // action.injurePerson(message); // Done, just needs target and damage amount
+
+      const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO
+      if (typeof action[junkEffect] === 'function') {
+        action[junkEffect](message, junkEffect === 'drawCard' ? true : undefined);
+      } else {
+        action.sendError(`Invalid junk effect ${junkEffect}`, message.playerId);
       }
 
-      if (hasValidTargets) {
+      // TODO
+      /*if (hasValidTargets) {
         action.removeCard(message);
       } else {
         action.sendError('No valid targets for that Junk effect', message.playerId);
-      }
+      }*/
 
       action.sync(); // TODO: Remove - each sub-action should handle it's own updates
     }
@@ -226,7 +210,15 @@ const rawAction = {
 
   injurePerson(message) {
     if (!onClient) {
-      action.damageCard({ ...message });
+      if (!message.details.target) {
+        action.targetMode({
+          ...message,
+          validTargets: utils.determineValidTargets()
+        });
+      }
+      else {
+        action.damageCard({ ...message, damage: 1 });
+      }
     }
   },
 

@@ -135,20 +135,13 @@ function getSlots() {
   // Split our slots up into the opponent (index 0) and our player slots (index 1)
   // This allows us to share the same loop in the UI but easily differentiate which set of slots we're on
   return {
-    [utils.getOppositePlayerNum(gs.myPlayerNum)]: getOpponentSlots(),
+    [utils.getOppositePlayerNum(gs.myPlayerNum)]: utils.getOpponentSlots(),
     [gs.myPlayerNum]: getMySlots(),
   };
 }
 
 function getMySlots() {
   return gs.slots[gs.myPlayerNum];
-}
-
-function getOpponentSlots() {
-  if (gs.opponentPlayerNum) {
-    return gs.slots[gs.opponentPlayerNum];
-  }
-  return [];
 }
 
 function getPlayerData() {
