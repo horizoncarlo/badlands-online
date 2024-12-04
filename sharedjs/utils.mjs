@@ -25,7 +25,7 @@ const utils = {
       if (s?.content?.id) {
         slots.push(s.content.id);
       }
-      return s;
+      return slots;
     }, []);
   },
 
