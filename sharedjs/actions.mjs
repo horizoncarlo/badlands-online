@@ -165,7 +165,6 @@ const rawAction = {
   },
 
   junkCard(message) {
-    console.log(`received junkCard with message=${JSON.stringify(message)}`);
     if (onClient) {
       sendC('junkCard', message);
     } else {
@@ -184,13 +183,6 @@ const rawAction = {
       } else {
         action.sendError(`Invalid junk effect ${junkEffect}`, message.playerId);
       }
-
-      // TODO
-      /*if (hasValidTargets) {
-        action.removeCard(message);
-      } else {
-        action.sendError('No valid targets for that Junk effect', message.playerId);
-      }*/
 
       action.sync(); // TODO: Remove - each sub-action should handle it's own updates
     }
@@ -211,8 +203,15 @@ const rawAction = {
   injurePerson(message) {
     if (!onClient) {
       if (!message.details.target) {
+        const validTargets = utils.determineValidTargets();
+        if (!validTargets.length) {
+          action.sendError('No valid targets for that Junk effect', message.playerId);
+          return;
+        }
         action.targetMode({
-          ...message,
+          playerId: message.playerId,
+          type: message.type,
+          help: 'Select an unprotected person to Injure',
           validTargets: utils.determineValidTargets(),
         });
       } else {
