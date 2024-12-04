@@ -126,7 +126,7 @@ const rawAction = {
     }
   },
 
-  drawCard(message, params) { // params has params.fromServerRequest boolean
+  drawCard(message, params) { // params.fromServerRequest: boolean
     if (onClient) {
       sendC('drawCard', message);
     } else {
@@ -170,9 +170,17 @@ const rawAction = {
     } else {
       const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO: Remove hardcoded value
       if (typeof action[junkEffect] === 'function') {
-        action[junkEffect]({ ...message, type: junkEffect }, junkEffect === 'drawCard' ? true : undefined);
+        try {
+          action[junkEffect](
+            { ...message, type: junkEffect },
+            junkEffect === 'drawCard' ? { fromServerRequest: true } : undefined,
+          );
+          action.removeCard(message);
+        } catch (err) {
+          action.sendError(err?.message, message.playerId);
+        }
       } else {
-        action.sendError(`Invalid junk effect ${junkEffect}`, message.playerId);
+        action.sendError(`Invalid Junk effect ${junkEffect}`, message.playerId);
       }
 
       action.sync(); // TODO: Remove - each sub-action should handle it's own updates
@@ -194,16 +202,11 @@ const rawAction = {
   injurePerson(message) {
     if (!onClient) {
       const validTargets = utils.determineValidTargets();
+      // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1)
       if (!validTargets.length) {
-        action.sendError('No valid targets for that Junk effect', message.playerId);
-        return;
+        throw new Error('No valid targets for that Junk effect');
       }
-      action.targetMode({
-        playerId: message.playerId,
-        type: message.type,
-        help: 'Select an unprotected person to Injure',
-        validTargets: utils.determineValidTargets(),
-      });
+      action.targetMode(message, { help: 'Select an unprotected person to Injure', colorType: 'danger' });
     }
   },
 
@@ -275,27 +278,56 @@ const rawAction = {
     }
   },
 
-  sendError(text, playerId) {
-    if (!onClient) {
-      sendS('error', { text: text }, playerId);
+  doneTargets(message) {
+    if (onClient) {
+      sendC('doneTargets', message);
+    } else {
+      // TTODO At this point we have message.details.targets which is a list of selected target IDs. So we do step #3 from The Grand TODO
     }
   },
 
-  chat(message) {
+  sendError(text, playerId) {
+    if (!onClient) {
+      action.chat({ details: { text: text } }, { playerId: playerId, fromServerRequest: true });
+    }
+  },
+
+  chat(message, params) { // params.fromServerRequest: boolean, params.playerId: string
     if (onClient) {
       sendC('chat', message);
     } else {
       // TODO Don't blindly append chat messages - validate first
-      // TODO Have the concept of a System level message too, maybe special formatting on the client
-      const text = utils.getPlayerNumById(message.playerId) + ': ' + message.details.text;
-      gs.chat.push(text);
-      sendS('chat', { text: text });
+      let text = null;
+      if (params?.fromServerRequest) {
+        // TODO Have the concept of a System level message too, maybe special formatting on the client. SYS (general stuff like start turn) and ERR (error)?
+        text = 'SYS';
+      } else {
+        text = utils.getPlayerNumById(message.playerId);
+      }
+      text += ': ' + message.details.text;
+
+      if (text) {
+        if (!params?.playerId) {
+          gs.chat.push(text);
+        }
+
+        sendS('chat', { text: text }, params?.playerId ?? null);
+      }
     }
   },
 
-  targetMode(message) {
+  targetMode(message, params) { // message has playerId, type. params has help, colorType, expectedTargetCount (optional, default 1)
     if (!onClient) {
-      sendS('targetMode', message);
+      const toSend = {
+        playerId: message.playerId,
+        type: message.type,
+        help: params.help ?? '',
+        colorType: params.colorType ?? 'info',
+        expectedTargetCount: params.expectedTargetCount ?? 1,
+        validTargets: utils.determineValidTargets(), // TODO: Probably pass message here so our valid targets can be determined more accurately for the type of card
+      };
+
+      sendS('targetMode', toSend, message.playerId);
     }
   },
 
@@ -381,6 +413,7 @@ const actionHandler = {
         // PRE PROCESS hook for all actions
         if (!onClient && !utils.isPlayersTurn(args[0].playerId)) {
           console.error(`Ignored action [${originalMethod.name}] out of turn order by playerId=${args[0].playerId}`);
+          action.sendError('Not your turn', args[0].playerId);
           return;
         }
 

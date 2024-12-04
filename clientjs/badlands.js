@@ -10,17 +10,15 @@ let ui = { // Local state
   trayIsCamps: false,
   trayIsCards: true,
   currentChat: '',
-  // // TTODO Setup targetMode on the client - colored border, custom cursor, very obviously highlight all targets (via saturate?), disallow EVERYTHING else until target is chosen
-  // targetMode: {
-  //   enabled: true,
-  //   type: 'injure', // Would be 'injure', 'restore', etc. drawn directly from junkEffect in the deck
-  //   help: 'Select an unprotected person to Injure'
-  // }
+  targetModePrefix: 'target_',
   targetMode: {
     enabled: false,
     type: '',
     help: '',
+    colorType: '',
+    expectedTargetCount: 1,
   },
+  currentTargetIds: [],
 };
 const LOCAL_STORAGE = {
   cardScale: 'cardScale',
@@ -320,8 +318,44 @@ function submitChat(ele) {
   ele.value = '';
 }
 
-function setValidTargetsFromIds(validTargets) { // Pass a list of card/camp/whatever IDs and we'll search the board and get them all
-  console.log('setValidTargetsFromIds, incoming=', validTargets);
+function handleTargetClick(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (event?.target?.id) {
+    const targetId = event.target.id.substring(ui.targetModePrefix.length);
+    ui.currentTargetIds.push(targetId);
+
+    if (ui.currentTargetIds.length >= ui.targetMode.expectedTargetCount) {
+      disableTargetMode();
+
+      action.doneTargets({ targets: ui.currentTargetIds });
+    } else {
+      event.target.classList.add('valid-target-selected');
+    }
+  } else {
+    // TODO Handle error in a centralized way, like 'alert' action type in websocket.js
+  }
+}
+
+function enableTargetMode(targetModeObj) {
+  ui.targetMode = targetModeObj;
+  ui.targetMode.enabled = true;
+  setValidTargetsFromIds(ui.targetMode.validTargets);
+}
+
+function disableTargetMode() {
+  ui.targetMode.enabled = false;
+  setValidTargetsFromIds(ui.targetMode.validTargets, { removeInstead: true });
+}
+
+// Pass a list of card/camp/whatever IDs and we'll search the board and get the related elements and set them up as valid/invalid targets
+// Optionally pass params.removeInstead to do similar but remove any targetting (when targetting is disabled)
+function setValidTargetsFromIds(validTargets, params) { // params.removeInstead: boolean
+  if (!params?.removeInstead) {
+    ui.currentTargetIds = [];
+  }
+
   [
     ...gs.player1.camps,
     ...utils.getContentFromSlots(gs.slots.player1),
@@ -329,12 +363,22 @@ function setValidTargetsFromIds(validTargets) { // Pass a list of card/camp/what
     ...utils.getContentFromSlots(gs.slots.player2),
     ...gs[gs.myPlayerNum].cards,
   ].forEach((thing) => {
-    console.log('Checking', thing.id);
-    if (thing?.id && validTargets.includes(thing.id)) {
-      const ele = document.getElementById(`target_${thing.id}`);
+    if (thing?.id) {
+      const ele = document.getElementById(`${ui.targetModePrefix}${thing.id}`);
       if (ele) {
-        // TTODO Style the valid targets. Also have a way to click them. Then remove styling/etc. when done targetting (check expectedTargetCount from message). Apply colorType to border etc.
-        ele.style.border = '5px solid red';
+        if (params?.removeInstead) {
+          ele.classList.remove('valid-target');
+          ele.classList.remove('valid-target-selected');
+          ele.classList.remove('invalid-target');
+          ele.removeEventListener('click', handleTargetClick, true);
+        } else {
+          if (validTargets.includes(thing.id)) {
+            ele.classList.add('valid-target');
+            ele.addEventListener('click', handleTargetClick, true); // useCapture flag to prevent default click action on the thing
+          } else {
+            ele.classList.add('invalid-target');
+          }
+        }
       }
     }
   });

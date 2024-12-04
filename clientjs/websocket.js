@@ -25,10 +25,6 @@ const receiveClientWebsocketMessage = (message) => {
       // TODO Proper alert component on UI
       console.warn('ALERT:', message.details.text);
       break;
-    case 'error':
-      // TODO Proper error component on UI
-      console.error(message.details.text);
-      break;
     case 'setPlayer':
       gs.myPlayerNum = message.details.player;
       gs.opponentPlayerNum = utils.getOppositePlayerNum(gs.myPlayerNum);
@@ -72,9 +68,7 @@ const receiveClientWebsocketMessage = (message) => {
       gs.chat.push(message.details.text);
       break;
     case 'targetMode':
-      ui.targetMode = message.details;
-      ui.targetMode.enabled = true;
-      setValidTargetsFromIds(ui.targetMode.validTargets);
+      enableTargetMode(message.details);
       break;
   }
 };

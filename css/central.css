@@ -95,7 +95,7 @@ menu {
   padding-top: 10px; /* With the rotation this is actually...bottom */
 
   /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent color colors:
-  filter: saturate(0.2);
+  filter: saturate(20%);
   filter: invert(1);
   */
 }
@@ -272,4 +272,17 @@ menu {
   box-shadow: 5px 5px 5px var(--danger);
   padding: 20px 40px 20px 40px;
   opacity: 0.9;
+}
+
+.valid-target {
+  filter: saturate(110%) brightness(110%);
+}
+
+.valid-target-selected {
+  outline: 10px solid var(--active);
+}
+
+.invalid-target {
+  filter: saturate(10%) brightness(10%);
+  pointer-events: none;
 }

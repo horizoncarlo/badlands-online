@@ -39,7 +39,7 @@
       :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.type}`"
     >
       <header>
-        <menu>
+        <menu :class="targetMode.enabled ? 'invalid-target' : ''">
           <li>Target Mode=<span x-text="targetMode.enabled"></span></li>
           <li>
             Debug Menu
@@ -126,7 +126,7 @@
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
         >
           <div
-            class="bright-hover"
+            :class="'bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
             title="Draw a card for 2 Water"
             @mouseover="showWaterCost(2)"
             @mouseout="hideWaterCost()"
@@ -158,7 +158,7 @@
         </template>
       </template>
 
-      <template x-if="inGame">
+      <template x-if="inGame && !targetMode.enabled">
         <!-- Note this approach can be used on ANY element to make it repositionable in the page -->
         <div
           draggable="true"
@@ -182,7 +182,7 @@
           <template x-for="camp in getOpponentCamps()">
             <div class="opponent-camp">
               <img
-                :id="`target_${camp.id}`"
+                :id="`${targetModePrefix}${camp.id}`"
                 draggable="false"
                 :alt="camp.img"
                 :src="'images/cards/camps/' + camp.img"
@@ -211,7 +211,7 @@
                   <!-- TODO Add water cost to abilities, then show them when mousing over a card: @mouseover="isMySlot && showWaterCost(2)" @mouseout="isMySlot && hideWaterCost()" -->
                   <!-- TODO Will need to determine WHICH ability to use on a card in the rare case there are options - then pass that as part of useCard -->
                   <img
-                    :id="`target_${slot.content.id}`"
+                    :id="`${targetModePrefix}${slot.content.id}`"
                     @click="isMySlot && action.useCard({card: slot.content})"
                     draggable="false"
                     :alt="slot.content.img"
@@ -239,39 +239,35 @@
           <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
             <legend><span x-text="getTrayLegend()"></span></legend>
 
-            <template x-if="trayIsCamps">
-              <template x-for="camp in getMyCamps()">
-                <div>
-                  <img
-                    :id="`target_${camp.id}`"
-                    draggable="false"
-                    :alt="camp.img"
-                    :src="'images/cards/camps/' + camp.img"
-                    class="card-size"
-                  />
-                </div>
-              </template>
+            <template x-for="camp in getMyCamps()">
+              <div x-show="trayIsCamps">
+                <img
+                  :id="`${targetModePrefix}${camp.id}`"
+                  draggable="false"
+                  :alt="camp.img"
+                  :src="'images/cards/camps/' + camp.img"
+                  class="card-size"
+                />
+              </div>
             </template>
 
-            <template x-if="trayIsCards && myPlayerNum">
-              <!-- TODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
-              <template x-for="card in getMyCards()">
-                <div>
-                  <img
-                    :id="`target_${card.id}`"
-                    :alt="card.img"
-                    :src="'images/cards/people/' + card.img"
-                    :title="'Click and drag to play for ' + card.cost + ' Water'"
-                    draggable="true"
-                    @dragstart="draggedCard = card"
-                    @dragend="draggedCard = null"
-                    @mouseover="showWaterCost(card.cost)"
-                    @mouseout="hideWaterCost()"
-                    @error="$el.classList.add('card-error')"
-                    class="card card-size"
-                  />
-                </div>
-              </template>
+            <!-- TODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
+            <template x-for="card in getMyCards()">
+              <div x-show="trayIsCards && myPlayerNum">
+                <img
+                  :id="`${targetModePrefix}${card.id}`"
+                  :alt="card.img"
+                  :src="'images/cards/people/' + card.img"
+                  :title="'Click and drag to play for ' + card.cost + ' Water'"
+                  draggable="true"
+                  @dragstart="draggedCard = card"
+                  @dragend="draggedCard = null"
+                  @mouseover="showWaterCost(card.cost)"
+                  @mouseout="hideWaterCost()"
+                  @error="$el.classList.add('card-error')"
+                  class="card card-size"
+                />
+              </div>
             </template>
           </fieldset>
         </footer>
@@ -302,6 +298,7 @@
       </template>
 
       <template x-if="inGame" x-teleport="body">
+        <!-- TODO This dialog can be closed with Escape which is a biiiiiig problem - reopen with event if camps not done? -->
         <dialog id="campPromptDialog" class="camps-dialog">
           <header>
             <h2>Choose Your 3 Camps</h2>
