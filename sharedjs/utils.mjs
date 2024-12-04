@@ -20,8 +20,13 @@ const utils = {
   },
 
   determineValidTargets() {
-    const opponentSlots = this.getOpponentSlots();
-    return opponentSlots.filter(slot => !!slot?.content?.id)
+    const opponentSlots = utils.getOpponentSlots();
+    return opponentSlots.reduce((slots, s) => {
+      if (s?.content?.id) {
+        slots.push(s.content.id);
+      }
+      return s;
+    }, []);
   },
 
   getPlayerIdByNum(playerNum) {
