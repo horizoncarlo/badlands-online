@@ -315,3 +315,29 @@ function submitChat(ele) {
   });
   ele.value = '';
 }
+
+function setValidTargetsFromIds(validTargets) { // Pass a list of card/camp/whatever IDs and we'll search the board and get them all
+  console.log('Cruz untrustworthingly passed me', validTargets);
+  console.log('Filter on slots', utils.getContentIdFromSlots(gs.slots.player1));
+  const targetThings = [];
+  [
+    ...gs.player1.camps,
+    ...gs.slots.player1.filter((slot) => slot.content),
+    ...gs.player2.camps,
+    ...gs.slots.player2.filter((slot) => slot.content),
+    ...gs[gs.myPlayerNum].cards,
+  ].forEach((thing) => {
+    console.log('Checking', thing.id);
+    if (thing?.id && validTargets.includes(thing.id)) {
+      targetThings.push(structuredClone(thing));
+
+      const ele = document.getElementById(`target_${thing.id}`);
+      if (ele) {
+        console.log('Ele matching is', ele);
+        ele.style.border = '5px solid red';
+      }
+    }
+  });
+
+  console.log('Get Valid Targets From IDs', targetThings); // TTODO
+}

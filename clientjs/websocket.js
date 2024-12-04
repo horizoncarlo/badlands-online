@@ -74,6 +74,7 @@ const receiveClientWebsocketMessage = (message) => {
     case 'targetMode':
       ui.targetMode = message.details;
       ui.targetMode.enabled = true;
+      setValidTargetsFromIds(ui.targetMode.validTargets);
       break;
   }
 };

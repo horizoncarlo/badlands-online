@@ -213,10 +213,9 @@ const rawAction = {
       if (!message.details.target) {
         action.targetMode({
           ...message,
-          validTargets: utils.determineValidTargets()
+          validTargets: utils.determineValidTargets(),
         });
-      }
-      else {
+      } else {
         action.damageCard({ ...message, damage: 1 });
       }
     }

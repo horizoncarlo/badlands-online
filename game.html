@@ -182,6 +182,7 @@
           <template x-for="camp in getOpponentCamps()">
             <div class="opponent-camp">
               <img
+                :id="`target_${camp.id}`"
                 draggable="false"
                 :alt="camp.img"
                 :src="'images/cards/camps/' + camp.img"
@@ -210,6 +211,7 @@
                   <!-- TODO Add water cost to abilities, then show them when mousing over a card: @mouseover="isMySlot && showWaterCost(2)" @mouseout="isMySlot && hideWaterCost()" -->
                   <!-- TODO Will need to determine WHICH ability to use on a card in the rare case there are options - then pass that as part of useCard -->
                   <img
+                    :id="`target_${slot.content.id}`"
                     @click="isMySlot && action.useCard({card: slot.content})"
                     draggable="false"
                     :alt="slot.content.img"
@@ -241,6 +243,7 @@
               <template x-for="camp in getMyCamps()">
                 <div>
                   <img
+                    :id="`target_${camp.id}`"
                     draggable="false"
                     :alt="camp.img"
                     :src="'images/cards/camps/' + camp.img"
@@ -255,6 +258,7 @@
               <template x-for="card in getMyCards()">
                 <div>
                   <img
+                    :id="`target_${card.id}`"
                     :alt="card.img"
                     :src="'images/cards/people/' + card.img"
                     :title="'Click and drag to play for ' + card.cost + ' Water'"

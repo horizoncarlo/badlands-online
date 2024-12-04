@@ -19,14 +19,17 @@ const utils = {
     return gs.slots[utils.getOppositePlayerNum(gs.myPlayerNum)];
   },
 
-  determineValidTargets() {
-    const opponentSlots = utils.getOpponentSlots();
-    return opponentSlots.reduce((slots, s) => {
+  getContentIdFromSlots(checkSlots) {
+    return checkSlots.reduce((slots, s) => {
       if (s?.content?.id) {
         slots.push(s.content.id);
       }
       return slots;
     }, []);
+  },
+
+  determineValidTargets() {
+    return utils.getContentIdFromSlots(utils.getOpponentSlots());
   },
 
   getPlayerIdByNum(playerNum) {
@@ -56,23 +59,6 @@ const utils = {
 
   isPlayersTurn(playerId) {
     return gs.turn.currentPlayer && gs.turn.currentPlayer === utils.getPlayerNumById(playerId);
-  },
-
-  getValidTargetsFromIds(validTargets) { // Pass a list of card/camp/whatever IDs and we'll search the board and get them all
-    const targetThings = [];
-    [
-      ...gs.player1.camps,
-      ...gs.slots.player1.filter((slot) => slot.content),
-      ...gs.player2.camps,
-      ...gs.slots.player2.filter((slot) => slot.content),
-      ...gs[myPlayerNum].cards,
-    ].forEach((thing) => {
-      if (thing?.id && validTargets.includes(thing.id)) {
-        targetThings.push(structuredClone(thing));
-      }
-    });
-
-    console.log('Get Valid Targets From IDs', targetThings); // TTODO
   },
 
   findCardInSlots(card) {
