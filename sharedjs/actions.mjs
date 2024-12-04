@@ -168,18 +168,9 @@ const rawAction = {
     if (onClient) {
       sendC('junkCard', message);
     } else {
-      // TODO: Validate
-
-      // damage
-      // TTODO Note there are no current cards that have straight pure Damage as a junk effect
-
-      // injure
-      // TTODO Do injure person junk effect first
-      // action.injurePerson(message); // Done, just needs target and damage amount
-
-      const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO
+      const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO: Remove hardcoded value
       if (typeof action[junkEffect] === 'function') {
-        action[junkEffect](message, junkEffect === 'drawCard' ? true : undefined);
+        action[junkEffect]({ ...message, type: junkEffect }, junkEffect === 'drawCard' ? true : undefined);
       } else {
         action.sendError(`Invalid junk effect ${junkEffect}`, message.playerId);
       }
@@ -202,21 +193,17 @@ const rawAction = {
 
   injurePerson(message) {
     if (!onClient) {
-      if (!message.details.target) {
-        const validTargets = utils.determineValidTargets();
-        if (!validTargets.length) {
-          action.sendError('No valid targets for that Junk effect', message.playerId);
-          return;
-        }
-        action.targetMode({
-          playerId: message.playerId,
-          type: message.type,
-          help: 'Select an unprotected person to Injure',
-          validTargets: utils.determineValidTargets(),
-        });
-      } else {
-        action.damageCard({ ...message, damage: 1 });
+      const validTargets = utils.determineValidTargets();
+      if (!validTargets.length) {
+        action.sendError('No valid targets for that Junk effect', message.playerId);
+        return;
       }
+      action.targetMode({
+        playerId: message.playerId,
+        type: message.type,
+        help: 'Select an unprotected person to Injure',
+        validTargets: utils.determineValidTargets(),
+      });
     }
   },
 
