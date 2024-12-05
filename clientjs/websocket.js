@@ -3,6 +3,7 @@ const WS_PING_INTERVAL = 30000;
 let socket; // Declared later as a binding for our Websocket
 let pingPongIntervaler;
 let reconnectAttempts = 0;
+const DEBUG_AUTO_SELECT_CAMPS_START_TURN = true;
 
 const receiveClientWebsocketMessage = (message) => {
   if (!message || !message.type || message.type === 'pong') {
@@ -58,6 +59,13 @@ const receiveClientWebsocketMessage = (message) => {
       break;
     case 'promptCamps':
       getPlayerData().camps = message.details.camps;
+      if (DEBUG_AUTO_SELECT_CAMPS_START_TURN) {
+        const camps = getPlayerData().camps;
+        [camps[0], camps[1], camps[2]].forEach(chooseCamp);
+        doneChooseCamps();
+        action.startTurn();
+        break;
+      }
       showCampPromptDialog();
       break;
     case 'chat': {

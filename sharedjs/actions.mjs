@@ -4,6 +4,7 @@ import { utils } from './utils.mjs';
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
 const FAST_AND_LOOSE = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
+let pendingTargetAction = { action: null, validTargets: [] }; // The pending target action
 
 const rawAction = {
   joinGame(message) {
@@ -178,11 +179,20 @@ const rawAction = {
     if (onClient) {
       sendC('junkCard', message);
     } else {
-      const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO: Remove hardcoded value
+      const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO Remove hardcoded value
       if (typeof action[junkEffect] === 'function') {
         try {
+          const requiresTarget = utils.junkEffectRequiresTarget(junkEffect);
+          let validTargets = undefined;
+          if (requiresTarget) {
+            validTargets = utils.determineValidTargets();
+            // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1)
+            if (!validTargets.length) {
+              throw new Error('No valid targets for Junk effect');
+            }
+          }
           action[junkEffect](
-            { ...message, type: junkEffect },
+            { ...message, validTargets, type: junkEffect },
             junkEffect === 'drawCard' ? { fromServerRequest: true } : undefined,
           );
           action.removeCard(message);
@@ -193,7 +203,7 @@ const rawAction = {
         action.sendError(`Invalid Junk effect ${junkEffect}`, message.playerId);
       }
 
-      action.sync(); // TODO: Remove - each sub-action should handle it's own updates
+      action.sync(); // TODO Remove - each sub-action should handle it's own updates
     }
   },
 
@@ -211,12 +221,19 @@ const rawAction = {
 
   injurePerson(message) {
     if (!onClient) {
-      const validTargets = utils.determineValidTargets();
-      // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1)
-      if (!validTargets.length) {
-        throw new Error('No valid targets for that Junk effect');
+      const validTargets = message?.validTargets;
+      const targets = message?.details?.targets ?? [];
+      if (validTargets.length && targets.length) {
+        if (!targets.every((id) => validTargets.includes(+id))) {
+          throw new Error('Target(s) invalid');
+        }
+        targets.forEach((targetId) => {
+          action.damageCard({ ...message, details: { card: { id: targetId }, amount: 1 } });
+        });
+        pendingTargetAction = null;
+      } else {
+        action.targetMode(message, { help: 'Select an unprotected person to Injure', colorType: 'danger' });
       }
-      action.targetMode(message, { help: 'Select an unprotected person to Injure', colorType: 'danger' });
     }
   },
 
@@ -302,7 +319,13 @@ const rawAction = {
     if (onClient) {
       sendC('doneTargets', message);
     } else {
-      // TTODO At this point we have message.details.targets which is a list of selected target IDs. So we do step #3 from The Grand TODO
+      if (message.details.targets) {
+        if (typeof action[pendingTargetAction?.action] === 'function') {
+          action[pendingTargetAction.action]({ ...message, validTargets: pendingTargetAction.validTargets });
+        } else {
+          action.sendError('Unknown target action', message.playerId);
+        }
+      }
     }
   },
 
@@ -338,13 +361,14 @@ const rawAction = {
 
   targetMode(message, params) { // message has playerId, type. params has help, colorType, expectedTargetCount (optional, default 1)
     if (!onClient) {
+      pendingTargetAction = { action: message.type, validTargets: message.validTargets };
       const toSend = {
         playerId: message.playerId,
         type: message.type,
         help: params.help ?? '',
         colorType: params.colorType ?? 'info',
         expectedTargetCount: params.expectedTargetCount ?? 1,
-        validTargets: utils.determineValidTargets(), // TODO: Probably pass message here so our valid targets can be determined more accurately for the type of card
+        validTargets: message.validTargets,
       };
 
       sendS('targetMode', toSend, message.playerId);

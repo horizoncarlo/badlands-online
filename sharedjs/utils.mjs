@@ -25,6 +25,7 @@ const utils = {
   },
 
   determineValidTargets() {
+    // TODO This should only get the actual valid targets based on the action
     return utils.getContentFromSlots([...gs.slots.player1, ...gs.slots.player2], { idOnly: true });
   },
 
@@ -60,7 +61,7 @@ const utils = {
   findCardInSlots(card) {
     function findCardInPlayerBoard(card, playerNum) {
       const foundIndex = gs.slots[playerNum].findIndex((loopSlot) => {
-        return loopSlot.content && loopSlot.content.id && loopSlot.content.id === card.id;
+        return loopSlot?.content?.id === +card.id;
       });
       if (foundIndex !== -1) {
         return gs.slots[playerNum][foundIndex].content;
@@ -68,6 +69,10 @@ const utils = {
     }
 
     return findCardInPlayerBoard(card, 'player1') || findCardInPlayerBoard(card, 'player2');
+  },
+
+  junkEffectRequiresTarget(junkEffect) {
+    return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
   },
 
   randomRange(min, max) {
