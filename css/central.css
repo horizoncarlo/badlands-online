@@ -279,10 +279,10 @@ menu {
 }
 
 .target-mode-section-injurePerson {
-  cursor: url('../images/cursors/cursor-injure.png'), crosshair;
+  cursor: url('../images/cursors/cursor-injure.png') 0 0, crosshair;
 }
 .target-mode-section-restoreCard {
-  cursor: url('../images/cursors/cursor-restore.png'), crosshair;
+  cursor: url('../images/cursors/cursor-restore.png') 0 0, crosshair;
   box-shadow: 0 0 50px var(--success) inset;
 }
 
