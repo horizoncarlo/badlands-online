@@ -238,17 +238,32 @@ const rawAction = {
 
   damageCard(message) {
     if (!onClient) {
-      const foundCard = utils.findCardInSlots(message.details.card);
-      if (foundCard) {
-        foundCard.damage = (foundCard.damage ?? 0) + (message.details.amount ?? 1);
-        if (foundCard.damage >= 2) {
-          // TTODO Destroy a card from excessive damage
+      const foundRes = utils.findCardInSlots(message.details.card);
+      if (foundRes) {
+        // TODO Need to do janky stuff like finding the exact card instance (so that our updates propogate) when we've added params in findCardInSlots (like playerNum/foundIndex)
+        const cardObj = gs.slots[foundRes.playerNum][foundRes.foundIndex].content;
+        cardObj.damage = (foundRes.damage ?? 0) + (message.details.amount ?? 1);
+        if (cardObj.damage >= 2) {
+          action.destroyCard(message);
+        } else {
+          action.sync();
         }
       }
 
       // TODO Send a separate message to request for injure and damage animations (explosions?) on the client
+    }
+  },
 
-      action.sync();
+  destroyCard(message) {
+    if (!onClient) {
+      const toDestroy = utils.findCardInSlots(message.details.card);
+      if (toDestroy) {
+        gs.slots[toDestroy.playerNum][toDestroy.foundIndex].content = null;
+        // TODO Play a destroy animation so the card being removed from the board is less abrupt
+        action.sync();
+      } else {
+        action.sendError('Invalid target to destroy', message.playerId);
+      }
     }
   },
 

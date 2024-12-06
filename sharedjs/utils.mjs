@@ -68,7 +68,13 @@ const utils = {
         return loopSlot?.content?.id === (typeof card.id === 'number' ? card.id : +card.id); // TODO Better consistent number typing throughout the whole app
       });
       if (foundIndex !== -1) {
-        return gs.slots[playerNum][foundIndex].content;
+        // TODO Maybe update this object to have the exact copy, so the "janky" comment later is untrue, with extra params of foundIndex/playerNum
+        //      Basically done so that when we want to destroy a card we know WHERE in the slots it is
+        return {
+          ...gs.slots[playerNum][foundIndex].content,
+          foundIndex,
+          playerNum,
+        };
       }
     }
 
