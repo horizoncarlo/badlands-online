@@ -124,10 +124,12 @@
       <!-- TODO Realistically we wouldn't even GET to this page without being a game (after joining from a lobby), so all these inGame checks will become needless-->
       <template x-if="inGame">
         <div
+          id="drawCard"
           class="repositionable"
           draggable="true"
           @dragstart="repositionStart($event)"
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+          x-init="repositionFromStorage($el.id)"
         >
           <div
             :class="'bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
@@ -163,12 +165,15 @@
       </template>
 
       <template x-if="inGame && !targetMode.enabled && turn.currentPlayer && turn.currentPlayer === myPlayerNum">
-        <!-- Note this approach can be used on ANY element to make it repositionable in the page -->
+        <!-- TODO Make this repositionable an Alpine directive? https://alpinejs.dev/advanced/extending#custom-directives -->
+        <!-- Note this approach can be used on ANY element to make it repositionable in the page, requirements are id, draggable, @dragstart, @dragend, x-init, class="repositionable" -->
         <div
+          id="waterTray"
           draggable="true"
           @dragstart="repositionStart($event)"
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
           class="repositionable panel water-wrap bd-accent"
+          x-init="repositionFromStorage($el.id)"
         >
           <template x-if="getPlayerData().waterCount > 0">
             <template x-for="water in getPlayerData().waterCount">
@@ -279,10 +284,12 @@
       <!-- TODO Start simple with the chat & log, but go absolutely wild with features later - emojis, quick emotes, press up for last message, new message count in page title, trigger visual effects on opponent's screen, etc. -->
       <template x-if="inGame">
         <fieldset
+          id="chatLog"
           class="repositionable chat panel bd-severe"
           draggable="true"
           @dragstart="repositionStart($event)"
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+          x-init="repositionFromStorage($el.id)"
         >
           <legend class="severe" @click="applyChatMax({alsoUpdate: true})">
             Log <small>(press <b>T</b> to focus)</small>

@@ -23,6 +23,7 @@ let ui = { // Local state
 };
 const LOCAL_STORAGE = {
   cardScale: 'cardScale',
+  repositionable: 'repositionable',
 };
 
 function init() {
@@ -55,8 +56,12 @@ function alpineInit() {
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
 
-  if (localStorage.getItem(LOCAL_STORAGE.cardScale)) {
-    ui.cardScale = localStorage.getItem(LOCAL_STORAGE.cardScale);
+  try {
+    if (localStorage.getItem(LOCAL_STORAGE.cardScale)) {
+      ui.cardScale = localStorage.getItem(LOCAL_STORAGE.cardScale);
+    }
+  } catch (ls) {
+    ui.cardScale = 70;
   }
   applyCardScale();
 
@@ -98,6 +103,39 @@ function repositionEnd(event, ele, coords) {
   ele.style.bottom = 'auto';
   ele.style.right = 'auto';
   ele.style.zIndex = ++ui.repositionZIndex;
+
+  if (ele.id) {
+    try {
+      const toStore = JSON.parse(localStorage.getItem(LOCAL_STORAGE.repositionable) || '{}');
+      toStore[ele.id] = {
+        left: ele.style.left,
+        top: ele.style.top,
+        zIndex: ele.style.zIndex,
+      };
+      localStorage.setItem(LOCAL_STORAGE.repositionable, JSON.stringify(toStore));
+    } catch (ls) {}
+  }
+}
+
+function repositionFromStorage(id) {
+  try {
+    const repositionable = JSON.parse(localStorage.getItem(LOCAL_STORAGE.repositionable) || '{}');
+
+    if (
+      repositionable[id] &&
+      repositionable[id].left &&
+      repositionable[id].top
+    ) {
+      const ele = document.getElementById(id);
+      if (ele) {
+        ele.style.zIndex = repositionable[id].zIndex ?? ++ui.repositionZIndex;
+        ele.style.left = repositionable[id].left;
+        ele.style.top = repositionable[id].top;
+        ele.style.bottom = 'auto';
+        ele.style.right = 'auto';
+      }
+    }
+  } catch (ls) {}
 }
 
 function getTrayLegend() {
