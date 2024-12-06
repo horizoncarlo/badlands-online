@@ -2,6 +2,9 @@ import { gs } from './gamestate.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
+globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
+globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 
 const utils = {
   hasPlayerDataById(playerId) {
@@ -26,6 +29,7 @@ const utils = {
 
   determineValidTargets() {
     // TODO This should only get the actual valid targets based on the action
+    // TTODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
     return utils.getContentFromSlots([...gs.slots.player1, ...gs.slots.player2], { idOnly: true });
   },
 
@@ -61,7 +65,7 @@ const utils = {
   findCardInSlots(card) {
     function findCardInPlayerBoard(card, playerNum) {
       const foundIndex = gs.slots[playerNum].findIndex((loopSlot) => {
-        return loopSlot?.content?.id === +card.id;
+        return loopSlot?.content?.id === (typeof card.id === 'number' ? card.id : +card.id); // TODO Better consistent number typing throughout the whole app
       });
       if (foundIndex !== -1) {
         return gs.slots[playerNum][foundIndex].content;

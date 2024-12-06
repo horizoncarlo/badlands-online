@@ -3,7 +3,6 @@ const WS_PING_INTERVAL = 30000;
 let socket; // Declared later as a binding for our Websocket
 let pingPongIntervaler;
 let reconnectAttempts = 0;
-const DEBUG_AUTO_SELECT_CAMPS_START_TURN = true;
 
 const receiveClientWebsocketMessage = (message) => {
   if (!message || !message.type || message.type === 'pong') {

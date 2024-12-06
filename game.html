@@ -116,7 +116,7 @@
       </template>
 
       <template x-if="inGame && targetMode.enabled && targetMode.help">
-        <div class="target-mode-help panel">
+        <div :class="`panel target-mode-help target-mode-help-${targetMode.type}`">
           <span x-text="targetMode.help"></span>
         </div>
       </template>

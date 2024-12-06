@@ -3,7 +3,6 @@ import { utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
-const FAST_AND_LOOSE = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 let pendingTargetAction = { action: null, validTargets: [] }; // The pending target action
 
 const rawAction = {
@@ -13,7 +12,7 @@ const rawAction = {
     } else {
       /* TODO TEMPORARY For now it's annoying to check if a player already joined for our playerNum, as refreshing our page currently would trigger this
                         Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
-      if (!FAST_AND_LOOSE) {
+      if (!DEBUG_TESTING_PLAYERS) {
         const desiredPlayer = message.details.player;
         if (gs[desiredPlayer] && (!gs[desiredPlayer].playerId || gs[desiredPlayer].playerId === message.playerId)) {
           gs[desiredPlayer].playerId = message.playerId;
@@ -37,7 +36,7 @@ const rawAction = {
       sendC('startTurn');
     } else {
       // Don't allow starting the game until an opponent is present
-      if (!FAST_AND_LOOSE) {
+      if (!DEBUG_TESTING_PLAYERS) {
         if (!gs.player1.playerId || !gs.player2.playerId) {
           action.sendError('Cannot start the turn, no opponent yet', message.playerId);
           return;
@@ -179,8 +178,8 @@ const rawAction = {
     if (onClient) {
       sendC('junkCard', message);
     } else {
-      const junkEffect = 'injurePerson'; //message?.details?.card?.junkEffect; // TODO Remove hardcoded value
-      if (typeof action[junkEffect] === 'function') {
+      const junkEffect = message?.details?.card?.junkEffect; // TODO Can do a hardcoded effect to not be dependent on the card draw to test things
+      if (junkEffect && typeof action[junkEffect] === 'function') {
         try {
           const requiresTarget = utils.junkEffectRequiresTarget(junkEffect);
           let validTargets = undefined;
@@ -228,7 +227,7 @@ const rawAction = {
           throw new Error('Target(s) invalid');
         }
         targets.forEach((targetId) => {
-          action.damageCard({ ...message, details: { card: { id: targetId }, amount: 1 } });
+          action.damageCard({ ...message, details: { card: { id: targetId } } });
         });
         pendingTargetAction = null;
       } else {
@@ -243,7 +242,7 @@ const rawAction = {
       if (foundCard) {
         foundCard.damage = (foundCard.damage ?? 0) + (message.details.amount ?? 1);
         if (foundCard.damage >= 2) {
-          // TODO Destroy a card
+          // TTODO Destroy a card from excessive damage
         }
       }
 
@@ -255,11 +254,25 @@ const rawAction = {
 
   restoreCard(message) {
     if (!onClient) {
-      const foundCard = utils.findCardInSlots(message.details.card);
-      if (foundCard && typeof foundCard.damage === 'number') {
-        foundCard.damage = Math.min(0, foundCard.damage - 1);
-
-        action.sync();
+      const validTargets = message?.validTargets;
+      const targets = message?.details?.targets ?? [];
+      if (validTargets.length && targets.length) {
+        if (!targets.every((id) => validTargets.includes(+id))) {
+          throw new Error('Target(s) invalid'); // TODO Combine with injurePerson in doneTargets?
+        }
+        targets.forEach((targetId) => {
+          const foundCard = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
+          if (foundCard && typeof foundCard.damage === 'number') {
+            foundCard.damage = Math.min(0, foundCard.damage - 1);
+          }
+          action.sync();
+        });
+        pendingTargetAction = null;
+      } else {
+        action.targetMode(message, {
+          help: 'Select a damaged card to restore and rotate. Note a person will not be ready this turn.',
+          colorType: 'success',
+        });
       }
     }
   },
@@ -301,7 +314,8 @@ const rawAction = {
       playerData.camps = message.details.camps;
       playerData.doneCamps = true;
 
-      const totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
+      let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0); // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
+      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 30 : totalDrawCount;
       for (let i = 0; i < totalDrawCount; i++) {
         action.drawCard({
           ...message,

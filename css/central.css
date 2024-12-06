@@ -185,8 +185,10 @@ menu {
   transition: transform 1s;
 }
 
-.damaged-card {
-  transform: rotate(90deg);
+.damaged-card,
+.damaged-card:hover {
+  filter: none;
+  transform: rotate(90deg) !important;
 }
 
 .water-wrap {
@@ -250,15 +252,6 @@ menu {
   overflow-y: scroll;
 }
 
-.target-mode-section {
-  box-shadow: 0 0 50px var(--danger) inset;
-  cursor: crosshair;
-}
-
-.target-mode-section-injurePerson {
-  cursor: url('../images/cursors/cursor-injure.png'), crosshair;
-}
-
 .target-mode-help {
   position: fixed;
   top: 5%;
@@ -272,6 +265,25 @@ menu {
   box-shadow: 5px 5px 5px var(--danger);
   padding: 20px 40px 20px 40px;
   opacity: 0.9;
+}
+.target-mode-section {
+  box-shadow: 0 0 50px var(--danger) inset;
+  cursor: crosshair;
+}
+
+.target-mode-help-restoreCard {
+  /* TODO Better handling of color swap for junk effect / targetting mode besides hardcoded classes based on each effect */
+  background-color: var(--bg-success);
+  color: var(--fg-success);
+  box-shadow: 5px 5px 5px var(--success);
+}
+
+.target-mode-section-injurePerson {
+  cursor: url('../images/cursors/cursor-injure.png'), crosshair;
+}
+.target-mode-section-restoreCard {
+  cursor: url('../images/cursors/cursor-restore.png'), crosshair;
+  box-shadow: 0 0 50px var(--success) inset;
 }
 
 .valid-target {
