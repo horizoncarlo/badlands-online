@@ -276,9 +276,9 @@ const rawAction = {
           throw new Error('Target(s) invalid'); // TODO Combine with injurePerson in doneTargets?
         }
         targets.forEach((targetId) => {
-          const foundCard = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
-          if (foundCard && typeof foundCard.damage === 'number') {
-            foundCard.damage = Math.min(0, foundCard.damage - 1);
+          const foundRes = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
+          if (foundRes && typeof foundRes.damage === 'number') {
+            gs.slots[foundRes.playerNum][foundRes.foundIndex].content.damage = Math.min(0, foundRes.damage - 1);
           }
           action.sync();
         });
