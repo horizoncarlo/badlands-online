@@ -377,34 +377,54 @@ function disableTargetMode() {
 }
 
 // Pass a list of card/camp/whatever IDs and we'll search the board and get the related elements and set them up as valid/invalid targets
-// Optionally pass params.removeInstead to do similar but remove any targetting (when targetting is disabled)
+// Optionally pass params.removeInstead to do similar but remove any targetting (such as when targetting is disabled)
 function setValidTargetsFromIds(validTargets, params) { // params.removeInstead: boolean
-  if (!params?.removeInstead) {
-    ui.currentTargetIds = [];
+  // Remove is a bit simpler, just do it by class - bit of hardcoding here, but that's okay
+  if (params?.removeInstead) {
+    const eles = [
+      ...document.getElementsByClassName('valid-target'),
+      ...document.getElementsByClassName('valid-target-selected'),
+      ...document.getElementsByClassName('invalid-target'),
+    ];
+    eles.forEach((ele) => {
+      ele.classList.remove('valid-target');
+      ele.classList.remove('valid-target-selected');
+      ele.classList.remove('invalid-target');
+      ele.removeEventListener('click', handleTargetClick, true);
+    });
+
+    return;
   }
 
-  [
-    ...gs.player1.camps,
-    ...utils.getContentFromSlots(gs.slots.player1),
-    ...gs.player2.camps,
-    ...utils.getContentFromSlots(gs.slots.player2),
-    ...gs[gs.myPlayerNum].cards,
-  ].forEach((thing) => {
+  // Determine if we're targetting our slots or all possible cards/camps
+  let checkList = [];
+  if (validTargets.some((target) => typeof target === 'string' && target.startsWith(gs.slotIdPrefix))) {
+    checkList = [
+      ...gs.slots[gs.myPlayerNum].map((_, index) => {
+        return { id: gs.slotIdPrefix + index };
+      }),
+    ];
+  } else {
+    checkList = [
+      ...gs.player1.camps,
+      ...utils.getContentFromSlots(gs.slots.player1),
+      ...gs.player2.camps,
+      ...utils.getContentFromSlots(gs.slots.player2),
+      ...gs[gs.myPlayerNum].cards,
+    ];
+  }
+
+  ui.currentTargetIds = [];
+
+  checkList.forEach((thing) => {
     if (thing?.id) {
       const ele = document.getElementById(`${ui.targetModePrefix}${thing.id}`);
       if (ele) {
-        if (params?.removeInstead) {
-          ele.classList.remove('valid-target');
-          ele.classList.remove('valid-target-selected');
-          ele.classList.remove('invalid-target');
-          ele.removeEventListener('click', handleTargetClick, true);
+        if (validTargets.includes(String(thing.id))) {
+          ele.classList.add('valid-target');
+          ele.addEventListener('click', handleTargetClick, true); // useCapture flag to prevent default click action on the thing
         } else {
-          if (validTargets.includes(thing.id)) {
-            ele.classList.add('valid-target');
-            ele.addEventListener('click', handleTargetClick, true); // useCapture flag to prevent default click action on the thing
-          } else {
-            ele.classList.add('invalid-target');
-          }
+          ele.classList.add('invalid-target');
         }
       }
     }

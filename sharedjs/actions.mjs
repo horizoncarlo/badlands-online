@@ -26,7 +26,7 @@ const rawAction = {
       sendS('setPlayer', message.details, message.playerId);
 
       // Draw our initial set of camps to choose from
-      action.sync(message.playerId);
+      action.sync(message.playerId, { includeChat: true });
       action.promptCamps(message);
     }
   },
@@ -178,13 +178,14 @@ const rawAction = {
     if (onClient) {
       sendC('junkCard', message);
     } else {
-      const junkEffect = message?.details?.card?.junkEffect; // TODO Can do a hardcoded effect to not be dependent on the card draw to test things
+      const junkEffect = message?.details?.card?.junkEffect;
+      // TODO Check validity of junkEffect before processing, current options are: raid, drawCard, restoreCard, gainWater, injurePerson, gainPunk - if only there was some...kind...of...typing system
       if (junkEffect && typeof action[junkEffect] === 'function') {
         try {
           const requiresTarget = utils.junkEffectRequiresTarget(junkEffect);
           let validTargets = undefined;
           if (requiresTarget) {
-            validTargets = utils.determineValidTargets();
+            validTargets = utils.determineValidTargets(message);
             // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1)
             if (!validTargets.length) {
               throw new Error('No valid targets for Junk effect');
@@ -209,6 +210,14 @@ const rawAction = {
   gainPunk(message) {
     if (!onClient) {
       // TODO draw card from top face down, select target
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        // TTODO Put a punk in the target slot
+        console.log('PUT A PUNK HERE', targets);
+        pendingTargetAction = null;
+      } else {
+        action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });
+      }
     }
   },
 
@@ -220,12 +229,8 @@ const rawAction = {
 
   injurePerson(message) {
     if (!onClient) {
-      const validTargets = message?.validTargets;
-      const targets = message?.details?.targets ?? [];
-      if (validTargets.length && targets.length) {
-        if (!targets.every((id) => validTargets.includes(+id))) {
-          throw new Error('Target(s) invalid');
-        }
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
         targets.forEach((targetId) => {
           action.damageCard({ ...message, details: { card: { id: targetId } } });
         });
@@ -269,12 +274,8 @@ const rawAction = {
 
   restoreCard(message) {
     if (!onClient) {
-      const validTargets = message?.validTargets;
-      const targets = message?.details?.targets ?? [];
-      if (validTargets.length && targets.length) {
-        if (!targets.every((id) => validTargets.includes(+id))) {
-          throw new Error('Target(s) invalid'); // TODO Combine with injurePerson in doneTargets?
-        }
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
         targets.forEach((targetId) => {
           const foundRes = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
           if (foundRes && typeof foundRes.damage === 'number') {
@@ -397,14 +398,14 @@ const rawAction = {
         help: params.help ?? '',
         colorType: params.colorType ?? 'info',
         expectedTargetCount: params.expectedTargetCount ?? 1,
-        validTargets: message.validTargets,
+        validTargets: message.validTargets.filter((target) => target && target !== null),
       };
 
       sendS('targetMode', toSend, message.playerId);
     }
   },
 
-  sync(playerIdOrNullForBoth) {
+  sync(playerIdOrNullForBoth, params) { // params.includeChat (default false)
     /* Dev notes: when to sync vs not
      Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
      But that's also a huge worry about premature optimization given that a realistic game state is still under 5kb
@@ -433,7 +434,9 @@ const rawAction = {
       delete updatedGs.campDeck;
       delete updatedGs.deck;
 
-      // TODO Should have an option to sync with or without Chat Log as that could add a TON of data depending on the size
+      if (!params?.includeChat) {
+        delete updatedGs.chat;
+      }
 
       // Strip out any sensitive information from the opponent
       const { [opponentNum]: opponentData } = updatedGs;

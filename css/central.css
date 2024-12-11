@@ -271,7 +271,8 @@ menu {
   cursor: crosshair;
 }
 
-.target-mode-help-restoreCard {
+.target-mode-help-restoreCard,
+.target-mode-help-gainPunk {
   /* TODO Better handling of color swap for junk effect / targetting mode besides hardcoded classes based on each effect */
   background-color: var(--bg-success);
   color: var(--fg-success);
@@ -285,9 +286,17 @@ menu {
   cursor: url('../images/cursors/cursor-restore.png') 0 0, crosshair;
   box-shadow: 0 0 50px var(--success) inset;
 }
+.target-mode-section-gainPunk {
+  box-shadow: 0 0 50px var(--success) inset;
+}
 
 .valid-target {
   filter: saturate(110%) brightness(110%);
+  background-color: var(--bg-success);
+}
+
+.valid-target:hover {
+  background-color: var(--success);
 }
 
 .valid-target-selected {

@@ -62,9 +62,9 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
   // }
   const dupePeople = [
     { img: 'assassin', cost: 1, junkEffect: 'raid' },
-    { img: 'cult_leader', cost: 1, junkEffect: 'draw' },
-    { img: 'doomsayer', cost: 1, junkEffect: 'draw' },
-    { img: 'exterminator', cost: 1, junkEffect: 'draw' },
+    { img: 'cult_leader', cost: 1, junkEffect: 'drawCard' },
+    { img: 'doomsayer', cost: 1, junkEffect: 'drawCard' },
+    { img: 'exterminator', cost: 1, junkEffect: 'drawCard' },
     { img: 'gunner', cost: 1, junkEffect: 'restoreCard' },
     { img: 'holdout', cost: 2, junkEffect: 'raid' },
     { img: 'looter', cost: 1, junkEffect: 'gainWater' },

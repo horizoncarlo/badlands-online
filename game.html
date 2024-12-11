@@ -209,8 +209,9 @@
             x-data="{ isMySlot: playerNum === myPlayerNum }"
             :class="'slots ' + (isMySlot ? 'my-slots' : 'opponent-slots')"
           >
-            <template x-for="slot in playerSlots">
+            <template x-for="(slot, index) in playerSlots">
               <div
+                :id="isMySlot ? `${targetModePrefix}${slotIdPrefix}${index}` : `opponent_${slotIdPrefix}${index}`"
                 class="bd-default"
                 @dragleave="dragLeaveHighlight($el)"
                 @dragover.prevent="isMySlot && dragOverSlot(slot, $el)"

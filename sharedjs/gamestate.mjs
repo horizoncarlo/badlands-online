@@ -39,6 +39,7 @@ const gs = {
     /* Deck that camps are drawn from at the start of the game */
   ],
   chat: [],
+  slotIdPrefix: 'slot_',
 };
 
 if (onClient) {

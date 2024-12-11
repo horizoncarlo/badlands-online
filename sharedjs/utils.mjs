@@ -21,16 +21,37 @@ const utils = {
   getContentFromSlots(checkSlots, params) { // params.idOnly: boolean
     return checkSlots.reduce((slots, s) => {
       if (s?.content?.id) {
-        slots.push(params?.idOnly ? s.content.id : s.content);
+        slots.push(params?.idOnly ? String(s.content.id) : s.content);
       }
       return slots;
     }, []);
   },
 
-  determineValidTargets() {
-    // TODO This should only get the actual valid targets based on the action
+  getEmptySlots(checkSlots) {
+    return checkSlots.map((slot, index) => {
+      if (!slot.content) {
+        return gs.slotIdPrefix + index;
+      }
+    });
+  },
+
+  determineValidTargets(message) {
+    // TODO This should only get the actual valid targets based on the action and board state
     // TTODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
-    return utils.getContentFromSlots([...gs.slots.player1, ...gs.slots.player2], { idOnly: true });
+    if (!message) {
+      return [];
+    }
+
+    // Returns a relevant list of validTargets as an array of string IDs of the targets
+    const junkEffect = message.details?.card?.junkEffect;
+    const fromPlayerNum = utils.getPlayerNumById(message.playerId);
+    if (junkEffect === 'gainPunk') {
+      return utils.getEmptySlots(gs.slots[fromPlayerNum]);
+    } else if (junkEffect === 'restoreCard') {
+      return utils.getContentFromSlots(gs.slots[fromPlayerNum], { idOnly: true });
+    } else {
+      return utils.getContentFromSlots(gs.slots[utils.getOppositePlayerNum(fromPlayerNum)], { idOnly: true });
+    }
   },
 
   getPlayerIdByNum(playerNum) {
@@ -83,6 +104,19 @@ const utils = {
 
   junkEffectRequiresTarget(junkEffect) {
     return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
+  },
+
+  checkSelectedTargets(message) {
+    const validTargets = message?.validTargets;
+    const targets = message?.details?.targets ?? [];
+    if (validTargets.length && targets.length) {
+      if (!targets.every((id) => validTargets.includes(id))) {
+        throw new Error('Target(s) invalid');
+      }
+
+      return targets;
+    }
+    return null;
   },
 
   randomRange(min, max) {
