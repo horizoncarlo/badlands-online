@@ -465,6 +465,7 @@ const rawAction = {
       //       So need to send a count of cards left in the deck, then display it overlayed on the UI draw pile
       //       Also need to announce the deck is being shuffled (can leave handling a draw until later until we have proper win/loss, just make a note of it)
       //       Rules also say you can't look through the deck discard pile
+      //       KEY REMINDER to figure out what to do with our IDs - think they can stay the same as there shouldn't be any Punk knowledge revealed once the card is discarded anyway
 
       if (!params?.includeChat) {
         delete updatedGs.chat;
