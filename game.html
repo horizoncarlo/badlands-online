@@ -44,14 +44,7 @@
           <li>
             Debug Menu
             <menu>
-              <li>
-                Customize Layout
-                <menu>
-                  <li>Show Chat</li>
-                  <li>Show Log</li>
-                  <li>Show Timer</li>
-                </menu>
-              </li>
+              <li onclick="action.dumpDebug()">Log Gamestate</li>
             </menu>
           </li>
           <template x-if="!inGame">

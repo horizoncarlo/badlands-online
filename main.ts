@@ -77,13 +77,20 @@ const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
     return;
   }
 
+  const messageObj = {
+    type: type,
+    details: messageDetails ?? {},
+  };
+
+  // TODO Rough debugging for everything but verbose sync
+  if (type !== 'sync') {
+    console.log('SENT:', messageObj);
+  }
+
   socketList.get(gameId).forEach((socketDetails: WebSocketDetails) => {
     if (!optionalGroup || (optionalGroup && optionalGroup === socketDetails.playerId)) {
       if (socketDetails && socketDetails.socket && socketDetails.socket.readyState === WebSocket.OPEN) {
-        socketDetails.socket.send(JSON.stringify({
-          type: type,
-          details: messageDetails ?? {},
-        }));
+        socketDetails.socket.send(JSON.stringify(messageObj));
       }
     }
   });
@@ -110,14 +117,14 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
   } else {
     // Check if the player matches someone in the game
     if (
-      message.type !== 'joinGame' &&
+      message.type !== 'joinGame' && message.type !== 'dumpDebug' &&
       (!message.playerId || !utils.hasPlayerDataById(message.playerId))
     ) {
       action.sendError('Invalid player data, join a game first', message.playerId);
       return;
     }
 
-    console.log('Received server message', message);
+    console.log('RECEIVE:', message);
 
     if (typeof action[message.type] === 'function') {
       action[message.type](message);

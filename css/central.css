@@ -271,12 +271,16 @@ menu {
   cursor: crosshair;
 }
 
-.target-mode-help-restoreCard,
-.target-mode-help-gainPunk {
+.target-mode-help-restoreCard {
   /* TODO Better handling of color swap for junk effect / targetting mode besides hardcoded classes based on each effect */
   background-color: var(--bg-success);
   color: var(--fg-success);
   box-shadow: 5px 5px 5px var(--success);
+}
+.target-mode-help-gainPunk {
+  background-color: var(--bg-variant);
+  color: var(--fg-variant);
+  box-shadow: 5px 5px 5px var(--variant);
 }
 
 .target-mode-section-injurePerson {
@@ -287,7 +291,8 @@ menu {
   box-shadow: 0 0 50px var(--success) inset;
 }
 .target-mode-section-gainPunk {
-  box-shadow: 0 0 50px var(--success) inset;
+  cursor: url('../images/cursors/cursor-punk.png') 0 0, crosshair;
+  box-shadow: 0 0 50px var(--variant) inset;
 }
 
 .valid-target {

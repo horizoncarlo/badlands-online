@@ -3,7 +3,9 @@ import { utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
-let pendingTargetAction = { action: null, validTargets: [] }; // The pending target action
+// TTODO Add a new cancelTarget action and hook into the UI (button in the help panel?) that clears a pendingTargetAction
+// TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
+let pendingTargetAction = null; // Format { action: null, validTargets: [] };
 
 const rawAction = {
   joinGame(message) {
@@ -186,7 +188,7 @@ const rawAction = {
           let validTargets = undefined;
           if (requiresTarget) {
             validTargets = utils.determineValidTargets(message);
-            // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1)
+            // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1, such as a Gunner)
             if (!validTargets.length) {
               throw new Error('No valid targets for Junk effect');
             }
@@ -195,6 +197,8 @@ const rawAction = {
             { ...message, validTargets, type: junkEffect },
             junkEffect === 'drawCard' ? { fromServerRequest: true } : undefined,
           );
+
+          // TODO We're relying on the underlying sync here, but still need to sort that out
           action.removeCard(message);
         } catch (err) {
           action.sendError(err?.message, message.playerId);
@@ -202,19 +206,22 @@ const rawAction = {
       } else {
         action.sendError(`Invalid Junk effect ${junkEffect}`, message.playerId);
       }
-
-      action.sync(); // TODO Remove - each sub-action should handle it's own updates
     }
   },
 
   gainPunk(message) {
     if (!onClient) {
-      // TODO draw card from top face down, select target
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
-        // TTODO Put a punk in the target slot
-        console.log('PUT A PUNK HERE', targets);
-        pendingTargetAction = null;
+        const targetSlotIndex = parseInt(targets[0].substring(gs.slotIdPrefix.length));
+        const newPunk = gs.deck.shift();
+        // TODO As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw
+        if (newPunk) {
+          gs.slots[utils.getPlayerNumById(message.playerId)][targetSlotIndex].content = utils.convertCardToPunk(newPunk);
+          pendingTargetAction = null;
+        } else {
+          action.sendError('No cards left to draw', message.playerId);
+        }
       } else {
         action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });
       }
@@ -248,7 +255,10 @@ const rawAction = {
         // TODO Need to do janky stuff like finding the exact card instance (so that our updates propogate) when we've added params in findCardInSlots (like playerNum/foundIndex)
         const cardObj = gs.slots[foundRes.playerNum][foundRes.foundIndex].content;
         cardObj.damage = (foundRes.damage ?? 0) + (message.details.amount ?? 1);
-        if (cardObj.damage >= 2) {
+        if (
+          (cardObj.isPunk && cardObj.damage >= 1) ||
+          cardObj.damage >= 2
+        ) {
           action.destroyCard(message);
         } else {
           action.sync();
@@ -352,6 +362,8 @@ const rawAction = {
       if (message.details.targets) {
         if (typeof action[pendingTargetAction?.action] === 'function') {
           action[pendingTargetAction.action]({ ...message, validTargets: pendingTargetAction.validTargets });
+
+          action.sync(); // TODO Remove - each sub-action should handle it's own updates
         } else {
           action.sendError('Unknown target action', message.playerId);
         }
@@ -361,7 +373,22 @@ const rawAction = {
 
   sendError(text, playerId) {
     if (!onClient) {
+      console.error(`Send Error (to ${playerId}):`, text);
       action.chat({ details: { text: text } }, { playerId: playerId, fromServerRequest: true });
+    }
+  },
+
+  dumpDebug() {
+    const now = new Date().toLocaleTimeString();
+    if (onClient) {
+      console.log(now + ': DUMP: Client UI', ui);
+      console.table(ui);
+      console.log(now + ': DUMP: Gamestate', gs);
+      console.table(gs);
+      sendC('dumpDebug');
+    } else {
+      console.log(now + ': DUMP: Gamestate', gs);
+      console.log(now + ': DUMP done');
     }
   },
 
@@ -415,7 +442,7 @@ const rawAction = {
       a card or destroying a camp)
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
-    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?)
+    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?). Might be easier to throttle these calls too so double calling doesn't matter (besides different params I guess...)
 
     function internalSync(playerNum) {
       const currentPlayerId = utils.getPlayerIdByNum(playerNum);
@@ -433,6 +460,11 @@ const rawAction = {
       delete updatedGs.opponentPlayerNum;
       delete updatedGs.campDeck;
       delete updatedGs.deck;
+
+      // TTODO Handle an empty deck - rules say shuffle discards once, then if you have to shuffle again it's a draw,
+      //       So need to send a count of cards left in the deck, then display it overlayed on the UI draw pile
+      //       Also need to announce the deck is being shuffled (can leave handling a draw until later until we have proper win/loss, just make a note of it)
+      //       Rules also say you can't look through the deck discard pile
 
       if (!params?.includeChat) {
         delete updatedGs.chat;
@@ -468,6 +500,7 @@ rawAction.promptCamps.skipPreprocess = true;
 rawAction.doneCamps.skipPreprocess = true;
 rawAction.startTurn.skipPreprocess = true;
 rawAction.drawCard.skipPreprocess = true;
+rawAction.dumpDebug.skipPreprocess = true;
 rawAction.sendError.skipPreprocess = true;
 rawAction.chat.skipPreprocess = true;
 rawAction.sync.skipPreprocess = true;
@@ -476,6 +509,10 @@ const actionHandler = {
   get(target, prop) {
     const originalMethod = target[prop];
     if (typeof originalMethod === 'function') {
+      if (!onClient) {
+        console.log('...action=' + prop);
+      }
+
       return function (...args) {
         if (originalMethod?.skipPreprocess) {
           return originalMethod.apply(this, args);

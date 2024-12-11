@@ -106,6 +106,14 @@ const utils = {
     return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
   },
 
+  convertCardToPunk(cardObj) {
+    return {
+      id: cardObj.id,
+      img: 'punk.png',
+      isPunk: true,
+    };
+  },
+
   checkSelectedTargets(message) {
     const validTargets = message?.validTargets;
     const targets = message?.details?.targets ?? [];
