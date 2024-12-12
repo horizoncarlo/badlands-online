@@ -36,7 +36,10 @@ const gs = {
     /* { id, img, damage? } */
   ],
   campDeck: [
-    /* Deck that camps are drawn from at the start of the game */
+    /*
+    Deck that camps are drawn from at the start of the game
+    Format is { id, img, drawCount, selected: boolean, damage: number | undefined, isDestroyed: true | undefined },
+    */
   ],
   chat: [],
   slotIdPrefix: 'slot_',

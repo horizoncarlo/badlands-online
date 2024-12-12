@@ -35,6 +35,10 @@ const utils = {
     });
   },
 
+  junkEffectRequiresTarget(junkEffect) {
+    return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
+  },
+
   determineValidTargets(message) {
     // TODO This should only get the actual valid targets based on the action and board state
     // TTODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
@@ -46,10 +50,27 @@ const utils = {
     const junkEffect = message.details?.card?.junkEffect;
     const fromPlayerNum = utils.getPlayerNumById(message.playerId);
     if (junkEffect === 'gainPunk') {
+      // TODO As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
+      if (!onClient && gs.deck?.length <= 1) {
+        return [];
+      }
+
       return utils.getEmptySlots(gs.slots[fromPlayerNum]);
     } else if (junkEffect === 'restoreCard') {
-      return utils.getContentFromSlots(gs.slots[fromPlayerNum], { idOnly: true });
-    } else {
+      let targets = [
+        ...utils.getContentFromSlots(gs.slots[fromPlayerNum]),
+        ...utils.getPlayerDataById(message.playerId).camps,
+      ];
+      // Target must be damaged and cannot be self
+      targets = targets.filter((target) =>
+        typeof target.damage === 'number' && target.damage >= 1 && target.id !== message.details.card.id
+      );
+      // Return only the IDs
+      targets = targets.map((target) => String(target.id));
+
+      return targets;
+    } else if (junkEffect === 'injurePerson') {
+      // TTODO Unprotected person, no camps
       return utils.getContentFromSlots(gs.slots[utils.getOppositePlayerNum(fromPlayerNum)], { idOnly: true });
     }
   },
@@ -83,27 +104,44 @@ const utils = {
     return gs.turn.currentPlayer && gs.turn.currentPlayer === utils.getPlayerNumById(playerId);
   },
 
-  findCardInSlots(card) {
-    function findCardInPlayerBoard(card, playerNum) {
-      const foundIndex = gs.slots[playerNum].findIndex((loopSlot) => {
-        return loopSlot?.content?.id === (typeof card.id === 'number' ? card.id : +card.id); // TODO Better consistent number typing throughout the whole app
+  /**
+   * Check both player slots and both player camps for the passed card
+   */
+  findCardInGame(card) {
+    return utils.findCardInSlots(card) || this.findCardInCamps(card);
+  },
+
+  findCardInCamps(card) {
+    function findCardInPlayerCamps(card, playerNum) {
+      const foundIndex = gs[playerNum].camps.findIndex((loopCamp) => {
+        return loopCamp?.id === (typeof card.id === 'number' ? card.id : +card.id);
       });
       if (foundIndex !== -1) {
-        // TODO Maybe update this object to have the exact copy, so the "janky" comment later is untrue, with extra params of foundIndex/playerNum
-        //      Basically done so that when we want to destroy a card we know WHERE in the slots it is
         return {
-          ...gs.slots[playerNum][foundIndex].content,
-          foundIndex,
+          cardObj: gs[playerNum].camps[foundIndex],
           playerNum,
         };
       }
     }
 
-    return findCardInPlayerBoard(card, 'player1') || findCardInPlayerBoard(card, 'player2');
+    return findCardInPlayerCamps(card, 'player1') || findCardInPlayerCamps(card, 'player2');
   },
 
-  junkEffectRequiresTarget(junkEffect) {
-    return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
+  findCardInSlots(card) {
+    function findCardInPlayerSlots(card, playerNum) {
+      const slotIndex = gs.slots[playerNum].findIndex((loopSlot) => {
+        return loopSlot?.content?.id === (typeof card.id === 'number' ? card.id : +card.id); // TODO Better consistent number typing throughout the whole app
+      });
+      if (slotIndex !== -1) {
+        return {
+          cardObj: gs.slots[playerNum][slotIndex].content,
+          slotIndex,
+          playerNum,
+        };
+      }
+    }
+
+    return findCardInPlayerSlots(card, 'player1') || findCardInPlayerSlots(card, 'player2');
   },
 
   convertCardToPunk(cardObj) {

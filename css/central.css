@@ -24,6 +24,7 @@ body {
   /* Avoid jiggling as a scrollbar is added */
   overflow-y: scroll;
   position: relative;
+  accent-color: var(--variant);
 }
 
 body:has(dialog[open]) {
@@ -186,7 +187,7 @@ menu {
   background-color: var(--success);
 }
 
-.slot-card {
+.card-anim {
   transition: transform 1s;
 }
 

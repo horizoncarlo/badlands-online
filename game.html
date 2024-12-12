@@ -189,8 +189,8 @@
                 :id="`${targetModePrefix}${camp.id}`"
                 draggable="false"
                 :alt="camp.img"
-                :src="'images/cards/camps/' + camp.img"
-                class="card-size"
+                :src="getCampImage(camp)"
+                class="card-size card-anim"
               />
             </div>
           </template>
@@ -221,7 +221,7 @@
                     draggable="false"
                     :alt="slot.content.img"
                     :src="'images/cards/people/' + slot.content.img"
-                    :class="'bright-hover card-size slot-card ' + (slot.content.damage >= 1 ? ' damaged-card' : '')"
+                    :class="'bright-hover card-size card-anim slot-card ' + (slot.content.damage >= 1 ? ' damaged-card' : '')"
                   />
                 </template>
               </div>
@@ -249,8 +249,8 @@
                   :id="`${targetModePrefix}${camp.id}`"
                   draggable="false"
                   :alt="camp.img"
-                  :src="'images/cards/camps/' + camp.img"
-                  class="card-size"
+                  :src="getCampImage(camp)"
+                  :class="'card-size card-anim ' + (typeof camp.damage === 'number' && camp.damage === 1 ? ' damaged-card' : '')"
                 />
               </div>
             </template>

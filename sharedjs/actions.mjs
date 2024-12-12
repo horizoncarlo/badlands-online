@@ -220,7 +220,6 @@ const rawAction = {
       if (targets?.length) {
         const targetSlotIndex = parseInt(targets[0].substring(gs.slotIdPrefix.length));
         const newPunk = gs.deck.shift();
-        // TODO As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw
         if (newPunk) {
           gs.slots[utils.getPlayerNumById(message.playerId)][targetSlotIndex].content = utils.convertCardToPunk(newPunk);
         } else {
@@ -256,11 +255,10 @@ const rawAction = {
 
   damageCard(message) {
     if (!onClient) {
-      const foundRes = utils.findCardInSlots(message.details.card);
-      if (foundRes) {
-        // TODO Need to do janky stuff like finding the exact card instance (so that our updates propogate) when we've added params in findCardInSlots (like playerNum/foundIndex)
-        const cardObj = gs.slots[foundRes.playerNum][foundRes.foundIndex].content;
-        cardObj.damage = (foundRes.damage ?? 0) + (message.details.amount ?? 1);
+      const { cardObj } = utils.findCardInGame(message.details.card);
+      if (cardObj) {
+        cardObj.damage = (cardObj.damage ?? 0) + (message.details.amount ?? 1);
+
         if (
           (cardObj.isPunk && cardObj.damage >= 1) ||
           cardObj.damage >= 2
@@ -277,10 +275,15 @@ const rawAction = {
 
   destroyCard(message) {
     if (!onClient) {
-      const toDestroy = utils.findCardInSlots(message.details.card);
-      if (toDestroy) {
-        gs.slots[toDestroy.playerNum][toDestroy.foundIndex].content = null;
+      const foundRes = utils.findCardInGame(message.details.card);
+      if (foundRes) {
         // TODO Play a destroy animation so the card being removed from the board is less abrupt
+        if (typeof foundRes.slotIndex === 'number') {
+          gs.slots[foundRes.playerNum][foundRes.slotIndex].content = null;
+        } else {
+          foundRes.cardObj.isDestroyed = true;
+        }
+
         action.sync();
       } else {
         action.sendError('Invalid target to destroy', message.playerId);
@@ -294,9 +297,13 @@ const rawAction = {
       if (targets?.length) {
         try {
           targets.forEach((targetId) => {
-            const foundRes = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
-            if (foundRes && typeof foundRes.damage === 'number') {
-              gs.slots[foundRes.playerNum][foundRes.foundIndex].content.damage = Math.min(0, foundRes.damage - 1);
+            const { cardObj } = utils.findCardInGame({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
+            if (cardObj && typeof cardObj.damage === 'number') {
+              // Slot and camp are handled similar, except we technically delete a non-existent flag on a slot (shrug)
+              delete cardObj.isDestroyed;
+              cardObj.damage = Math.min(0, cardObj.damage - 1);
+
+              // TODO Mark card unready after a restore
             } else {
               action.sendError('No damage to Restore', message.playerId);
               throw new Error(); // Ditch if we didn't restore (would be an invalid target)

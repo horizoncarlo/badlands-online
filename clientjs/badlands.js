@@ -154,6 +154,10 @@ function getMyCamps() {
   return getPlayerData()?.camps || [];
 }
 
+function getCampImage(camp) {
+  return `images/cards/camps/${camp.isDestroyed ? 'DESTROYED.png' : camp.img}`;
+}
+
 function getOpponentCardCount() {
   if (gs.opponentPlayerNum) {
     return gs[gs.opponentPlayerNum]?.cards?.length || 0;
