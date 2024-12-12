@@ -82,8 +82,8 @@ const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
     details: messageDetails ?? {},
   };
 
-  // TODO Rough debugging for everything but verbose sync
-  if (type !== 'sync') {
+  // TODO Rough debugging for everything but a few messages
+  if (type !== 'sync' && type !== 'ping' && type !== 'pong') {
     console.log('SENT:', messageObj);
   }
 

@@ -3,9 +3,8 @@ import { utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
-// TTODO Add a new cancelTarget action and hook into the UI (button in the help panel?) that clears a pendingTargetAction
 // TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
-let pendingTargetAction = null; // Format { action: null, validTargets: [] };
+let pendingTargetAction = null; // Clone of the message that initiated the target
 
 const rawAction = {
   joinGame(message) {
@@ -145,13 +144,13 @@ const rawAction = {
       sendC('drawCard', message);
     } else {
       if (!params?.fromServerRequest && !utils.isPlayersTurn(message.playerId)) {
-        return;
+        return false;
       }
 
       if (message.details?.fromWater) {
         if (2 > utils.getPlayerDataById(message.playerId).waterCount) {
           action.sendError('Not enough water to draw a card', message.playerId);
-          return;
+          return false;
         }
 
         action.reduceWater(message, 2);
@@ -172,6 +171,7 @@ const rawAction = {
         sendS('addCard', newMessage, message.playerId);
       } else {
         action.sendError('No cards left to draw', message.playerId);
+        return false;
       }
     }
   },
@@ -193,13 +193,18 @@ const rawAction = {
               throw new Error('No valid targets for Junk effect');
             }
           }
-          action[junkEffect](
+          const returnStatus = action[junkEffect](
             { ...message, validTargets, type: junkEffect },
             junkEffect === 'drawCard' ? { fromServerRequest: true } : undefined,
           );
 
-          // TODO We're relying on the underlying sync here, but still need to sort that out
-          action.removeCard(message);
+          // If we aren't targetting, we can just remove the card that initiated the junk effect now
+          // Assuming of course our action was valid
+          if (!pendingTargetAction && returnStatus !== false) {
+            action.removeCard(message);
+          } else {
+            action.sync(message.playerId);
+          }
         } catch (err) {
           action.sendError(err?.message, message.playerId);
         }
@@ -218,9 +223,9 @@ const rawAction = {
         // TODO As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw
         if (newPunk) {
           gs.slots[utils.getPlayerNumById(message.playerId)][targetSlotIndex].content = utils.convertCardToPunk(newPunk);
-          pendingTargetAction = null;
         } else {
           action.sendError('No cards left to draw', message.playerId);
+          return false;
         }
       } else {
         action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });
@@ -230,7 +235,9 @@ const rawAction = {
 
   raid(message) {
     if (!onClient) {
-      // TODO insert or advance raiders
+      // TODO Insert or advance raiders
+      action.sendError('Raid effect not implemented yet', message.playerId);
+      return false;
     }
   },
 
@@ -241,7 +248,6 @@ const rawAction = {
         targets.forEach((targetId) => {
           action.damageCard({ ...message, details: { card: { id: targetId } } });
         });
-        pendingTargetAction = null;
       } else {
         action.targetMode(message, { help: 'Select an unprotected person to Injure', colorType: 'danger' });
       }
@@ -286,14 +292,19 @@ const rawAction = {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
-        targets.forEach((targetId) => {
-          const foundRes = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
-          if (foundRes && typeof foundRes.damage === 'number') {
-            gs.slots[foundRes.playerNum][foundRes.foundIndex].content.damage = Math.min(0, foundRes.damage - 1);
-          }
-          action.sync();
-        });
-        pendingTargetAction = null;
+        try {
+          targets.forEach((targetId) => {
+            const foundRes = utils.findCardInSlots({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
+            if (foundRes && typeof foundRes.damage === 'number') {
+              gs.slots[foundRes.playerNum][foundRes.foundIndex].content.damage = Math.min(0, foundRes.damage - 1);
+            } else {
+              action.sendError('No damage to Restore', message.playerId);
+              throw new Error(); // Ditch if we didn't restore (would be an invalid target)
+            }
+          });
+        } catch (ignored) {
+          return false;
+        }
       } else {
         action.targetMode(message, {
           help: 'Select a damaged card to restore and rotate. Note a person will not be ready this turn.',
@@ -355,15 +366,34 @@ const rawAction = {
     }
   },
 
+  cancelTarget(message) {
+    if (onClient) {
+      sendC('cancelTarget', message);
+    } else {
+      if (pendingTargetAction) {
+        pendingTargetAction = null;
+        sendS('cancelTarget', {}, message.playerId);
+      } else {
+        action.sendError('Not in target mode', message.playerId);
+      }
+    }
+  },
+
   doneTargets(message) {
     if (onClient) {
       sendC('doneTargets', message);
     } else {
       if (message.details.targets) {
-        if (typeof action[pendingTargetAction?.action] === 'function') {
-          action[pendingTargetAction.action]({ ...message, validTargets: pendingTargetAction.validTargets });
+        if (typeof action[pendingTargetAction?.type] === 'function') {
+          const returnStatus = action[pendingTargetAction.type]({
+            ...message,
+            validTargets: pendingTargetAction.validTargets,
+          });
 
-          action.sync(); // TODO Remove - each sub-action should handle it's own updates
+          if (returnStatus !== false) {
+            action.removeCard(pendingTargetAction);
+            pendingTargetAction = null;
+          }
         } else {
           action.sendError('Unknown target action', message.playerId);
         }
@@ -418,7 +448,7 @@ const rawAction = {
 
   targetMode(message, params) { // message has playerId, type. params has help, colorType, expectedTargetCount (optional, default 1)
     if (!onClient) {
-      pendingTargetAction = { action: message.type, validTargets: message.validTargets };
+      pendingTargetAction = structuredClone(message);
       const toSend = {
         playerId: message.playerId,
         type: message.type,

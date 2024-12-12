@@ -37,6 +37,11 @@ body:has(dialog[open]) {
   /* TODO Feels weird or not to slide the move? Might be browser dependent as Firefox does it own d&d animation: transition: top 100ms, left 100ms; */
 }
 
+.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .panel {
   padding: 10px;
   background-color: var(--bg-accent);
@@ -217,11 +222,6 @@ menu {
   min-width: calc(var(--card-width-full) * 3 + 200px);
 }
 
-.camps-dialog-wrap {
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .camp-choice-wrap {
   display: inline-block;
   margin: 0 5px 0 5px;
@@ -259,6 +259,7 @@ menu {
   transform: translateX(-50%);
   margin-left: auto;
   margin-right: auto;
+  text-align: center;
   z-index: 1;
   background-color: var(--bg-danger);
   color: var(--fg-danger);

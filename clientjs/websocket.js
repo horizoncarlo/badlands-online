@@ -87,6 +87,9 @@ const receiveClientWebsocketMessage = (message) => {
       gs.chat.push(message.details.text);
       break;
     }
+    case 'cancelTarget':
+      disableTargetMode();
+      break;
     case 'targetMode':
       enableTargetMode(message.details);
       break;

@@ -111,6 +111,8 @@
       <template x-if="inGame && targetMode.enabled && targetMode.help">
         <div :class="`panel target-mode-help target-mode-help-${targetMode.type}`">
           <span x-text="targetMode.help"></span>
+          <br />
+          <button onclick="action.cancelTarget()" type="reset">Cancel</button>
         </div>
       </template>
 
@@ -311,7 +313,7 @@
             <h2>Choose Your 3 Camps</h2>
           </header>
           <p>To start the game you choose <span x-text="3 - selectedCampCount()"></span> camps from a random option of 6</p>
-          <div class="camps-dialog-wrap">
+          <div class="center camps-dialog-wrap">
             <template x-for="camp in getMyCamps()">
               <div @click="chooseCamp(camp)" class="camp-choice-wrap">
                 <img
