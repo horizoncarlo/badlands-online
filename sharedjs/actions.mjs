@@ -201,7 +201,7 @@ const rawAction = {
           // If we aren't targetting, we can just remove the card that initiated the junk effect now
           // Assuming of course our action was valid
           if (!pendingTargetAction && returnStatus !== false) {
-            action.removeCard(message);
+            action.removeCard(message); // TTODO This should be a discard card instead, and we track a discard pile as part of server side gs
           } else {
             action.sync(message.playerId);
           }
@@ -282,6 +282,14 @@ const rawAction = {
           gs.slots[foundRes.playerNum][foundRes.slotIndex].content = null;
         } else {
           foundRes.cardObj.isDestroyed = true;
+        }
+
+        // If we're going to destroy a Punk put the actual card back on top of the deck
+        if (foundRes.cardObj.isPunk) {
+          const matchingPunkIndex = gs.punks.findIndex((punk) => foundRes.cardObj.id === punk.id);
+          if (matchingPunkIndex !== -1) {
+            gs.deck.unshift(gs.punks.splice(matchingPunkIndex, 1)[0]);
+          }
         }
 
         action.sync();
@@ -398,7 +406,7 @@ const rawAction = {
           });
 
           if (returnStatus !== false) {
-            action.removeCard(pendingTargetAction);
+            action.removeCard(pendingTargetAction); // TTODO This should also be a discard card, see above
             pendingTargetAction = null;
           }
         } else {
@@ -497,6 +505,7 @@ const rawAction = {
       delete updatedGs.opponentPlayerNum;
       delete updatedGs.campDeck;
       delete updatedGs.deck;
+      delete updatedGs.punks;
 
       // TTODO Handle an empty deck - rules say shuffle discards once, then if you have to shuffle again it's a draw,
       //       So need to send a count of cards left in the deck, then display it overlayed on the UI draw pile

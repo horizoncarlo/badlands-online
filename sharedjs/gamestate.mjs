@@ -35,6 +35,9 @@ const gs = {
   deck: [
     /* { id, img, damage? } */
   ],
+  punks: [
+    /* Full cardObj only on server, to map client punks to actual cards by ID */
+  ],
   campDeck: [
     /*
     Deck that camps are drawn from at the start of the game

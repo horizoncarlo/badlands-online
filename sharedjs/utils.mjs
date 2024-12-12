@@ -145,6 +145,8 @@ const utils = {
   },
 
   convertCardToPunk(cardObj) {
+    gs.punks.push(structuredClone(cardObj));
+
     return {
       id: cardObj.id,
       img: 'punk.png',
