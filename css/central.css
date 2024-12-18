@@ -145,6 +145,7 @@ menu {
 }
 
 .tray {
+  width: fit-content;
   min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
   max-width: calc(100% - var(--flip-tray-button-size));
   margin-top: var(--gap);
