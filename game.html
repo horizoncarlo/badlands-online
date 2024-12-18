@@ -234,6 +234,7 @@
       <template x-if="inGame">
         <footer>
           <button
+            x-ref="flipTray"
             @click="flipTray()"
             :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
             title="Flip tray between your camps and hand"

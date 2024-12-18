@@ -321,3 +321,8 @@ menu {
   filter: saturate(10%) brightness(10%);
   pointer-events: none;
 }
+
+.flip-tray-click {
+  transition: transform 0.3s linear;
+  transform: rotateY(360deg);
+}

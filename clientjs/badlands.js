@@ -265,6 +265,14 @@ function setupHotkeys() {
 
 function flipTray() {
   ui.trayIsCards = !ui.trayIsCards;
+
+  // Gimmick
+  if (ui.$refs?.flipTray) {
+    ui.$refs?.flipTray.classList.add('flip-tray-click');
+    setTimeout(() => {
+      ui.$refs?.flipTray.classList.remove('flip-tray-click');
+    }, 305);
+  }
 }
 
 function focusChatIn() {
