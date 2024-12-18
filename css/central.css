@@ -132,6 +132,10 @@ menu {
   transform: rotate(180deg);
 }
 
+.tray-subtext {
+  font-size: 10px;
+}
+
 .icon {
   font-size: var(--icon-size);
 }

@@ -147,6 +147,7 @@
               @dragover.prevent="dragOverHighlight($el, 'fg-attention')"
               @drop.prevent="dropCardInJunk($el)"
             >
+              <!-- TODO When hovering the Junk Card slot the trash icon could change to match an icon for draggedCard.junkEffect icon -->
               Junk Card
               <div class="icon">🗑</div>
             </div>
@@ -237,7 +238,9 @@
             :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
             title="Flip tray between your camps and hand"
           >
-            <u>F</u>lip Tray<div class="icon">🗘</div>
+            <u>F</u>lip Tray
+            <div class="icon">🗘</div>
+            <span class="tray-subtext" x-text="trayIsCamps ? 'to Hand' : 'to Camps'"></span>
           </button>
 
           <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
