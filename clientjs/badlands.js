@@ -15,9 +15,10 @@ let ui = { // Local state
   targetMode: {
     enabled: false,
     type: '',
-    help: '',
+    help: '', // Friendly message to show the user
     colorType: '',
     expectedTargetCount: 1,
+    validTargets: [],
   },
   currentTargetIds: [],
 };
@@ -298,7 +299,10 @@ function hideWaterCost() {
 }
 
 function dragOverSlot(slot, ele) {
-  if (slot.content || !ui.draggedCard) {
+  // TODO Could determine if we have enough water to play the card and reject based on that (can't just disallow drag as we can still junk the card for no water)
+
+  const isValid = utils.determineValidDropSlot(slot, getMySlots());
+  if (!isValid) {
     return false;
   }
 
@@ -306,10 +310,6 @@ function dragOverSlot(slot, ele) {
 }
 
 function dragOverHighlight(ele, overrideHighlight) {
-  if (!ui.draggedCard) {
-    return false;
-  }
-
   ele.classList.add(overrideHighlight ?? 'slot-highlight');
 }
 
@@ -404,9 +404,15 @@ function setValidTargetsFromIds(validTargets, params) { // params.removeInstead:
   let checkList = [];
   if (validTargets.some((target) => typeof target === 'string' && target.startsWith(gs.slotIdPrefix))) {
     checkList = [
-      ...gs.slots[gs.myPlayerNum].map((_, index) => {
-        return { id: gs.slotIdPrefix + index };
-      }),
+      ...gs.slots[gs.myPlayerNum]
+        .filter((slot) => {
+          return validTargets.includes(gs.slotIdPrefix + slot.index);
+        })
+        .map((slot) => {
+          return { id: gs.slotIdPrefix + slot.index };
+        }),
+      ...utils.getContentFromSlots(gs.slots.player1),
+      ...utils.getContentFromSlots(gs.slots.player2),
     ];
   } else {
     checkList = [

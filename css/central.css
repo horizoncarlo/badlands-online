@@ -10,6 +10,7 @@
   --card-padding: calc(var(--card-padding-full) * var(--card-scale));
   --gap: calc(var(--gap-full) * var(--card-scale));
   --icon-size: 45px;
+  --flip-tray-button-size: 150px;
 }
 
 html,
@@ -141,16 +142,17 @@ menu {
 
 .tray {
   min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
-  max-width: fit-content;
+  max-width: calc(100% - var(--flip-tray-button-size));
   margin-top: var(--gap);
 }
 
 .flip-tray {
-  position: absolute;
+  position: fixed;
   right: 0;
   bottom: 0;
-  width: 150px;
-  height: 150px;
+  width: var(--flip-tray-button-size);
+  height: var(--flip-tray-button-size);
+  background-color: var(--bg-default);
 }
 
 .card-size,

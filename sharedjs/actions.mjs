@@ -6,6 +6,12 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 // TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
 let pendingTargetAction = null; // Clone of the message that initiated the target
 
+/*
+  TTODO Follow the rulebook (new addition) where if you have ALL SLOTS full you can destroy someone and place a new person
+        Likely just innate when you drag over a full column? Or prompt / targetMode (via destroy)?:
+  RULES If you have no space in any of your columns, you may play a person but you must first destroy one of your existing people
+*/
+
 const rawAction = {
   joinGame(message) {
     if (onClient) {
@@ -78,16 +84,35 @@ const rawAction = {
     if (onClient) {
       sendC('playCard', message);
     } else {
-      const targetSlot = gs.slots[utils.getPlayerNumById(message.playerId)][message.details.slot.index];
-      if (targetSlot?.content) {
-        action.sendError('Card already here');
-        return;
-      }
-
       const waterCost = message.details.card.cost || 0;
       if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
         action.sendError('Not enough water to play that card', message.playerId);
         return;
+      }
+
+      // Determine if our column is full or other validity scenarios
+      const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
+      let targetSlot = playerSlots[message.details.slot.index];
+      if (!utils.determineValidDropSlot(playerSlots, playerSlots)) {
+        action.sendError('Invalid card position');
+        return;
+      }
+
+      // Check if we're playing a card on a card that has an empty slot above - push other card up
+      if (targetSlot.content && utils.isBottomRow(targetSlot.index)) {
+        const slotAbove = playerSlots[utils.indexAbove(targetSlot.index)];
+        if (!slotAbove.content) {
+          slotAbove.content = structuredClone(targetSlot.content);
+          targetSlot.content = null;
+        }
+      }
+
+      // Check if we're playing a card with an empty slot below - drop card down to bottom row
+      if (utils.isTopRow(targetSlot.index)) {
+        const slotBelow = playerSlots[utils.indexBelow(targetSlot.index)];
+        if (!slotBelow.content) {
+          targetSlot = slotBelow;
+        }
       }
 
       targetSlot.content = message.details.card;
@@ -217,14 +242,35 @@ const rawAction = {
   gainPunk(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
+
       if (targets?.length) {
-        const targetSlotIndex = parseInt(targets[0].substring(gs.slotIdPrefix.length));
-        const newPunk = gs.deck.shift();
-        if (newPunk) {
-          gs.slots[utils.getPlayerNumById(message.playerId)][targetSlotIndex].content = utils.convertCardToPunk(newPunk);
-        } else {
+        let newPunk = gs.deck.shift();
+        if (!newPunk) {
           action.sendError('No cards left to draw', message.playerId);
           return false;
+        }
+
+        newPunk = utils.convertCardToPunk(newPunk);
+
+        // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards
+        const targetId = targets[0];
+        const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
+        if (targetId.startsWith(gs.slotIdPrefix)) {
+          const targetSlotIndex = parseInt(targetId.substring(gs.slotIdPrefix.length));
+
+          if (utils.isTopRow(targetSlotIndex)) {
+            const slotBelow = playerSlots[utils.indexBelow(targetSlotIndex)];
+            if (!slotBelow.content) {
+              slotBelow.content = newPunk;
+              return;
+            }
+          }
+
+          playerSlots[targetSlotIndex].content = newPunk;
+        } else {
+          const toPushUpwards = utils.findCardInGame({ id: targetId });
+          playerSlots[utils.indexAbove(toPushUpwards.slotIndex)].content = toPushUpwards.cardObj;
+          playerSlots[toPushUpwards.slotIndex].content = newPunk;
         }
       } else {
         action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });
@@ -279,7 +325,18 @@ const rawAction = {
       if (foundRes) {
         // TODO Play a destroy animation so the card being removed from the board is less abrupt
         if (typeof foundRes.slotIndex === 'number') {
-          gs.slots[foundRes.playerNum][foundRes.slotIndex].content = null;
+          // Destroy our card
+          const playerSlots = gs.slots[foundRes.playerNum];
+          playerSlots[foundRes.slotIndex].content = null;
+
+          // Check if we have a card in above of our destroyed card, if we do, slide it down towards the camp
+          if (utils.isBottomRow(foundRes.slotIndex)) {
+            const slotAbove = playerSlots[utils.indexAbove(foundRes.slotIndex)];
+            if (slotAbove.content) {
+              playerSlots[foundRes.slotIndex] = structuredClone(slotAbove.content);
+              slotAbove.content = null;
+            }
+          }
         } else {
           foundRes.cardObj.isDestroyed = true;
         }

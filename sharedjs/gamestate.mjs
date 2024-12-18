@@ -36,7 +36,7 @@ const gs = {
     /* { id, img, damage? } */
   ],
   punks: [
-    /* Full cardObj only on server, to map client punks to actual cards by ID */
+    /* Full cardObj only on server, to map client Punks to actual cards by ID */
   ],
   campDeck: [
     /*

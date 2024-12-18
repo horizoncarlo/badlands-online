@@ -27,14 +27,6 @@ const utils = {
     }, []);
   },
 
-  getEmptySlots(checkSlots) {
-    return checkSlots.map((slot, index) => {
-      if (!slot.content) {
-        return gs.slotIdPrefix + index;
-      }
-    });
-  },
-
   junkEffectRequiresTarget(junkEffect) {
     return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
   },
@@ -55,7 +47,21 @@ const utils = {
         return [];
       }
 
-      return utils.getEmptySlots(gs.slots[fromPlayerNum]);
+      // For Punks we can put a card on an empty slot OR on a card that has an empty slot above
+      return gs.slots[fromPlayerNum]
+        .filter((slot, index) => {
+          if (!slot.content) {
+            return true;
+          } // Determine if we're dropping a Punk on a card that has a slot above, in which case we can push that card up
+          else if (utils.isBottomRow(index)) {
+            if (!gs.slots[fromPlayerNum][utils.indexAbove(index)].content) {
+              return true;
+            }
+          }
+        })
+        .map((slot) => {
+          return slot.content ? String(slot.content.id) : gs.slotIdPrefix + slot.index;
+        });
     } else if (junkEffect === 'restoreCard') {
       let targets = [
         ...utils.getContentFromSlots(gs.slots[fromPlayerNum]),
@@ -70,9 +76,50 @@ const utils = {
 
       return targets;
     } else if (junkEffect === 'injurePerson') {
-      // TTODO Unprotected person, no camps
-      return utils.getContentFromSlots(gs.slots[utils.getOppositePlayerNum(fromPlayerNum)], { idOnly: true });
+      // Look for unprotected people
+      const opponentSlots = gs.slots[utils.getOppositePlayerNum(fromPlayerNum)];
+
+      return opponentSlots
+        .filter((slot, index) => {
+          if (utils.isBottomRow(index) && slot.content) {
+            // Anyone in the bottom row where there is no one above them
+            return opponentSlots[utils.indexAbove(index)].content ? false : true;
+          }
+
+          // Always the top row
+          return slot.content ? true : false;
+        })
+        .map((slot) => String(slot.content.id));
     }
+    // TODO Eventually do plain damage (person or camp) effect as well that we can just pass in here generically from playing cards (obviously not from junk effects)
+  },
+
+  determineValidDropSlot(targetSlot, allSlots) {
+    if (onClient && !ui.draggedCard) {
+      return false;
+    }
+    if (!targetSlot || !allSlots || !allSlots.length === 0) {
+      return false;
+    }
+
+    // Determine if our potential column is full
+    if (targetSlot.content) {
+      if (utils.isTopRow(targetSlot.index)) {
+        const slotBelow = allSlots[utils.indexBelow(targetSlot.index)];
+        if (slotBelow.content) {
+          return false;
+        }
+        // TODO If our slot below is empty play a dragOverHighlight of the card sliding down into the bottom slot (or a subtle arrow)
+      } else if (utils.isBottomRow(targetSlot.index)) {
+        const slotAbove = allSlots[utils.indexAbove(targetSlot.index)];
+        if (slotAbove.content) {
+          return false;
+        }
+        // TODO If our slot above is empty (and our targetSlot.content is null) then add an animation of pushing the card upwards (or a subtle arrow)
+      }
+    }
+
+    return true;
   },
 
   getPlayerIdByNum(playerNum) {
@@ -179,6 +226,29 @@ const utils = {
     }
 
     return Math.floor(randomNumber * (max - min + 1)) + min;
+  },
+
+  // This particular slot index rules are based on the opponent board being (due to CSS rotation):
+  // [ camps ]
+  // [5][4][3]
+  // [2][1][0]
+  // And the player board being:
+  // [0][1][2]
+  // [3][4][5]
+  // [ camps ]
+  // So the "top row" is the front row, and "bottom row" is closest to the camps
+  // We use hardcoded indexes here but that's okay given that it's centralized
+  isTopRow(index) {
+    return index <= 2;
+  },
+  isBottomRow(index) {
+    return index >= 3;
+  },
+  indexAbove(index) {
+    return index - 3;
+  },
+  indexBelow(index) {
+    return index + 3;
   },
 };
 
