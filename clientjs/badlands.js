@@ -260,6 +260,8 @@ function setupHotkeys() {
 
     if (key === 'f') flipTray();
     else if (key === 't') focusChatIn();
+    else if (key === 'd') userDrawCard();
+    else if (key === 'w') userTakeWaterSilo();
   });
 }
 
@@ -272,6 +274,18 @@ function flipTray() {
     setTimeout(() => {
       ui.$refs?.flipTray.classList.remove('flip-tray-click');
     }, 305);
+  }
+}
+
+function userTakeWaterSilo() {
+  if (!getPlayerData().hasWaterSilo) {
+    action.takeWaterSilo();
+  }
+}
+
+function userDrawCard() {
+  if (getPlayerData().waterCount >= 2) {
+    action.drawCard({ fromWater: true });
   }
 }
 

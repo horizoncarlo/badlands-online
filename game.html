@@ -130,19 +130,32 @@
           <span x-text="`${discardCount} Discards`" class="discard-card-count panel" title="Number of discarded cards"></span
           >
           <div
-            :class="'bd-variant card-size bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
-            title="Draw a card for 2 Water"
+            :class="'bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
+            title="Draw a card for 2 Water (hotkey 'D')"
             @mouseover="showWaterCost(2)"
             @mouseout="hideWaterCost()"
+            @click="hideWaterCost()"
           >
             <template x-if="deckCount > 0">
               <img
-                onclick="action.drawCard({ fromWater: true })"
+                onclick="userDrawCard()"
                 src="images/cards/people/punk.png"
                 draggable="false"
+                class="card-size bd-variant"
               />
             </template>
           </div>
+          <template x-if="!getPlayerData().hasWaterSilo">
+            <div
+              class="bright-hover take-water-silo"
+              @mouseover="showWaterCost(1)"
+              @mouseout="hideWaterCost()"
+              @click="hideWaterCost()"
+              title="Take the Water Silo for 1 Water (hotkey 'W')"
+            >
+              <img class="bd-accent" src="images/cards/people/water_silo.png" onclick="userTakeWaterSilo()" />
+            </div>
+          </template>
           <template x-if="draggedCard">
             <div
               class="junk-pile card-size bd-attention"

@@ -78,6 +78,11 @@ const rawAction = {
     if (onClient) {
       sendC('playCard', message);
     } else {
+      // Abort if we're playing a Water Silo onto the board haha
+      if (message.details.card.isWaterSilo) {
+        return;
+      }
+
       const waterCost = message.details.card.cost || 0;
       if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
         action.sendError('Not enough water to play that card', message.playerId);
@@ -144,8 +149,24 @@ const rawAction = {
 
   gainWater(message) {
     if (!onClient) {
-      utils.getPlayerDataById(message.playerId).waterCount += 1;
-      sendS('gainWater', {}, message.playerId);
+      const playerData = utils.getPlayerDataById(message.playerId);
+
+      // Handle if we're junking the water silo
+      if (message.details.card.isWaterSilo) {
+        const foundIndex = playerData.cards.findIndex((card) => card.isWaterSilo);
+
+        if (!playerData.hasWaterSilo || foundIndex === -1) {
+          action.sendError('No Water Silo taken to junk');
+          return false;
+        }
+
+        playerData.cards.splice(foundIndex, 1);
+        playerData.hasWaterSilo = false;
+      }
+
+      playerData.waterCount += 1;
+
+      sendS('gainWater', message.playerId);
     }
   },
 
@@ -257,6 +278,24 @@ const rawAction = {
       } else {
         action.sendError(`Invalid Junk effect ${junkEffect}`, message.playerId);
       }
+    }
+  },
+
+  takeWaterSilo(message) {
+    if (onClient) {
+      sendC('takeWaterSilo');
+    } else {
+      const playerData = utils.getPlayerDataById(message.playerId);
+      if (playerData.hasWaterSilo) {
+        action.sendError('Already have Water Silo');
+        return;
+      }
+
+      playerData.hasWaterSilo = true;
+      playerData.cards.push(utils.makeWaterSiloCard());
+
+      action.reduceWater(message, 1);
+      action.sync(message.playerId);
     }
   },
 

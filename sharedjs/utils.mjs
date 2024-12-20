@@ -3,6 +3,7 @@ import { gs } from './gamestate.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
+globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
@@ -104,7 +105,7 @@ const utils = {
   },
 
   determineValidDropSlot(targetSlot, allSlots) {
-    if (onClient && !ui.draggedCard) {
+    if (onClient && (!ui.draggedCard || ui.draggedCard.isWaterSilo)) {
       return false;
     }
     if (!targetSlot || !allSlots || !allSlots.length === 0) {
@@ -208,6 +209,10 @@ const utils = {
     }
 
     return findCardInPlayerSlots(card, 'player1') || findCardInPlayerSlots(card, 'player2');
+  },
+
+  makeWaterSiloCard() {
+    return { img: `water_silo${DECK_IMAGE_EXTENSION}`, cost: 1, junkEffect: 'gainWater', isWaterSilo: true };
   },
 
   convertCardToPunk(cardObj) {

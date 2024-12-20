@@ -1,7 +1,5 @@
 import { utils } from '../sharedjs/utils.mjs';
 
-const DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
-
 let currentCardId = 0;
 
 const createCampDeck = (): Array<any> => { // TODO Camp typing

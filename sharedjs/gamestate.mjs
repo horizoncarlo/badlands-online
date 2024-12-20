@@ -8,6 +8,7 @@ const gs = {
   player1: {
     playerId: null,
     waterCount: 3,
+    hasWaterSilo: false,
     cards: [],
     camps: [],
     doneCamps: false,
@@ -15,6 +16,7 @@ const gs = {
   player2: {
     playerId: null,
     waterCount: 3,
+    hasWaterSilo: false,
     cards: [],
     camps: [],
     doneCamps: false,

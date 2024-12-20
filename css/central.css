@@ -353,3 +353,14 @@ menu {
   transition: transform 0.3s linear;
   transform: rotateY(360deg);
 }
+
+.take-water-silo {
+  position: absolute;
+  top: calc(50% - var(--card-height) / 4);
+  right: calc(var(--card-width) / -1.5);
+}
+
+.take-water-silo img {
+  width: calc(var(--card-width) / 2);
+  height: calc(var(--card-height) / 2);
+}
