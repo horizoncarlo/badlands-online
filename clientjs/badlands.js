@@ -262,6 +262,8 @@ function setupHotkeys() {
     else if (key === 't') focusChatIn();
     else if (key === 'd') userDrawCard();
     else if (key === 'w') userTakeWaterSilo();
+    else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
+    else if (key === 'e') userEndTurn();
   });
 }
 
@@ -287,6 +289,14 @@ function userDrawCard() {
   if (getPlayerData().waterCount >= 2) {
     action.drawCard({ fromWater: true });
   }
+}
+
+function userUndo() {
+  action.undo();
+}
+
+function userEndTurn() {
+  action.endTurn();
 }
 
 function focusChatIn() {

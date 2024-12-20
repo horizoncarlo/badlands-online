@@ -74,6 +74,15 @@ const rawAction = {
     }
   },
 
+  undo(message) {
+    if (onClient) {
+      sendC('undo');
+    } else {
+      // TTODO Handle Undo on the server
+      action.sendError('Undo feature in progress');
+    }
+  },
+
   playCard(message) {
     if (onClient) {
       sendC('playCard', message);
@@ -699,6 +708,14 @@ rawAction.sendError.skipPreprocess = true;
 rawAction.chat.skipPreprocess = true;
 rawAction.sync.skipPreprocess = true;
 
+/* TTODO Add Undo functionality
+   As part of the actionHandler we keep a snapshot of `gs`, maybe 10-20 in a row
+   They auto-clear on end of turn?
+   Also certain actions could have a new metadata flag (similar to skipPreprocess) like `cannotUndo` (best example is drawCard) that would clear the Undo queue when done
+   Then when a user requests to Undo, if it's in their turn, we just set the last `gs` as the current `gs` and sync everyone
+   In theory the UI will automatically reflect the changes
+   Also add a hotkey in the UI for Undo
+*/
 const actionHandler = {
   get(target, prop) {
     const originalMethod = target[prop];
@@ -712,10 +729,6 @@ const actionHandler = {
           return originalMethod.apply(this, args);
         }
 
-        // TODO Although cool this proxy approach is probably overengineered given how many messages we skipPreprocess on anyway
-        //      Likely can just do on a function by function basis in actions (see drawCard for an example of a manual isPlayersTurn check)
-        //      Or just in main.ts itself as the Websocket messages come in (ignore or process them accordingly)
-        //      Reminder that the entire intent was to have server side protection from out of turn client actions like playing a card
         // PRE PROCESS hook for all actions
         if (!onClient && !utils.isPlayersTurn(args[0].playerId)) {
           console.error(`Ignored action [${originalMethod.name}] out of turn order by playerId=${args[0].playerId}`);

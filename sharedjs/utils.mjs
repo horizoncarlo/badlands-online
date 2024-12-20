@@ -8,6 +8,8 @@ globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to autom
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 
+let reshuffleTimeout;
+
 const utils = {
   hasPlayerDataById(playerId) {
     if (gs && playerId) {
@@ -258,18 +260,21 @@ const utils = {
         return null;
       }
 
-      // TODO Better UI handling of reshuffling - block interaction (dialog?), play an animation, etc.
+      // TODO Better UI handling of reshuffling - remove timeout, block UI interaction (dialog?), play an animation, etc.
       const reshuffledDeck = utils.shuffleDeck(gs.discard);
-      setTimeout(() => {
+      if (reshuffleTimeout) {
+        clearTimeout(reshuffleTimeout);
+      }
+      reshuffleTimeout = setTimeout(() => {
         gs.deck = reshuffledDeck;
         gs.deckCount = gs.deck.length;
         gs.discard = [];
         gs.discardCount = 0;
 
-        action.sendError('Reshuffled the draw deck');
         action.sync();
       }, 1000);
 
+      action.sendError('Reshuffled the draw deck');
       toReturn = reshuffledDeck.shift();
     }
 

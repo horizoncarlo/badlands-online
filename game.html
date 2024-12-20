@@ -68,13 +68,18 @@
             </li>
           </template>
           <template x-if="inGame">
+            <template x-if="myPlayerNum === turn.currentPlayer">
+              <li @click="userUndo()"><u>U</u>ndo</li>
+            </template>
+          </template>
+          <template x-if="inGame">
             <template x-if="!turn.currentPlayer || myPlayerNum !== turn.currentPlayer">
               <li @click="action.startTurn()" class="success">Start Turn</li>
             </template>
           </template>
           <template x-if="inGame">
             <template x-if="myPlayerNum === turn.currentPlayer">
-              <li @click="action.endTurn()" class="attention">End Turn</li>
+              <li @click="userEndTurn()" class="attention"><u>E</u>nd Turn</li>
             </template>
           </template>
           <template x-if="inGame">
@@ -133,7 +138,7 @@
           <span x-text="`${discardCount} Discards`" class="discard-card-count panel" title="Number of discarded cards"></span
           >
           <div
-            :class="'bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
+            :class="'card-size bright-hover bd-variant' + (targetMode.enabled ? ' invalid-target' : '')"
             title="Draw a card for 2 Water (hotkey 'D')"
             @mouseover="showWaterCost(2)"
             @mouseout="hideWaterCost()"
@@ -144,7 +149,7 @@
                 onclick="userDrawCard()"
                 src="images/cards/people/punk.png"
                 draggable="false"
-                class="card-size bd-variant"
+                class="card-size"
               />
             </template>
           </div>
