@@ -93,7 +93,7 @@ const rawAction = {
       // Determine if our column is full or other validity scenarios
       const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
       let targetSlot = playerSlots[message.details.slot.index];
-      if (!utils.determineValidDropSlot(playerSlots, playerSlots)) {
+      if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
         action.sendError('Invalid card position');
         return;
       }
@@ -152,7 +152,7 @@ const rawAction = {
     }
   },
 
-  removeCard(message) {
+  removeCard(message, params) { // params.noSyncAfter: boolean
     if (!onClient) {
       const cards = utils.getPlayerDataById(message.playerId).cards;
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
@@ -160,7 +160,9 @@ const rawAction = {
         cards.splice(foundIndex, 1);
       }
 
-      action.sync(message.playerId);
+      if (!params?.noSyncAfter) {
+        action.sync(message.playerId);
+      }
     }
   },
 
@@ -186,8 +188,8 @@ const rawAction = {
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
 
         const newMessage = {
-          card: newCard,
           ...message.details,
+          card: newCard,
         };
         if (message.details?.fromWater || params?.fromServerRequest) {
           newMessage.showAnimation = true;
@@ -226,7 +228,7 @@ const rawAction = {
           // If we aren't targetting, we can just remove the card that initiated the junk effect now
           // Assuming of course our action was valid
           if (!pendingTargetAction && returnStatus !== false) {
-            action.removeCard(message); // TTODO This should be a discard card instead, and we track a discard pile as part of server side gs
+            action.removeCard(message, { noSyncAfter: true }); // TTODO This should be a discard card instead, and we track a discard pile as part of server side gs
           } else {
             action.sync(message.playerId);
           }
@@ -424,7 +426,7 @@ const rawAction = {
       playerData.doneCamps = true;
 
       let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0); // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
-      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 30 : totalDrawCount;
+      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 25 : totalDrawCount;
       for (let i = 0; i < totalDrawCount; i++) {
         action.drawCard({
           ...message,
