@@ -47,21 +47,30 @@ const utils = {
         return [];
       }
 
-      // For Punks we can put a card on an empty slot OR on a card that has an empty slot above
-      return gs.slots[fromPlayerNum]
-        .filter((slot, index) => {
-          if (!slot.content) {
-            return true;
-          } // Determine if we're dropping a Punk on a card that has a slot above, in which case we can push that card up
-          else if (utils.isBottomRow(index)) {
-            if (!gs.slots[fromPlayerNum][utils.indexAbove(index)].content) {
+      // Determine where our Punk can go
+      // If ALL our slots are full then we can place anywhere and destroy the occupant
+      let filteredSlots = [];
+      if (utils.areAllSlotsFull(gs.slots[fromPlayerNum])) {
+        console.log('All slots are full, so use entirety');
+        filteredSlots = gs.slots[fromPlayerNum];
+      } else {
+        filteredSlots = gs.slots[fromPlayerNum]
+          .filter((slot, index) => {
+            // if our target is an empty slot we can place
+            if (!slot.content) {
               return true;
+            } // Determine if we're dropping a Punk on a card that has a slot above, in which case we can push that card up
+            else if (utils.isBottomRow(index)) {
+              if (!gs.slots[fromPlayerNum][utils.indexAbove(index)].content) {
+                return true;
+              }
             }
-          }
-        })
-        .map((slot) => {
-          return slot.content ? String(slot.content.id) : gs.slotIdPrefix + slot.index;
-        });
+          });
+      }
+
+      return filteredSlots.map((slot) => {
+        return slot.content ? String(slot.content.id) : gs.slotIdPrefix + slot.index;
+      });
     } else if (junkEffect === 'restoreCard') {
       let targets = [
         ...utils.getContentFromSlots(gs.slots[fromPlayerNum]),
@@ -102,6 +111,12 @@ const utils = {
       return false;
     }
 
+    // There is a rules case (added in v1.2) where if ALL your slots are full, you can destroy a card
+    // Which means any slot is a valid target in that case
+    if (utils.areAllSlotsFull(allSlots)) {
+      return true;
+    }
+
     // Determine if our potential column is full
     if (targetSlot.content) {
       if (utils.isTopRow(targetSlot.index)) {
@@ -120,6 +135,10 @@ const utils = {
     }
 
     return true;
+  },
+
+  areAllSlotsFull(slots) {
+    return (slots ?? []).every((slot) => slot.content !== null);
   },
 
   getPlayerIdByNum(playerNum) {

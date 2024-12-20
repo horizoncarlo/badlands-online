@@ -6,12 +6,6 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 // TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
 let pendingTargetAction = null; // Clone of the message that initiated the target
 
-/*
-  TTODO Follow the rulebook (new addition) where if you have ALL SLOTS full you can destroy someone and place a new person
-        Likely just innate when you drag over a full column? Or prompt / targetMode (via destroy)?:
-  RULES If you have no space in any of your columns, you may play a person but you must first destroy one of your existing people
-*/
-
 const rawAction = {
   joinGame(message) {
     if (onClient) {
@@ -105,6 +99,19 @@ const rawAction = {
           slotAbove.content = structuredClone(targetSlot.content);
           targetSlot.content = null;
         }
+      }
+
+      // If we have content in our targetSlot still, that means we're trying to destroy and replace the card in question due to having ALL our slots filled
+      // Instead of just nullifying the card (like we do when pushing a card up) we want to destroyCard it, so if it was a Punk it'll go in the deck properly
+      if (targetSlot.content?.isPunk) {
+        action.destroyPunk({
+          ...message,
+          details: {
+            ...message.details,
+            card: targetSlot.content,
+          },
+        });
+        targetSlot.content = null;
       }
 
       // Check if we're playing a card with an empty slot below - drop card down to bottom row
@@ -228,7 +235,8 @@ const rawAction = {
           // If we aren't targetting, we can just remove the card that initiated the junk effect now
           // Assuming of course our action was valid
           if (!pendingTargetAction && returnStatus !== false) {
-            action.removeCard(message, { noSyncAfter: true }); // TTODO This should be a discard card instead, and we track a discard pile as part of server side gs
+            // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
+            action.removeCard(message); // TTODO This should be a discard card instead, and we track a discard pile as part of server side gs
           } else {
             action.sync(message.playerId);
           }
@@ -254,7 +262,7 @@ const rawAction = {
 
         newPunk = utils.convertCardToPunk(newPunk);
 
-        // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards
+        // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards OR replace entirely
         const targetId = targets[0];
         const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
         if (targetId.startsWith(gs.slotIdPrefix)) {
@@ -270,9 +278,27 @@ const rawAction = {
 
           playerSlots[targetSlotIndex].content = newPunk;
         } else {
-          const toPushUpwards = utils.findCardInGame({ id: targetId });
-          playerSlots[utils.indexAbove(toPushUpwards.slotIndex)].content = toPushUpwards.cardObj;
-          playerSlots[toPushUpwards.slotIndex].content = newPunk;
+          const inTargetSlot = utils.findCardInGame({ id: targetId });
+
+          // If all our slots are full replace the card in our slot
+          // Obviously if that is also a Punk we return it to the deck properly
+          if (utils.areAllSlotsFull(playerSlots)) {
+            if (inTargetSlot.cardObj.isPunk) {
+              action.destroyPunk({
+                ...message,
+                details: {
+                  ...message.details,
+                  card: inTargetSlot.cardObj,
+                },
+              });
+            }
+          } // Otherwise we placed to push the current card upwards
+          else {
+            playerSlots[utils.indexAbove(inTargetSlot.slotIndex)].content = inTargetSlot.cardObj;
+          }
+
+          // And add the new punk
+          playerSlots[inTargetSlot.slotIndex].content = newPunk;
         }
       } else {
         action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });
@@ -343,17 +369,30 @@ const rawAction = {
           foundRes.cardObj.isDestroyed = true;
         }
 
-        // If we're going to destroy a Punk put the actual card back on top of the deck
-        if (foundRes.cardObj.isPunk) {
-          const matchingPunkIndex = gs.punks.findIndex((punk) => foundRes.cardObj.id === punk.id);
-          if (matchingPunkIndex !== -1) {
-            gs.deck.unshift(gs.punks.splice(matchingPunkIndex, 1)[0]);
-          }
-        }
+        // Check if we're going to destroy a Punk put the actual card back on top of the deck
+        action.destroyPunk({
+          ...message,
+          details: {
+            ...message.details,
+            card: foundRes.cardObj,
+          },
+        });
 
         action.sync();
       } else {
         action.sendError('Invalid target to destroy', message.playerId);
+      }
+    }
+  },
+
+  destroyPunk(message) {
+    if (!onClient) {
+      const cardObj = message.details.card;
+      if (cardObj?.isPunk) {
+        const matchingPunkIndex = gs.punks.findIndex((punk) => cardObj.id === punk.id);
+        if (matchingPunkIndex !== -1) {
+          gs.deck.unshift(gs.punks.splice(matchingPunkIndex, 1)[0]);
+        }
       }
     }
   },
