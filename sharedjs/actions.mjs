@@ -291,8 +291,9 @@ const rawAction = {
         return;
       }
 
+      // Consistently keep Water Silo at the front of your hand
+      playerData.cards.unshift(utils.makeWaterSiloCard());
       playerData.hasWaterSilo = true;
-      playerData.cards.push(utils.makeWaterSiloCard());
 
       action.reduceWater(message, 1);
       action.sync(message.playerId);
