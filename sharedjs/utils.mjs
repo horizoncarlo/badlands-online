@@ -1,3 +1,4 @@
+import { action } from './actions.mjs';
 import { gs } from './gamestate.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
@@ -217,6 +218,57 @@ const utils = {
       img: 'punk.png',
       isPunk: true,
     };
+  },
+
+  shuffleDeck(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  },
+
+  drawFromDeck() {
+    if (onClient) {
+      return null;
+    }
+
+    let toReturn = null;
+
+    if (gs.deck.length >= 1) {
+      toReturn = gs.deck.shift();
+    }
+    // Per the rules if we have an empty deck we reshuffle ONCE. Then if we need to reshuffle again the game is considered a Draw/Tie
+    if (gs.deck.length <= 0) {
+      gs.deckReshuffleCount++;
+
+      if (gs.deckReshuffleCount >= 2) {
+        // TODO Actual handling of the draw/tie from a double reshuffle - very rare, but worth covering
+        action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)');
+        return null;
+      }
+      // Can't imagine a legitimate situation where the draw deck has run out and there are no discards
+      if (gs.discard.length <= 0) {
+        action.sendError('Game is a tie! (Had to reshuffle the draw deck, but there are no discards)');
+        return null;
+      }
+
+      // TODO Better UI handling of reshuffling - block interaction (dialog?), play an animation, etc.
+      const reshuffledDeck = utils.shuffleDeck(gs.discard);
+      setTimeout(() => {
+        gs.deck = reshuffledDeck;
+        gs.deckCount = gs.deck.length;
+        gs.discard = [];
+        gs.discardCount = 0;
+
+        action.sendError('Reshuffled the draw deck');
+        action.sync();
+      }, 1000);
+
+      toReturn = reshuffledDeck.shift();
+    }
+
+    return toReturn;
   },
 
   checkSelectedTargets(message) {

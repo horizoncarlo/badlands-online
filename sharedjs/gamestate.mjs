@@ -35,6 +35,12 @@ const gs = {
   deck: [
     /* { id, img, damage? } */
   ],
+  discard: [
+    /* { same as ... deck} */
+  ],
+  deckReshuffleCount: 0,
+  deckCount: -1,
+  discardCount: -1,
   punks: [
     /* Full cardObj only on server, to map client Punks to actual cards by ID */
   ],

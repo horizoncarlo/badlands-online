@@ -126,18 +126,22 @@
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
           x-init="repositionFromStorage($el.id)"
         >
+          <span x-text="`${deckCount} Cards`" class="deck-card-count panel" title="Number of cards in the deck"></span>
+          <span x-text="`${discardCount} Discards`" class="discard-card-count panel" title="Number of discarded cards"></span
+          >
           <div
-            :class="'bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
+            :class="'bd-variant card-size bright-hover' + (targetMode.enabled ? ' invalid-target' : '')"
             title="Draw a card for 2 Water"
             @mouseover="showWaterCost(2)"
             @mouseout="hideWaterCost()"
           >
-            <img
-              class="card-size"
-              onclick="action.drawCard({ fromWater: true })"
-              src="images/cards/people/punk.png"
-              draggable="false"
-            />
+            <template x-if="deckCount > 0">
+              <img
+                onclick="action.drawCard({ fromWater: true })"
+                src="images/cards/people/punk.png"
+                draggable="false"
+              />
+            </template>
           </div>
           <template x-if="draggedCard">
             <div

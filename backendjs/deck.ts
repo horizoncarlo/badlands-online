@@ -1,3 +1,5 @@
+import { utils } from '../sharedjs/utils.mjs';
+
 const DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
 
 let currentCardId = 0;
@@ -120,7 +122,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
 };
 
 const _shuffleNewDeck = (array) => {
-  array = shuffleDeck(array);
+  array = utils.shuffleDeck(array);
 
   // Assign image extensions to every item and a sequential ID
   array.forEach((card, index) => {
@@ -131,12 +133,4 @@ const _shuffleNewDeck = (array) => {
   return array;
 };
 
-const shuffleDeck = (array) => {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-};
-
-export { createCampDeck, createNewDeck, shuffleDeck };
+export { createCampDeck, createNewDeck };

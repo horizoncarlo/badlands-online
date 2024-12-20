@@ -159,7 +159,7 @@ const rawAction = {
     }
   },
 
-  removeCard(message, params) { // params.noSyncAfter: boolean
+  removeCard(message) {
     if (!onClient) {
       const cards = utils.getPlayerDataById(message.playerId).cards;
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
@@ -167,9 +167,19 @@ const rawAction = {
         cards.splice(foundIndex, 1);
       }
 
-      if (!params?.noSyncAfter) {
-        action.sync(message.playerId);
+      action.sync(message.playerId);
+    }
+  },
+
+  discardCard(message) {
+    if (!onClient) {
+      const cards = utils.getPlayerDataById(message.playerId).cards;
+      const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
+      if (foundIndex !== -1) {
+        gs.discard.push(cards.splice(foundIndex, 1));
       }
+
+      action.sync(message.playerId);
     }
   },
 
@@ -190,13 +200,14 @@ const rawAction = {
         action.reduceWater(message, 2);
       }
 
-      const newCard = gs.deck.shift();
+      const newCard = utils.drawFromDeck();
       if (newCard) {
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
 
         const newMessage = {
           ...message.details,
           card: newCard,
+          deckCount: gs.deck.length,
         };
         if (message.details?.fromWater || params?.fromServerRequest) {
           newMessage.showAnimation = true;
@@ -236,7 +247,7 @@ const rawAction = {
           // Assuming of course our action was valid
           if (!pendingTargetAction && returnStatus !== false) {
             // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
-            action.removeCard(message); // TTODO This should be a discard card instead, and we track a discard pile as part of server side gs
+            action.discardCard(message);
           } else {
             action.sync(message.playerId);
           }
@@ -254,7 +265,7 @@ const rawAction = {
       const targets = utils.checkSelectedTargets(message);
 
       if (targets?.length) {
-        let newPunk = gs.deck.shift();
+        let newPunk = utils.drawFromDeck();
         if (!newPunk) {
           action.sendError('No cards left to draw', message.playerId);
           return false;
@@ -465,7 +476,7 @@ const rawAction = {
       playerData.doneCamps = true;
 
       let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0); // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
-      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 25 : totalDrawCount;
+      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 20 : totalDrawCount;
       for (let i = 0; i < totalDrawCount; i++) {
         action.drawCard({
           ...message,
@@ -504,7 +515,7 @@ const rawAction = {
           });
 
           if (returnStatus !== false) {
-            action.removeCard(pendingTargetAction); // TTODO This should also be a discard card, see above
+            action.discardCard(pendingTargetAction);
             pendingTargetAction = null;
           }
         } else {
@@ -596,6 +607,9 @@ const rawAction = {
       const updatedGs = structuredClone(gs);
       const opponentNum = utils.getOppositePlayerNum(playerNum);
 
+      updatedGs.deckCount = updatedGs.deck.length;
+      updatedGs.discardCount = updatedGs.discard.length;
+
       // Send a minimal version of our current server game state that the UI can apply to itself
       // TODO Could further trim down minor packet size savings like delete slot.content if null, etc. - do this all once the format is finalized
       delete updatedGs[playerNum].playerId;
@@ -603,13 +617,8 @@ const rawAction = {
       delete updatedGs.opponentPlayerNum;
       delete updatedGs.campDeck;
       delete updatedGs.deck;
+      delete updatedGs.discard;
       delete updatedGs.punks;
-
-      // TTODO Handle an empty deck - rules say shuffle discards once, then if you have to shuffle again it's a draw,
-      //       So need to send a count of cards left in the deck, then display it overlayed on the UI draw pile
-      //       Also need to announce the deck is being shuffled (can leave handling a draw until later until we have proper win/loss, just make a note of it)
-      //       Rules also say you can't look through the deck discard pile
-      //       KEY REMINDER to figure out what to do with our IDs - think they can stay the same as there shouldn't be any Punk knowledge revealed once the card is discarded anyway
 
       if (!params?.includeChat) {
         delete updatedGs.chat;
@@ -629,7 +638,7 @@ const rawAction = {
       }, currentPlayerId);
     }
 
-    // Request a sync to both if no
+    // Request a sync to both if no ID was specified, as per the wordily named variable implies
     if (!playerIdOrNullForBoth) {
       internalSync('player1');
       internalSync('player2');

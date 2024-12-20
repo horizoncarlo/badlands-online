@@ -13,12 +13,11 @@ const receiveClientWebsocketMessage = (message) => {
 
   switch (message.type) {
     case 'sync': {
+      // Update all our existing gamestate options, and if a property doesn't exist fallback to our current version
       const updatedGs = message.details.gs;
-      gs.player1 = updatedGs.player1 ?? gs.player1;
-      gs.player2 = updatedGs.player2 ?? gs.player2;
-      gs.slots = updatedGs.slots ?? gs.slots;
-      gs.turn = updatedGs.turn ?? gs.turn;
-      gs.chat = updatedGs.chat ?? gs.chat;
+      for (const [key, value] of Object.entries(updatedGs)) {
+        gs[key] = value ?? gs[key];
+      }
       break;
     }
     case 'setPlayer':
@@ -49,6 +48,10 @@ const receiveClientWebsocketMessage = (message) => {
         }, message.details.multiAnimation ? utils.randomRange(0, 500) : 0); // Some variance so fast cards, such as initial hand, don't overlap
       } else {
         addUniqCard(message.details.card);
+      }
+
+      if (typeof message.details.deckCount === 'number') {
+        gs.deckCount = message.details.deckCount;
       }
 
       break;

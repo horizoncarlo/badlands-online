@@ -1,5 +1,5 @@
 @keyframes drawCard {
-  /* TODO Need to change the "from" position to be dynamic in case we have repositioned the UI draw pile - and to go to the current hand location */
+  /* TODO Need to change the "from" position to be dynamic in case we have repositioned the UI draw deck - and to go to the current hand location */
   from {
     top: 0;
     left: 0;
