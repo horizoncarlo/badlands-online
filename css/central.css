@@ -87,12 +87,12 @@ menu {
 
 .my-slots {
   border-top: 5px solid black;
-  background: linear-gradient(180deg, var(--bg-danger) 0, transparent 50%);
+  background: linear-gradient(180deg, var(--bg-accent) 0, transparent 50%);
   padding-top: 10px;
 }
 
 .opponent-slots {
-  background: linear-gradient(180deg, var(--bg-accent) 0, transparent 50%);
+  background: linear-gradient(180deg, var(--bg-danger) 0, transparent 50%);
 }
 
 .opponent-slots,

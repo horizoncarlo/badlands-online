@@ -32,7 +32,6 @@ const utils = {
   },
 
   determineValidTargets(message) {
-    // TODO This should only get the actual valid targets based on the action and board state
     // TTODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
     if (!message) {
       return [];
@@ -100,7 +99,7 @@ const utils = {
         })
         .map((slot) => String(slot.content.id));
     }
-    // TODO Eventually do plain damage (person or camp) effect as well that we can just pass in here generically from playing cards (obviously not from junk effects)
+    // TODO Eventually do plain Damage (person or camp) effect as well that we can just pass in here generically from playing cards (obviously not from junk effects)
   },
 
   determineValidDropSlot(targetSlot, allSlots) {
