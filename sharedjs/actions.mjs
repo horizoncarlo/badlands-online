@@ -5,6 +5,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 
 // TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
 let pendingTargetAction = null; // Clone of the message that initiated the target
+const undoQueue = [];
 
 const rawAction = {
   joinGame(message) {
@@ -78,8 +79,10 @@ const rawAction = {
     if (onClient) {
       sendC('undo');
     } else {
-      // TTODO Handle Undo on the server
-      action.sendError('Undo feature in progress');
+      if (undoQueue.length > 0) {
+        Object.assign(gs, undoQueue.pop());
+        action.sync();
+      }
     }
   },
 
@@ -112,6 +115,13 @@ const rawAction = {
         if (!slotAbove.content) {
           slotAbove.content = structuredClone(targetSlot.content);
           targetSlot.content = null;
+
+          // Send an extra slot message to notify a card was pushed
+          sendS('slot', {
+            playerNum: utils.getPlayerNumById(message.playerId),
+            index: slotAbove.index,
+            card: slotAbove.content,
+          });
         }
       }
 
@@ -139,7 +149,7 @@ const rawAction = {
       targetSlot.content = message.details.card;
       sendS('slot', {
         playerNum: utils.getPlayerNumById(message.playerId),
-        index: message.details.slot.index,
+        index: targetSlot.index,
         card: message.details.card,
       });
 
@@ -708,15 +718,31 @@ rawAction.sendError.skipPreprocess = true;
 rawAction.chat.skipPreprocess = true;
 rawAction.sync.skipPreprocess = true;
 
-/* TTODO Add Undo functionality
-   As part of the actionHandler we keep a snapshot of `gs`, maybe 10-20 in a row
-   They auto-clear on end of turn?
-   Also certain actions could have a new metadata flag (similar to skipPreprocess) like `cannotUndo` (best example is drawCard) that would clear the Undo queue when done
-   Then when a user requests to Undo, if it's in their turn, we just set the last `gs` as the current `gs` and sync everyone
-   In theory the UI will automatically reflect the changes
-   Also add a hotkey in the UI for Undo
-*/
+// Certain actions can be Undone - basically anything that doesn't reveal new information (such as drawing cards)
+rawAction.playCard.recordUndo = true;
+rawAction.junkCard.recordUndo = true;
+rawAction.useCard.recordUndo = true;
+rawAction.takeWaterSilo.recordUndo = true;
+
+// Certain actions also clear the undo queue
+rawAction.joinGame.clearUndo = true;
+rawAction.promptCamps.clearUndo = true;
+rawAction.doneCamps.clearUndo = true;
+rawAction.startTurn.clearUndo = true;
+rawAction.endTurn.clearUndo = true;
+rawAction.drawCard.clearUndo = true;
+
 const actionHandler = {
+  manageUndo(originalMethod, beforeGS) {
+    if (!onClient) {
+      if (originalMethod?.recordUndo) {
+        undoQueue.push(beforeGS);
+      }
+      if (originalMethod?.clearUndo) {
+        undoQueue.length = 0;
+      }
+    }
+  },
   get(target, prop) {
     const originalMethod = target[prop];
     if (typeof originalMethod === 'function') {
@@ -725,7 +751,10 @@ const actionHandler = {
       }
 
       return function (...args) {
+        const beforeGS = JSON.parse(JSON.stringify(gs));
+
         if (originalMethod?.skipPreprocess) {
+          actionHandler.manageUndo(originalMethod, beforeGS);
           return originalMethod.apply(this, args);
         }
 
@@ -736,6 +765,7 @@ const actionHandler = {
           return;
         }
 
+        actionHandler.manageUndo(originalMethod, beforeGS);
         return originalMethod.apply(this, args);
       };
     }

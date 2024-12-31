@@ -126,8 +126,9 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
     console.log('RECEIVE:', message);
 
-    if (typeof action[message.type] === 'function') {
-      action[message.type](message);
+    const possibleFunc = action[message.type];
+    if (typeof possibleFunc === 'function') {
+      possibleFunc(message);
     } else {
       action.sendError(`Invalid action ${message.type}`, message.playerId);
     }
