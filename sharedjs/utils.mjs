@@ -32,20 +32,47 @@ const utils = {
     }, []);
   },
 
-  junkEffectRequiresTarget(junkEffect) {
-    return ['injurePerson', 'restoreCard', 'gainPunk'].includes(junkEffect);
+  fireAbilityOrJunk(message, effectName) {
+    if (!onClient) {
+      const toCallFunc = action[effectName];
+      if (effectName && typeof toCallFunc === 'function') {
+        try {
+          const requiresTarget = utils.effectRequiresTarget(effectName);
+          let validTargets = undefined;
+          if (requiresTarget) {
+            validTargets = utils.determineValidTargets(effectName, message);
+            // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1, such as a Gunner)
+            if (!validTargets.length) {
+              throw new Error('No valid targets for card effect');
+            }
+          }
+
+          return toCallFunc(
+            { ...message, validTargets, type: effectName },
+            effectName === 'drawCard' ? { fromServerRequest: true } : undefined,
+          );
+        } catch (err) {
+          action.sendError(err?.message, message.playerId);
+        }
+      } else {
+        throw new Error('Invalid card effect');
+      }
+    }
   },
 
-  determineValidTargets(message) {
-    // TTODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
+  effectRequiresTarget(effectName) {
+    return ['injurePerson', 'restoreCard', 'gainPunk'].includes(effectName);
+  },
+
+  determineValidTargets(effectName, message) {
+    // TODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
     if (!message) {
       return [];
     }
 
     // Returns a relevant list of validTargets as an array of string IDs of the targets
-    const junkEffect = message.details?.card?.junkEffect;
     const fromPlayerNum = utils.getPlayerNumById(message.playerId);
-    if (junkEffect === 'gainPunk') {
+    if (effectName === 'gainPunk') {
       // TODO As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
       if (!onClient && gs.deck?.length <= 1) {
         return [];
@@ -75,7 +102,7 @@ const utils = {
       return filteredSlots.map((slot) => {
         return slot.content ? String(slot.content.id) : gs.slotIdPrefix + slot.index;
       });
-    } else if (junkEffect === 'restoreCard') {
+    } else if (effectName === 'restoreCard') {
       let targets = [
         ...utils.getContentFromSlots(gs.slots[fromPlayerNum]),
         ...utils.getPlayerDataById(message.playerId).camps,
@@ -88,7 +115,7 @@ const utils = {
       targets = targets.map((target) => String(target.id));
 
       return targets;
-    } else if (junkEffect === 'injurePerson') {
+    } else if (effectName === 'injurePerson') {
       // Look for unprotected people
       const opponentSlots = gs.slots[utils.getOppositePlayerNum(fromPlayerNum)];
 

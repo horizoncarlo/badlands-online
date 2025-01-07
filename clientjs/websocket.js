@@ -59,6 +59,9 @@ const receiveClientWebsocketMessage = (message) => {
     case 'reduceWater':
       getPlayerData().waterCount -= message.details.cost;
       break;
+    case 'gainWater':
+      getPlayerData().waterCount += 1;
+      break;
     case 'promptCamps':
       getPlayerData().camps = message.details.camps;
       if (DEBUG_AUTO_SELECT_CAMPS_START_TURN) {

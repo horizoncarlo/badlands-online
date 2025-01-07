@@ -53,6 +53,7 @@ const rawAction = {
             playerId: autoPlayerId,
             details: {
               camps: campOptions,
+              debugDrawAutoOpponent: true,
             },
           });
 
@@ -157,7 +158,7 @@ const rawAction = {
 
       const waterCost = message.details.card.cost || 0;
       if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
-        action.sendError('Not enough water to play that card', message.playerId);
+        action.sendError('Not enough Water to play that card', message.playerId);
         return;
       }
 
@@ -218,11 +219,52 @@ const rawAction = {
     }
   },
 
-  useCard(message) {
+  useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
     if (onClient) {
-      sendC('useCard', message);
+      if (message.card.abilities?.length) {
+        // TTODO If we have multiple abilities prompt the user with a dialog choice on which to use - see Rabble Rouser as an example. For now just use our first ability
+        if (message.card.abilities?.length > 1) {
+          alert('TODO Prompt to choose ability to use');
+        }
+
+        // Track what ability we're using on the card
+        message.card.chosenAbilityIndex = typeof userAbilityIndex === 'number' ? userAbilityIndex : 0;
+
+        sendC('useCard', message);
+      } else {
+        action.sendError('TODO Ability not available or implemented yet');
+      }
     } else {
-      // TTODO Deal with trying to use a card ability - check if card is not ready, reduce water cost if possible, mark unready, request client targets with a valid list of targets sent by the server
+      // TTODO Check if card is ready before trying to use a card ability
+      let chosenAbilityIndex = 0;
+      if (
+        message.details?.card?.abilities?.length > 1 &&
+        typeof message.details?.card?.chosenAbilityIndex === 'number'
+      ) {
+        chosenAbilityIndex = message.details.card.chosenAbilityIndex;
+      }
+
+      // Check for water validity before continuing
+      const abilityObj = message.details.card.abilities[chosenAbilityIndex];
+      if (abilityObj.cost > utils.getPlayerDataById(message.playerId).waterCount) {
+        action.sendError('Not enough Water to use that ability');
+        return;
+      }
+
+      // Use our chosen ability
+      const returnStatus = utils.fireAbilityOrJunk(
+        message,
+        abilityObj.abilityEffect,
+      );
+
+      // If we aren't targetting, we can just mark the card unready that initiated the effect
+      if (!pendingTargetAction && returnStatus !== false) {
+        // TTODO Mark a used card unready
+
+        action.reduceWater(message, abilityObj.cost);
+      } else {
+        action.sync(message.playerId);
+      }
     }
   },
 
@@ -293,7 +335,7 @@ const rawAction = {
 
       if (message.details?.fromWater) {
         if (2 > utils.getPlayerDataById(message.playerId).waterCount) {
-          action.sendError('Not enough water to draw a card', message.playerId);
+          action.sendError('Not enough Water to draw a card', message.playerId);
           return false;
         }
 
@@ -325,37 +367,20 @@ const rawAction = {
     if (onClient) {
       sendC('junkCard', message);
     } else {
-      const junkEffect = message?.details?.card?.junkEffect;
-      // TODO Check validity of junkEffect before processing, current options are: raid, drawCard, restoreCard, gainWater, injurePerson, gainPunk - if only there was some...kind...of...typing system
-      if (junkEffect && typeof action[junkEffect] === 'function') {
-        try {
-          const requiresTarget = utils.junkEffectRequiresTarget(junkEffect);
-          let validTargets = undefined;
-          if (requiresTarget) {
-            validTargets = utils.determineValidTargets(message);
-            // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1, such as a Gunner)
-            if (!validTargets.length) {
-              throw new Error('No valid targets for Junk effect');
-            }
-          }
-          const returnStatus = action[junkEffect](
-            { ...message, validTargets, type: junkEffect },
-            junkEffect === 'drawCard' ? { fromServerRequest: true } : undefined,
-          );
+      try {
+        // TODO Check validity of junkEffect before processing, current options are: raid, drawCard, restoreCard, gainWater, injurePerson, gainPunk - if only there was some...kind...of...typing system
+        const returnStatus = utils.fireAbilityOrJunk(message, message?.details?.card?.junkEffect);
 
-          // If we aren't targetting, we can just remove the card that initiated the junk effect now
-          // Assuming of course our action was valid
-          if (!pendingTargetAction && returnStatus !== false) {
-            // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
-            action.discardCard(message);
-          } else {
-            action.sync(message.playerId);
-          }
-        } catch (err) {
-          action.sendError(err?.message, message.playerId);
+        // If we aren't targetting, we can just remove the card that initiated the junk effect now
+        // Assuming of course our action was valid
+        if (!pendingTargetAction && returnStatus !== false) {
+          // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
+          action.discardCard(message);
+        } else {
+          action.sync(message.playerId);
         }
-      } else {
-        action.sendError(`Invalid Junk effect ${junkEffect}`, message.playerId);
+      } catch (err) {
+        action.sendError(err?.message, message.playerId);
       }
     }
   },
@@ -500,13 +525,15 @@ const rawAction = {
         }
 
         // Check if we're going to destroy a Punk put the actual card back on top of the deck
-        action.destroyPunk({
-          ...message,
-          details: {
-            ...message.details,
-            card: foundRes.cardObj,
-          },
-        });
+        if (foundRes.cardObj.isPunk) {
+          action.destroyPunk({
+            ...message,
+            details: {
+              ...message.details,
+              card: foundRes.cardObj,
+            },
+          });
+        }
 
         action.sync();
       } else {
@@ -595,7 +622,12 @@ const rawAction = {
       playerData.doneCamps = true;
 
       let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0); // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
-      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 20 : totalDrawCount;
+      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 30 : totalDrawCount;
+
+      if (DEBUG_AUTO_OPPONENT && message.details.debugDrawAutoOpponent) {
+        totalDrawCount = 4;
+      }
+
       for (let i = 0; i < totalDrawCount; i++) {
         action.drawCard({
           ...message,
@@ -627,17 +659,32 @@ const rawAction = {
       sendC('doneTargets', message);
     } else {
       if (message.details.targets) {
-        if (typeof action[pendingTargetAction?.type] === 'function') {
-          const returnStatus = action[pendingTargetAction.type]({
-            ...message,
-            validTargets: pendingTargetAction.validTargets,
-          });
+        try {
+          const pendingFunc = action[pendingTargetAction?.type];
+          if (typeof pendingFunc === 'function') {
+            const returnStatus = pendingFunc({
+              ...message,
+              validTargets: pendingTargetAction.validTargets,
+            });
 
-          if (returnStatus !== false) {
-            action.discardCard(pendingTargetAction);
-            pendingTargetAction = null;
+            if (returnStatus !== false) {
+              // TODO Probably clean up this flag reliance?
+              // If we don't have a chosenAbilityIndex that means we junked and should discard
+              if (typeof pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
+                action.discardCard(pendingTargetAction);
+              } // Otherwise reduce the water cost
+              else {
+                const abilityObj =
+                  pendingTargetAction.details.card.abilities[pendingTargetAction.details.card.chosenAbilityIndex];
+                action.reduceWater(message, abilityObj.cost);
+              }
+
+              pendingTargetAction = null;
+            }
+          } else {
+            throw new Error();
           }
-        } else {
+        } catch (err) {
           action.sendError('Unknown target action', message.playerId);
         }
       }
@@ -648,6 +695,8 @@ const rawAction = {
     if (!onClient) {
       console.error(`Send Error (to ${playerId}):`, text);
       action.chat({ details: { text: text } }, { playerId: playerId, fromServerRequest: true });
+    } else {
+      console.error(text);
     }
   },
 

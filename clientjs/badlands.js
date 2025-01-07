@@ -315,7 +315,7 @@ function scrollChatToBottom(ele) {
 
 function showWaterCost(cost) {
   if (cost > getPlayerData().waterCount) {
-    console.error('Not enough water for desired action');
+    console.error('Not enough Water for desired action');
     return;
   }
 

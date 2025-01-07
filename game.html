@@ -27,6 +27,8 @@
     <script src="./sharedjs/gamestate.mjs" type="module"></script>
     <script src="./sharedjs/utils.mjs" type="module"></script>
     <script src="./sharedjs/actions.mjs" type="module"></script>
+    <!-- TTODO Probably don't need abilities.mjs on the client, and can just add to restricted list in Deno. Because it's tied to `actions` we can't make it completely backendjs/ -->
+    <script src="./sharedjs/abilities.mjs" type="module"></script>
 
     <script
       defer
@@ -243,8 +245,7 @@
                 @drop.prevent="isMySlot && dropCardInSlot(slot, $el)"
               >
                 <template x-if="slot.content">
-                  <!-- TODO Add water cost to abilities, then show them when mousing over a card: @mouseover="isMySlot && showWaterCost(2)" @mouseout="isMySlot && hideWaterCost()" -->
-                  <!-- TODO Will need to determine WHICH ability to use on a card in the rare case there are options - then pass that as part of useCard -->
+                  <!-- TTODO Add cheapest card.abilities[x].cost water cost on mouseover: @mouseover="isMySlot && showWaterCost(2)" @mouseout="isMySlot && hideWaterCost()" -->
                   <img
                     :id="`${targetModePrefix}${slot.content.id}`"
                     @click="isMySlot && action.useCard({card: slot.content})"
