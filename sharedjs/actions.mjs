@@ -30,6 +30,66 @@ const rawAction = {
       // Draw our initial set of camps to choose from
       action.sync(message.playerId, { includeChat: true });
       action.promptCamps(message);
+
+      if (DEBUG_AUTO_OPPONENT) {
+        const autoPlayerId = 'autoOpponent';
+        if (!utils.getPlayerNumById(autoPlayerId)) {
+          // Autojoin the game
+          action.joinGame({
+            type: 'joinGame',
+            playerId: autoPlayerId,
+            details: {
+              player: utils.getOppositePlayerNum(message.details.player),
+            },
+          });
+
+          utils.sleep(500);
+
+          // Autochoose our camps too
+          const campOptions = gs.campDeck.splice(0, 3);
+          utils.getPlayerDataById(autoPlayerId).camps = campOptions;
+          action.doneCamps({
+            type: 'doneCamps',
+            playerId: autoPlayerId,
+            details: {
+              camps: campOptions,
+            },
+          });
+
+          utils.sleep(500);
+
+          // Autostart the opponent turn
+          action.startTurn({
+            type: 'startTurn',
+            playerId: autoPlayerId,
+          });
+
+          utils.sleep(500);
+
+          // Play some random cards on the board as easy targets
+          utils.getPlayerDataById(autoPlayerId).waterCount = 20; // Make sure we can get plenty of cards out
+          for (let i = 0; i < 4; i++) {
+            action.playCard({
+              type: 'playCard',
+              playerId: autoPlayerId,
+              details: {
+                card: utils.getPlayerDataById(autoPlayerId).cards[0],
+                slot: {
+                  index: i,
+                },
+              },
+            });
+          }
+
+          utils.sleep(500);
+
+          // End our turn so the human can just go
+          action.endTurn({
+            type: 'endTurn',
+            playerId: autoPlayerId,
+          });
+        }
+      }
     }
   },
 
@@ -162,7 +222,7 @@ const rawAction = {
     if (onClient) {
       sendC('useCard', message);
     } else {
-      // TODO Deal with trying to use a card ability - check if card is not ready, reduce water cost if possible, mark unready, request client targets with a valid list of targets sent by the server
+      // TTODO Deal with trying to use a card ability - check if card is not ready, reduce water cost if possible, mark unready, request client targets with a valid list of targets sent by the server
     }
   },
 

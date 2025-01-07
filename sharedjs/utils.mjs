@@ -7,6 +7,7 @@ globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JP
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
+globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
 
 let reshuffleTimeout;
 
@@ -292,6 +293,10 @@ const utils = {
       return targets;
     }
     return null;
+  },
+
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   },
 
   randomRange(min, max) {
