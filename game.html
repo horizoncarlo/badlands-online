@@ -135,7 +135,7 @@
           x-init="repositionFromStorage($el.id)"
         >
           <span x-text="`${deckCount} Cards`" class="deck-card-count panel" title="Number of cards in the deck"></span>
-          <span x-text="`${discardCount} Discards`" class="discard-card-count panel" title="Number of discarded cards"></span
+          <span x-text="`${discardCount} Discard${discardCount > 1 ? 's' : ''}`" class="discard-card-count panel" title="Number of discarded cards"></span
           >
           <div
             :class="'card-size bright-hover bd-variant' + (targetMode.enabled ? ' invalid-target' : '')"
