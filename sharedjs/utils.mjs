@@ -1,3 +1,4 @@
+import { abilities } from './abilities.mjs';
 import { action } from './actions.mjs';
 import { gs } from './gamestate.mjs';
 
@@ -33,9 +34,9 @@ const utils = {
   },
 
   fireAbilityOrJunk(message, effectName) {
-    if (!onClient) {
+    if (!onClient && effectName) {
       const toCallFunc = action[effectName];
-      if (effectName && typeof toCallFunc === 'function') {
+      if (typeof toCallFunc === 'function') {
         try {
           const requiresTarget = utils.effectRequiresTarget(effectName);
           let validTargets = undefined;
@@ -54,6 +55,8 @@ const utils = {
         } catch (err) {
           action.sendError(err?.message, message.playerId);
         }
+      } else if (typeof abilities[effectName] === 'function') {
+        abilities[effectName]({ ...message, type: effectName });
       } else {
         throw new Error('Invalid card effect');
       }
@@ -312,7 +315,7 @@ const utils = {
   checkSelectedTargets(message) {
     const validTargets = message?.validTargets;
     const targets = message?.details?.targets ?? [];
-    if (validTargets.length && targets.length) {
+    if (validTargets?.length && targets?.length) {
       if (!targets.every((id) => validTargets.includes(id))) {
         throw new Error('Target(s) invalid');
       }

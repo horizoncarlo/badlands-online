@@ -16,6 +16,7 @@ let ui = { // Local state
     enabled: false,
     type: '',
     help: '', // Friendly message to show the user
+    cursor: '', // target-mode-section-* cursor class
     colorType: '',
     expectedTargetCount: 1,
     validTargets: [],
@@ -328,6 +329,13 @@ function hideWaterCost() {
   ui.waterTokenEles.forEach((water) => {
     water?.classList.remove('water-token-cost');
   });
+}
+
+function getCheapestAbility(card) {
+  if (card && card.abilities?.length) {
+    return Math.min(card.abilities.map((ability) => ability.cost || 0));
+  }
+  return 0;
 }
 
 function dragOverSlot(slot, ele) {

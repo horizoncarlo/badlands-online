@@ -1,3 +1,4 @@
+import { abilities } from './abilities.mjs';
 import { gs } from './gamestate.mjs';
 import { utils } from './utils.mjs';
 
@@ -252,18 +253,22 @@ const rawAction = {
       }
 
       // Use our chosen ability
-      const returnStatus = utils.fireAbilityOrJunk(
-        message,
-        abilityObj.abilityEffect,
-      );
+      try {
+        const returnStatus = utils.fireAbilityOrJunk(
+          message,
+          abilityObj.abilityEffect,
+        );
 
-      // If we aren't targetting, we can just mark the card unready that initiated the effect
-      if (!pendingTargetAction && returnStatus !== false) {
-        // TTODO Mark a used card unready
+        // If we aren't targetting, we can just mark the card unready that initiated the effect
+        if (!pendingTargetAction && returnStatus !== false) {
+          // TTODO Mark a used card unready
 
-        action.reduceWater(message, abilityObj.cost);
-      } else {
-        action.sync(message.playerId);
+          action.reduceWater(message, abilityObj.cost);
+        } else {
+          action.sync(message.playerId);
+        }
+      } catch (err) {
+        action.sendError(err?.message, message.playerId);
       }
     }
   },
@@ -513,11 +518,13 @@ const rawAction = {
           playerSlots[foundRes.slotIndex].content = null;
 
           // Check if we have a card in above of our destroyed card, if we do, slide it down towards the camp
-          if (utils.isBottomRow(foundRes.slotIndex)) {
-            const slotAbove = playerSlots[utils.indexAbove(foundRes.slotIndex)];
-            if (slotAbove.content) {
-              playerSlots[foundRes.slotIndex] = structuredClone(slotAbove.content);
-              slotAbove.content = null;
+          if (!message.details.noSlideDown) {
+            if (utils.isBottomRow(foundRes.slotIndex)) {
+              const slotAbove = playerSlots[utils.indexAbove(foundRes.slotIndex)];
+              if (slotAbove.content) {
+                playerSlots[foundRes.slotIndex] = structuredClone(slotAbove.content);
+                slotAbove.content = null;
+              }
             }
           }
         } else {
@@ -660,7 +667,7 @@ const rawAction = {
     } else {
       if (message.details.targets) {
         try {
-          const pendingFunc = action[pendingTargetAction?.type];
+          const pendingFunc = abilities[pendingTargetAction?.type] || action[pendingTargetAction?.type];
           if (typeof pendingFunc === 'function') {
             const returnStatus = pendingFunc({
               ...message,
@@ -685,6 +692,7 @@ const rawAction = {
             throw new Error();
           }
         } catch (err) {
+          console.error('Unknown target action', err);
           action.sendError('Unknown target action', message.playerId);
         }
       }
@@ -738,13 +746,14 @@ const rawAction = {
     }
   },
 
-  targetMode(message, params) { // message has playerId, type. params has help, colorType, expectedTargetCount (optional, default 1)
+  targetMode(message, params) { // message has playerId, type. params has help, colorType, cursor (optional), expectedTargetCount (optional, default 1)
     if (!onClient) {
       pendingTargetAction = structuredClone(message);
       const toSend = {
         playerId: message.playerId,
         type: message.type,
         help: params.help ?? '',
+        cursor: params.cursor ?? '',
         colorType: params.colorType ?? 'info',
         expectedTargetCount: params.expectedTargetCount ?? 1,
         validTargets: message.validTargets.filter((target) => target && target !== null),

@@ -289,19 +289,17 @@ menu {
 
 .target-mode-help {
   position: fixed;
-  top: 5%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-left: auto;
-  margin-right: auto;
+  top: 5px;
+  left: 5px;
   text-align: center;
-  z-index: 1;
+  z-index: 9999;
   background-color: var(--bg-danger);
   color: var(--fg-danger);
   box-shadow: 5px 5px 5px var(--danger);
   padding: 20px 40px 20px 40px;
   opacity: 0.9;
 }
+
 .target-mode-section {
   box-shadow: 0 0 50px var(--danger) inset;
   cursor: crosshair;
@@ -319,6 +317,12 @@ menu {
   box-shadow: 5px 5px 5px var(--variant);
 }
 
+.target-mode-section-damageCard {
+  cursor: url('../images/cursors/cursor-damage.png') 0 0, crosshair;
+}
+.target-mode-section-destroyCard {
+  cursor: url('../images/cursors/cursor-destroy.png') 0 0, crosshair;
+}
 .target-mode-section-injurePerson {
   cursor: url('../images/cursors/cursor-injure.png') 0 0, crosshair;
 }

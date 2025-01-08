@@ -27,8 +27,6 @@
     <script src="./sharedjs/gamestate.mjs" type="module"></script>
     <script src="./sharedjs/utils.mjs" type="module"></script>
     <script src="./sharedjs/actions.mjs" type="module"></script>
-    <!-- TTODO Probably don't need abilities.mjs on the client, and can just add to restricted list in Deno. Because it's tied to `actions` we can't make it completely backendjs/ -->
-    <script src="./sharedjs/abilities.mjs" type="module"></script>
 
     <script
       defer
@@ -38,7 +36,7 @@
   <body x-data="gs">
     <section
       x-data="ui"
-      :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.type}`"
+      :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.cursor || targetMode.type}`"
     >
       <header>
         <menu :class="targetMode.enabled ? 'invalid-target' : ''">
@@ -119,7 +117,7 @@
       </template>
 
       <template x-if="inGame && targetMode.enabled && targetMode.help">
-        <div :class="`panel target-mode-help target-mode-help-${targetMode.type}`">
+        <div :class="`panel target-mode-help target-mode-help-${targetMode.cursor || targetMode.type}`">
           <span x-text="targetMode.help"></span>
           <br />
           <button onclick="action.cancelTarget()" type="reset">Cancel</button>
@@ -213,6 +211,7 @@
         <div class="slots opponent-camps">
           <template x-for="camp in getOpponentCamps()">
             <div class="opponent-camp">
+              <!-- TODO Better damage effect on opponent camps, currently with the built-in rotation the 'turn sideways for damage' style doesn't apply -->
               <img
                 :id="`${targetModePrefix}${camp.id}`"
                 draggable="false"
@@ -245,10 +244,11 @@
                 @drop.prevent="isMySlot && dropCardInSlot(slot, $el)"
               >
                 <template x-if="slot.content">
-                  <!-- TTODO Add cheapest card.abilities[x].cost water cost on mouseover: @mouseover="isMySlot && showWaterCost(2)" @mouseout="isMySlot && hideWaterCost()" -->
                   <img
                     :id="`${targetModePrefix}${slot.content.id}`"
                     @click="isMySlot && action.useCard({card: slot.content})"
+                    @mouseover="isMySlot && showWaterCost(getCheapestAbility(slot.content))"
+                    @mouseout="isMySlot && hideWaterCost()"
                     draggable="false"
                     :alt="slot.content.img"
                     :src="'images/cards/people/' + slot.content.img"
