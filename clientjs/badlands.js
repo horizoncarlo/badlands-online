@@ -157,6 +157,7 @@ function getMyCamps() {
 }
 
 function getCampImage(camp) {
+  // TODO Preload the DESTROYED image so it doesn't flicker when first being shown. Argument could be made to preload every card image in the background?
   return `images/cards/camps/${camp.isDestroyed ? 'DESTROYED.png' : camp.img}`;
 }
 
@@ -221,7 +222,7 @@ function chooseCamp(camp) {
 }
 
 function doneChooseCamps() {
-  if (selectedCampCount() !== 3) {
+  if (selectedCampCount() !== CORRECT_CAMP_NUM) {
     return;
   }
 

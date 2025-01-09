@@ -5,6 +5,11 @@ import { gs } from './gamestate.mjs';
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
+globalThis.CORRECT_CAMP_NUM = 3;
+globalThis.TURN_WATER_COUNT = 3;
+globalThis.SLOT_NUM_ROWS = 2;
+globalThis.SLOT_NUM_COLS = 3;
+
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
@@ -354,16 +359,32 @@ const utils = {
   // So the "top row" is the front row, and "bottom row" is closest to the camps
   // We use hardcoded indexes here but that's okay given that it's centralized
   isTopRow(index) {
-    return index <= 2;
+    return index <= SLOT_NUM_ROWS;
   },
   isBottomRow(index) {
-    return index >= 3;
+    return index >= SLOT_NUM_COLS;
   },
   indexAbove(index) {
-    return index - 3;
+    return index - SLOT_NUM_COLS;
   },
   indexBelow(index) {
-    return index + 3;
+    return index + SLOT_NUM_COLS;
+  },
+  // Check if a column is empty: columnIndex 0 (slots 0, 3), columnIndex 1 (slots 1, 4), columnIndex 2 (slots 2, 5)
+  isColumnEmpty(columnIndex, playerNum) {
+    if (columnIndex < 0 || columnIndex > 2) {
+      console.error('Invalid column index requested', columnIndex);
+      throw new Error('Invalid column index requested - must be between 0-2');
+    }
+
+    for (let rowIndex = 0; rowIndex < SLOT_NUM_ROWS; rowIndex++) {
+      const slotIndex = columnIndex + rowIndex * SLOT_NUM_COLS;
+      if (gs.slots[playerNum][slotIndex]?.content !== null) {
+        return false;
+      }
+    }
+
+    return true;
   },
 };
 

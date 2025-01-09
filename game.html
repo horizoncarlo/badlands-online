@@ -135,8 +135,11 @@
           x-init="repositionFromStorage($el.id)"
         >
           <span x-text="`${deckCount} Cards`" class="deck-card-count panel" title="Number of cards in the deck"></span>
-          <span x-text="`${discardCount} Discard${discardCount > 1 ? 's' : ''}`" class="discard-card-count panel" title="Number of discarded cards"></span
-          >
+          <span
+            x-text="`${discardCount} Discard${discardCount > 1 ? 's' : ''}`"
+            class="discard-card-count panel"
+            title="Number of discarded cards"
+          ></span>
           <div
             :class="'card-size bright-hover bd-variant' + (targetMode.enabled ? ' invalid-target' : '')"
             title="Draw a card for 2 Water (hotkey 'D')"
@@ -363,7 +366,9 @@
             <template x-if="selectedCampCount() > 0">
               <span>Your starting hand size will be <span x-text="selectedCampDrawCount()"></span> cards</span>
             </template>
-            <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== 3" class="success">Done Choices</button>
+            <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== CORRECT_CAMP_NUM" class="success">
+              Done Choices
+            </button>
           </footer>
         </dialog>
       </template>

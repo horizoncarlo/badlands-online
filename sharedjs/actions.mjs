@@ -108,7 +108,7 @@ const rawAction = {
       }
 
       const nextPlayerNum = utils.getPlayerNumById(message.playerId);
-      gs[nextPlayerNum].waterCount = 3;
+      gs[nextPlayerNum].waterCount = TURN_WATER_COUNT;
       gs.turn[nextPlayerNum].turnCount++;
       gs.turn.currentPlayer = nextPlayerNum;
 
@@ -599,7 +599,7 @@ const rawAction = {
         utils.getPlayerDataById(message.playerId).camps = campOptions;
       }
 
-      if (campOptions.length !== 3) {
+      if (campOptions.length !== CORRECT_CAMP_NUM) {
         sendS('promptCamps', {
           camps: campOptions,
         }, message.playerId);
@@ -615,12 +615,12 @@ const rawAction = {
     } else {
       // Validate that we have the right number of camps and they were valid choices (in the case of malicious use)
       const playerData = utils.getPlayerDataById(message.playerId);
-      if (message?.details?.camps?.length !== 3) {
-        action.sendError('Select 3 camps', message.playerId);
+      if (message?.details?.camps?.length !== CORRECT_CAMP_NUM) {
+        action.sendError(`Select ${CORRECT_CAMP_NUM} camps`, message.playerId);
         return;
       }
       const incomingCampIds = message.details.camps.map((camp) => camp.id);
-      if (playerData.camps.filter((camp) => incomingCampIds.includes(camp.id)).length !== 3) {
+      if (playerData.camps.filter((camp) => incomingCampIds.includes(camp.id)).length !== CORRECT_CAMP_NUM) {
         action.sendError('Invalid camp selections', message.playerId);
         return;
       }

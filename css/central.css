@@ -291,6 +291,7 @@ menu {
   position: fixed;
   top: 5px;
   left: 5px;
+  max-width: 25%;
   text-align: center;
   z-index: 9999;
   background-color: var(--bg-danger);
