@@ -443,14 +443,14 @@ function setValidTargetsFromIds(validTargets, params) { // params.removeInstead:
 
   // Determine if we're targetting our slots or all possible cards/camps
   let checkList = [];
-  if (validTargets.some((target) => typeof target === 'string' && target.startsWith(gs.slotIdPrefix))) {
+  if (validTargets.some((target) => typeof target === 'string' && target.startsWith(gs.SLOT_ID_PREFIX))) {
     checkList = [
       ...gs.slots[gs.myPlayerNum]
         .filter((slot) => {
-          return validTargets.includes(gs.slotIdPrefix + slot.index);
+          return validTargets.includes(gs.SLOT_ID_PREFIX + slot.index);
         })
         .map((slot) => {
-          return { id: gs.slotIdPrefix + slot.index };
+          return { id: gs.SLOT_ID_PREFIX + slot.index };
         }),
       ...utils.getContentFromSlots(gs.slots.player1),
       ...utils.getContentFromSlots(gs.slots.player2),

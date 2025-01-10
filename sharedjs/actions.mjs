@@ -398,6 +398,9 @@ const rawAction = {
       if (playerData.hasWaterSilo) {
         action.sendError('Already have Water Silo');
         return;
+      } else if (playerData.waterCount < 1) {
+        action.sendError('Not enough Water to take Water Silo');
+        return;
       }
 
       // Consistently keep Water Silo at the front of your hand
@@ -425,8 +428,8 @@ const rawAction = {
         // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards OR replace entirely
         const targetId = targets[0];
         const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
-        if (targetId.startsWith(gs.slotIdPrefix)) {
-          const targetSlotIndex = parseInt(targetId.substring(gs.slotIdPrefix.length));
+        if (targetId.startsWith(gs.SLOT_ID_PREFIX)) {
+          const targetSlotIndex = parseInt(targetId.substring(gs.SLOT_ID_PREFIX.length));
 
           if (utils.isTopRow(targetSlotIndex)) {
             const slotBelow = playerSlots[utils.indexBelow(targetSlotIndex)];

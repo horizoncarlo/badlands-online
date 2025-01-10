@@ -9,6 +9,8 @@ globalThis.CORRECT_CAMP_NUM = 3;
 globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
+globalThis.SLOT_ID_PREFIX = 'slot_';
+globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
@@ -49,7 +51,7 @@ const utils = {
             validTargets = utils.determineValidTargets(effectName, message);
             // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1, such as a Gunner)
             if (!validTargets.length) {
-              throw new Error('No valid targets for card effect');
+              throw new Error(MSG_INVALID_TARGETS);
             }
           }
 
@@ -59,6 +61,7 @@ const utils = {
           );
         } catch (err) {
           action.sendError(err?.message, message.playerId);
+          return false;
         }
       } else if (typeof abilities[effectName] === 'function') {
         abilities[effectName]({ ...message, type: effectName });
@@ -108,7 +111,7 @@ const utils = {
       }
 
       return filteredSlots.map((slot) => {
-        return slot.content ? String(slot.content.id) : gs.slotIdPrefix + slot.index;
+        return slot.content ? String(slot.content.id) : gs.SLOT_ID_PREFIX + slot.index;
       });
     } else if (effectName === 'restoreCard') {
       let targets = [
@@ -125,19 +128,7 @@ const utils = {
       return targets;
     } else if (effectName === 'injurePerson') {
       // Look for unprotected people
-      const opponentSlots = gs.slots[utils.getOppositePlayerNum(fromPlayerNum)];
-
-      return opponentSlots
-        .filter((slot, index) => {
-          if (utils.isBottomRow(index) && slot.content) {
-            // Anyone in the bottom row where there is no one above them
-            return opponentSlots[utils.indexAbove(index)].content ? false : true;
-          }
-
-          // Always the top row
-          return slot.content ? true : false;
-        })
-        .map((slot) => String(slot.content.id));
+      return utils.getUnprotectedCards(message, { peopleOnly: true });
     }
     // TODO Eventually do plain Damage (person or camp) effect as well that we can just pass in here generically from playing cards (obviously not from junk effects)
   },
@@ -174,6 +165,27 @@ const utils = {
     }
 
     return true;
+  },
+
+  getUnprotectedCards(message, params) { // params are campsOnly (boolean) and peopleOnly (boolean)
+    // Get the outermost unprotected opponent card in each column and return their IDs as targets
+    const unprotectedCardIds = [];
+    const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
+    const opponentSlots = gs.slots[opponentPlayerNum];
+    const opponentCamps = gs[opponentPlayerNum]?.camps;
+    for (let i = 0; i <= SLOT_NUM_ROWS; i++) {
+      if (!params?.campsOnly && opponentSlots[i].content !== null) {
+        unprotectedCardIds.push(String(opponentSlots[i].content.id));
+      } else if (!params?.campsOnly && opponentSlots[i + SLOT_NUM_COLS].content !== null) {
+        unprotectedCardIds.push(String(opponentSlots[i + SLOT_NUM_COLS].content.id));
+      } else if (
+        !params?.peopleOnly &&
+        !opponentCamps[i].isDestroyed && utils.isColumnEmpty(i, opponentPlayerNum)
+      ) {
+        unprotectedCardIds.push(String(opponentCamps[i].id));
+      }
+    }
+    return unprotectedCardIds;
   },
 
   areAllSlotsFull(slots) {
@@ -372,19 +384,29 @@ const utils = {
   },
   // Check if a column is empty: columnIndex 0 (slots 0, 3), columnIndex 1 (slots 1, 4), columnIndex 2 (slots 2, 5)
   isColumnEmpty(columnIndex, playerNum) {
+    const slots = utils.getSlotsInColumn(columnIndex, playerNum);
+    if (slots?.length) {
+      for (let i = 0; i < slots.length; i++) {
+        if (slots[i].content !== null) {
+          return false;
+        }
+      }
+    }
+    return true;
+  },
+  // Given a columnIndex (0-2) get all slots in that column
+  getSlotsInColumn(columnIndex, playerNum) {
     if (columnIndex < 0 || columnIndex > 2) {
       console.error('Invalid column index requested', columnIndex);
       throw new Error('Invalid column index requested - must be between 0-2');
     }
 
+    const slotsInColumn = [];
     for (let rowIndex = 0; rowIndex < SLOT_NUM_ROWS; rowIndex++) {
       const slotIndex = columnIndex + rowIndex * SLOT_NUM_COLS;
-      if (gs.slots[playerNum][slotIndex]?.content !== null) {
-        return false;
-      }
+      slotsInColumn.push(gs.slots[playerNum][slotIndex]);
     }
-
-    return true;
+    return slotsInColumn;
   },
 };
 

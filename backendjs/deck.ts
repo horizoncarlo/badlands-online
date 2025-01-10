@@ -90,8 +90,8 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
   const uniqPeople = [
     { img: 'argo_yesky', cost: 3, abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
     { img: 'karli_blaze', cost: 3, abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
-    { img: 'magnus_karv', cost: 3 },
-    { img: 'molgur_stang', cost: 4 },
+    { img: 'magnus_karv', cost: 3, abilities: [{ cost: 2, abilityEffect: 'magnusKarv' }] },
+    { img: 'molgur_stang', cost: 4, abilities: [{ cost: 1, abilityEffect: 'molgurStang' }] },
     { img: 'vera_vosh', cost: 3, abilities: [{ cost: 1, abilityEffect: 'injurePerson' }] },
     { img: 'zeto_khan', cost: 3 },
   ].map((uniq) => {

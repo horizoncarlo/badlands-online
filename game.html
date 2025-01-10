@@ -240,7 +240,7 @@
           >
             <template x-for="(slot, index) in playerSlots">
               <div
-                :id="isMySlot ? `${targetModePrefix}${slotIdPrefix}${index}` : `opponent_${slotIdPrefix}${index}`"
+                :id="isMySlot ? `${targetModePrefix}${SLOT_ID_PREFIX}${index}` : `opponent_${SLOT_ID_PREFIX}${index}`"
                 class="bd-default"
                 @dragleave="dragLeaveHighlight($el)"
                 @dragover.prevent="isMySlot && dragOverSlot(slot, $el)"

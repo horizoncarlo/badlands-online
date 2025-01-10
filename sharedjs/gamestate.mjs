@@ -53,7 +53,6 @@ const gs = {
     */
   ],
   chat: [],
-  slotIdPrefix: 'slot_',
 };
 
 if (onClient) {
