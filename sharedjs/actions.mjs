@@ -4,8 +4,6 @@ import { utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
-// TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
-let pendingTargetAction = null; // Clone of the message that initiated the target
 const undoQueue = [];
 
 const rawAction = {
@@ -260,7 +258,7 @@ const rawAction = {
         );
 
         // If we aren't targetting, we can just mark the card unready that initiated the effect
-        if (!pendingTargetAction && returnStatus !== false) {
+        if (!gs.pendingTargetAction && returnStatus !== false) {
           // TTODO Mark a used card unready
 
           action.reduceWater(message, abilityObj.cost);
@@ -324,9 +322,8 @@ const rawAction = {
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
       if (foundIndex !== -1) {
         gs.discard.push(cards.splice(foundIndex, 1));
+        action.sync(message.playerId);
       }
-
-      action.sync(message.playerId);
     }
   },
 
@@ -378,7 +375,7 @@ const rawAction = {
 
         // If we aren't targetting, we can just remove the card that initiated the junk effect now
         // Assuming of course our action was valid
-        if (!pendingTargetAction && returnStatus !== false) {
+        if (!gs.pendingTargetAction && returnStatus !== false) {
           // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
           action.discardCard(message);
         } else {
@@ -632,7 +629,7 @@ const rawAction = {
       playerData.doneCamps = true;
 
       let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0); // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
-      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS ? 30 : totalDrawCount;
+      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS > 0 ? DEBUG_DRAW_SO_MANY_CARDS : totalDrawCount;
 
       if (DEBUG_AUTO_OPPONENT && message.details.debugDrawAutoOpponent) {
         totalDrawCount = 4;
@@ -655,8 +652,8 @@ const rawAction = {
     if (onClient) {
       sendC('cancelTarget', message);
     } else {
-      if (pendingTargetAction) {
-        pendingTargetAction = null;
+      if (gs.pendingTargetAction) {
+        gs.pendingTargetAction = null;
         sendS('cancelTarget', {}, message.playerId);
       } else {
         action.sendError('Not in target mode', message.playerId);
@@ -670,26 +667,26 @@ const rawAction = {
     } else {
       if (message.details.targets) {
         try {
-          const pendingFunc = abilities[pendingTargetAction?.type] || action[pendingTargetAction?.type];
+          const pendingFunc = abilities[gs.pendingTargetAction?.type] || action[gs.pendingTargetAction?.type];
           if (typeof pendingFunc === 'function') {
             const returnStatus = pendingFunc({
               ...message,
-              validTargets: pendingTargetAction.validTargets,
+              validTargets: gs.pendingTargetAction.validTargets,
             });
 
             if (returnStatus !== false) {
               // TODO Probably clean up this flag reliance?
               // If we don't have a chosenAbilityIndex that means we junked and should discard
-              if (typeof pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
-                action.discardCard(pendingTargetAction);
+              if (typeof gs.pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
+                action.discardCard(gs.pendingTargetAction);
               } // Otherwise reduce the water cost
               else {
                 const abilityObj =
-                  pendingTargetAction.details.card.abilities[pendingTargetAction.details.card.chosenAbilityIndex];
+                  gs.pendingTargetAction.details.card.abilities[gs.pendingTargetAction.details.card.chosenAbilityIndex];
                 action.reduceWater(message, abilityObj.cost);
               }
 
-              pendingTargetAction = null;
+              gs.pendingTargetAction = null;
             }
           } else {
             throw new Error();
@@ -751,7 +748,7 @@ const rawAction = {
 
   targetMode(message, params) { // message has playerId, type. params has help, colorType, cursor (optional), expectedTargetCount (optional, default 1)
     if (!onClient) {
-      pendingTargetAction = structuredClone(message);
+      gs.pendingTargetAction = structuredClone(message);
       const toSend = {
         playerId: message.playerId,
         type: message.type,

@@ -99,6 +99,11 @@ const receiveClientWebsocketMessage = (message) => {
     case 'targetMode':
       enableTargetMode(message.details);
       break;
+    case 'useAbility':
+      if (abilities && typeof abilities[message.details.effectName] === 'function') {
+        abilities[message.details.effectName](message);
+      }
+      break;
   }
 };
 

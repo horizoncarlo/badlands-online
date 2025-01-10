@@ -142,7 +142,55 @@ const abilities = {
 
   // discard top 3 cards of the deck, MAY use the junk effect from 1 of them
   scientist(message) {
-    // TTODO Scientist
+    if (!onClient) {
+      const cardOptions = [];
+      for (let i = 0; i < 3; i++) {
+        cardOptions.push(gs.deck.shift());
+      }
+
+      message.details = {
+        effectName: message.type,
+        cardOptions: cardOptions,
+      };
+
+      gs.pendingTargetAction = structuredClone(message);
+
+      sendS('useAbility', message.details, message.playerId);
+
+      return false;
+    } else {
+      // TTODO Display UI to choose card, then on choice send a junkEffect message
+      console.log('ON CLIENT, using scientist', message);
+
+      /*
+      setTimeout(() => {
+        message.details.chosenCardIndex = 1;
+        sendC('doneScientist', message.details);
+      }, 2000);
+      */
+    }
+  },
+
+  doneScientist(message) {
+    if (!onClient) {
+      // If our pending action matches the incoming scientist request we're valid
+      if (
+        typeof message.details.chosenCardIndex === 'number' &&
+        JSON.stringify(gs.pendingTargetAction?.details?.cardOptions) ===
+          JSON.stringify(message.details.cardOptions)
+      ) {
+        // Discard our list of card options
+        message.details.cardOptions.forEach((card) => {
+          gs.discard.push(card);
+        });
+        gs.pendingTargetAction = null;
+
+        // Do the junk effect
+        const chosenCard = message.details.cardOptions[message.details.chosenCardIndex];
+        action.junkCard({ ...message, details: { card: chosenCard } });
+        action.sync();
+      }
+    }
   },
 
   // damageCard to ANY card

@@ -2,6 +2,7 @@ import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { createCampDeck, createNewDeck } from './backendjs/deck.ts';
 import { startScraper } from './backendjs/scraper.ts';
+import { abilities } from './sharedjs/abilities.mjs';
 import { action } from './sharedjs/actions.mjs';
 import { gs } from './sharedjs/gamestate.mjs';
 import { utils } from './sharedjs/utils.mjs';
@@ -129,6 +130,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     const possibleFunc = action[message.type];
     if (typeof possibleFunc === 'function') {
       possibleFunc(message);
+    } else if (typeof abilities[message.type] === 'function') {
+      abilities[message.type](message);
     } else {
       action.sendError(`Invalid action ${message.type}`, message.playerId);
     }

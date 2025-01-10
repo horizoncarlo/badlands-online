@@ -13,7 +13,7 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = true; // Debugging flag to draw 5x initial hand cards, to better test junk effects
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 10; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
 
@@ -64,7 +64,7 @@ const utils = {
           return false;
         }
       } else if (typeof abilities[effectName] === 'function') {
-        abilities[effectName]({ ...message, type: effectName });
+        return abilities[effectName]({ ...message, type: effectName });
       } else {
         throw new Error('Invalid card effect');
       }
