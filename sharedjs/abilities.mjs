@@ -159,7 +159,7 @@ const abilities = {
 
       return false;
     } else {
-      // TTODO Display UI to choose card, then on choice send a junkEffect message
+      // TTODO Display UI to choose card, then on choice send a doneScientist message with the chosenCardIndex. Do this as a component?
       console.log('ON CLIENT, using scientist', message);
 
       /*

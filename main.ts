@@ -16,7 +16,7 @@ const IS_LIVE = Deno.env.get('isLive');
 const DEFAULT_PORT = IS_LIVE ? 80 : 2000;
 const DEFAULT_HOSTNAME = IS_LIVE ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
 const CLIENT_WEBSOCKET_ADDRESS = IS_LIVE ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
-const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
+const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts', '/backendjs/'];
 const DEFAULT_PLAYER_ID = 'newPlayer';
 const COMPONENT_DIRECTORY = './backendjs/components/';
 
@@ -75,7 +75,7 @@ const handler = (req: Request) => {
   // Block access to any restricted files
   if (PRIVATE_FILE_LIST.find((item) => filePath.toLowerCase().indexOf(item) !== -1)) {
     console.error('Requested a private file, aborting', filePath);
-    return new Response(null, { status: 401 });
+    return new Response(null, { status: 403 });
   }
 
   // Basic server side file hosting by path
@@ -183,7 +183,7 @@ if (!IS_LIVE) {
         headers: { 'Content-Type': 'text/html' },
       });
     }
-    return new Response(null, { status: 401 });
+    return new Response(null, { status: 403 });
   };
   Deno.serve({ port: 8080, hostname: 'localhost' }, devHandler);
 }
