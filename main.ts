@@ -18,11 +18,13 @@ const DEFAULT_HOSTNAME = IS_LIVE ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.
 const CLIENT_WEBSOCKET_ADDRESS = IS_LIVE ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts'];
 const DEFAULT_PLAYER_ID = 'newPlayer';
+const COMPONENT_DIRECTORY = './backendjs/components/';
 
 const gameId = uuidv4(); // TODO Generate different game IDs as we add a lobby system
 const socketList = new Map<string, WebSocketDetails[]>();
+const componentList = new Map<string, string>();
 
-const handler = async (req: Request) => {
+const handler = (req: Request) => {
   const url = new URL(req.url);
   const filePath = url.pathname;
 
@@ -53,10 +55,18 @@ const handler = async (req: Request) => {
     return response;
   } else if (filePath === '/' || filePath === '/game.html') {
     // Get our main HTML to return, but replace any templating variables first
-    let html = await Deno.readTextFile('./game.html');
+    let html = Deno.readTextFileSync('./game.html');
 
     html = html.replaceAll('${PLAYER_ID}', uuidv4());
     html = html.replaceAll('${CLIENT_WEBSOCKET_ADDRESS}', CLIENT_WEBSOCKET_ADDRESS);
+
+    // Replace any components we've read from files and can find tags for
+    if (componentList.size > 0) {
+      componentList.forEach((value, key) => {
+        html = html.replaceAll(key, value);
+      });
+    }
+
     return new Response(html, {
       headers: { 'Content-Type': 'text/html' },
     });
@@ -140,6 +150,17 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
 gs.deck = createNewDeck();
 gs.campDeck = createCampDeck();
+
+// Read our components/ in preparation for replacing in the HTML
+function setupComponents() {
+  for (const dirEntry of Deno.readDirSync(COMPONENT_DIRECTORY)) {
+    if (dirEntry?.name?.toLowerCase().endsWith('.html')) {
+      const tag = `<${dirEntry.name.substring(0, dirEntry.name.length - '.html'.length)}/>`;
+      componentList.set(tag, Deno.readTextFileSync(COMPONENT_DIRECTORY + dirEntry.name));
+    }
+  }
+}
+setupComponents();
 
 /* TODO HTTPS support example for a self hosted setup with our own certs
   port: 443,

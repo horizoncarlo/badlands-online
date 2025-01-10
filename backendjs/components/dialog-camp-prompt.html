@@ -1,0 +1,30 @@
+<dialog
+  id="campPromptDialog"
+  class="camps-dialog"
+  @close="!getPlayerData().doneCamps ? showCampPromptDialog() : null"
+>
+  <header>
+    <h2>Choose Your 3 Camps</h2>
+  </header>
+  <p>To start the game you choose <span x-text="3 - selectedCampCount()"></span> camps from a random option of 6</p>
+  <div class="center camps-dialog-wrap">
+    <template x-for="camp in getMyCamps()">
+      <div @click="chooseCamp(camp)" class="camp-choice-wrap">
+        <img
+          :alt="camp.img"
+          :src="'images/cards/camps/' + camp.img"
+          draggable="false"
+          :class="'camp-choice' + (camp.selected ? ' camp-choice-sel' : '')"
+        />
+      </div>
+    </template>
+  </div>
+  <footer>
+    <template x-if="selectedCampCount() > 0">
+      <span>Your starting hand size will be <span x-text="selectedCampDrawCount()"></span> cards</span>
+    </template>
+    <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== CORRECT_CAMP_NUM" class="success">
+      Done Choices
+    </button>
+  </footer>
+</dialog>
