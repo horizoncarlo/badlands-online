@@ -321,7 +321,7 @@ const rawAction = {
       const cards = utils.getPlayerDataById(message.playerId).cards;
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
       if (foundIndex !== -1) {
-        gs.discard.push(cards.splice(foundIndex, 1));
+        gs.discard.push(cards.splice(foundIndex, 1)[0]);
         action.sync(message.playerId);
       }
     }
@@ -381,6 +381,7 @@ const rawAction = {
         } else {
           action.sync(message.playerId);
         }
+        return returnStatus;
       } catch (err) {
         action.sendError(err?.message, message.playerId);
       }
@@ -425,8 +426,8 @@ const rawAction = {
         // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards OR replace entirely
         const targetId = targets[0];
         const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
-        if (targetId.startsWith(gs.SLOT_ID_PREFIX)) {
-          const targetSlotIndex = parseInt(targetId.substring(gs.SLOT_ID_PREFIX.length));
+        if (targetId.startsWith(SLOT_ID_PREFIX)) {
+          const targetSlotIndex = parseInt(targetId.substring(SLOT_ID_PREFIX.length));
 
           if (utils.isTopRow(targetSlotIndex)) {
             const slotBelow = playerSlots[utils.indexBelow(targetSlotIndex)];
@@ -700,9 +701,18 @@ const rawAction = {
   },
 
   sendError(text, playerId) {
-    if (!onClient) {
-      console.error(`Send Error (to ${playerId}):`, text);
+    function sendErrorChat(text, playerId) {
       action.chat({ details: { text: text } }, { playerId: playerId, fromServerRequest: true });
+    }
+
+    if (!onClient) {
+      if (playerId) {
+        console.error(`Send Error (to ${playerId}):`, text);
+        sendErrorChat(text, playerId);
+      } else {
+        sendErrorChat(text, gs.player1.playerId);
+        sendErrorChat(text, gs.player2.playerId);
+      }
     } else {
       console.error(text);
     }

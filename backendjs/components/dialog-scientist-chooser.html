@@ -1,0 +1,25 @@
+<dialog
+  id="scientistChooserDialog"
+  class="three-card-dialog"
+>
+  <!-- @close="cardData.doneScientist ? null : showScientistDialog()" -->
+  <header>
+    <h2>Scientist - Choose 1 card for the Junk effect</h2>
+  </header>
+  <p>
+    You used the Scientist ability, so 3 cards have been drawn from the deck.<br />Choose 1 card to use the Junk effect of,
+    then discard all of them
+  </p>
+  <div class="center">
+    <template x-for="card in cardData.scientistChoices">
+      <div @click="chooseScientistCard(card)" class="three-card-choice-wrap">
+        <img
+          :alt="card.img"
+          :src="'images/cards/people/' + card.img"
+          draggable="false"
+          :class="'card-choice' + (card?.selected ? ' card-choice-sel' : '')"
+        />
+      </div>
+    </template>
+  </div>
+</dialog>

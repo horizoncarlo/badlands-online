@@ -21,6 +21,7 @@
     <script type="text/javascript">
       const CLIENT_WEBSOCKET_ADDRESS = '${CLIENT_WEBSOCKET_ADDRESS}';
       let playerId = '${PLAYER_ID}'; // Replaced server side before returning the page
+      <component-js />;
     </script>
 
     <script src="./clientjs/websocket.js"></script>
@@ -51,8 +52,8 @@
               Join As
               <menu>
                 <!-- TODO One potential issue with our Alpine.js approach is the mix of heavy lifting here in the UI and heavy lifting in the "backing" plain JS. Like should this action call be wrapped in a function? -->
-                <li onclick="action.joinGame({player: 'player1'})" @keydown.window.1="$el.click()">Be Player <u>1</u></li>
-                <li onclick="action.joinGame({player: 'player2'})" @keydown.window.2="$el.click()">Be Player <u>2</u></li>
+                <li onclick="action.joinGame({player: 'player1'})" @keyup.window.1="$el.click()">Be Player <u>1</u></li>
+                <li onclick="action.joinGame({player: 'player2'})" @keyup.window.2="$el.click()">Be Player <u>2</u></li>
               </menu>
             </li>
           </template>
@@ -342,6 +343,10 @@
 
       <template x-if="inGame" x-teleport="body">
         <dialog-camp-prompt />
+      </template>
+
+      <template x-teleport="body">
+        <dialog-scientist-chooser />
       </template>
     </section>
 

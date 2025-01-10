@@ -21,8 +21,9 @@ const DEFAULT_PLAYER_ID = 'newPlayer';
 const COMPONENT_DIRECTORY = './backendjs/components/';
 
 const gameId = uuidv4(); // TODO Generate different game IDs as we add a lobby system
-const socketList = new Map<string, WebSocketDetails[]>();
-const componentList = new Map<string, string>();
+const socketMap = new Map<string, WebSocketDetails[]>();
+const htmlComponentMap = new Map<string, string>();
+const jsComponentList = new Array<string>();
 
 const handler = (req: Request) => {
   const url = new URL(req.url);
@@ -34,13 +35,13 @@ const handler = (req: Request) => {
     }
 
     const { socket, response } = Deno.upgradeWebSocket(req, { idleTimeout: 60 });
-    if (!socketList.get(gameId)) {
-      socketList.set(gameId, []);
+    if (!socketMap.get(gameId)) {
+      socketMap.set(gameId, []);
     }
 
     socket.addEventListener('open', () => {
       const newPlayerId = url.searchParams.get('playerId') ?? DEFAULT_PLAYER_ID;
-      socketList.set(gameId, [...socketList.get(gameId), {
+      socketMap.set(gameId, [...socketMap.get(gameId), {
         playerId: newPlayerId,
         socket: socket,
       }]);
@@ -61,10 +62,17 @@ const handler = (req: Request) => {
     html = html.replaceAll('${CLIENT_WEBSOCKET_ADDRESS}', CLIENT_WEBSOCKET_ADDRESS);
 
     // Replace any components we've read from files and can find tags for
-    if (componentList.size > 0) {
-      componentList.forEach((value, key) => {
+    if (htmlComponentMap.size > 0) {
+      htmlComponentMap.forEach((value, key) => {
         html = html.replaceAll(key, value);
       });
+    }
+    if (jsComponentList.length > 0) {
+      let combinedJS = '';
+      for (let i = 0; i < jsComponentList.length; i++) {
+        combinedJS += jsComponentList[i];
+      }
+      html = html.replaceAll('<component-js />', combinedJS);
     }
 
     return new Response(html, {
@@ -98,7 +106,7 @@ const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
     console.log('SENT:', messageObj);
   }
 
-  socketList.get(gameId).forEach((socketDetails: WebSocketDetails) => {
+  socketMap.get(gameId).forEach((socketDetails: WebSocketDetails) => {
     if (!optionalGroup || (optionalGroup && optionalGroup === socketDetails.playerId)) {
       if (socketDetails && socketDetails.socket && socketDetails.socket.readyState === WebSocket.OPEN) {
         socketDetails.socket.send(JSON.stringify(messageObj));
@@ -117,12 +125,12 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
   } else if (message.type === 'unsubscribe') {
     const playerId = message.playerId;
     if (playerId) {
-      const foundIndex = socketList.get(gameId).findIndex((socketDetails: WebSocketDetails) =>
+      const foundIndex = socketMap.get(gameId).findIndex((socketDetails: WebSocketDetails) =>
         playerId === socketDetails.playerId
       );
       if (foundIndex !== -1) {
-        socketList.get(gameId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
-        socketList.get(gameId).splice(foundIndex, 1);
+        socketMap.get(gameId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
+        socketMap.get(gameId).splice(foundIndex, 1);
       }
     }
   } else {
@@ -153,10 +161,13 @@ gs.campDeck = createCampDeck();
 
 // Read our components/ in preparation for replacing in the HTML
 function setupComponents() {
+  // TODO Allow for subdirectories and smart handling of that
   for (const dirEntry of Deno.readDirSync(COMPONENT_DIRECTORY)) {
     if (dirEntry?.name?.toLowerCase().endsWith('.html')) {
       const tag = `<${dirEntry.name.substring(0, dirEntry.name.length - '.html'.length)} />`;
-      componentList.set(tag, Deno.readTextFileSync(COMPONENT_DIRECTORY + dirEntry.name));
+      htmlComponentMap.set(tag, Deno.readTextFileSync(COMPONENT_DIRECTORY + dirEntry.name));
+    } else if (dirEntry?.name?.toLowerCase().endsWith('.js')) {
+      jsComponentList.push(Deno.readTextFileSync(COMPONENT_DIRECTORY + dirEntry.name));
     }
   }
 }

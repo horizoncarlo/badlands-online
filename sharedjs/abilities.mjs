@@ -145,8 +145,23 @@ const abilities = {
     if (!onClient) {
       const cardOptions = [];
       for (let i = 0; i < 3; i++) {
-        cardOptions.push(gs.deck.shift());
+        const newCard = utils.drawFromDeck();
+        if (newCard) {
+          cardOptions.push(newCard);
+        }
       }
+
+      // Safety check that should never happen - don't think we can run out of cards in a proper game, and if we reshuffle too many times the game is just a draw
+      if (cardOptions.length <= 0) {
+        action.sendError('Not enough cards for Scientist effect', message.playerId);
+        return false;
+      }
+
+      // Reduce our water here, as the normal ability chain relies on targetting
+      action.reduceWater(message, message.details.card.abilities[0].cost);
+
+      // Discard the selections right away
+      cardOptions.forEach((card) => gs.discard.push(card));
 
       message.details = {
         effectName: message.type,
@@ -156,18 +171,10 @@ const abilities = {
       gs.pendingTargetAction = structuredClone(message);
 
       sendS('useAbility', message.details, message.playerId);
-
-      return false;
     } else {
-      // TTODO Display UI to choose card, then on choice send a doneScientist message with the chosenCardIndex. Do this as a component?
-      console.log('ON CLIENT, using scientist', message);
-
-      /*
-      setTimeout(() => {
-        message.details.chosenCardIndex = 1;
-        sendC('doneScientist', message.details);
-      }, 2000);
-      */
+      ui.cardData.doneScientist = false;
+      ui.cardData.scientistChoices = message.details.cardOptions;
+      showScientistDialog();
     }
   },
 
@@ -179,17 +186,21 @@ const abilities = {
         JSON.stringify(gs.pendingTargetAction?.details?.cardOptions) ===
           JSON.stringify(message.details.cardOptions)
       ) {
-        // Discard our list of card options
-        message.details.cardOptions.forEach((card) => {
-          gs.discard.push(card);
-        });
         gs.pendingTargetAction = null;
 
         // Do the junk effect
         const chosenCard = message.details.cardOptions[message.details.chosenCardIndex];
-        action.junkCard({ ...message, details: { card: chosenCard } });
+        const returnStatus = action.junkCard({ ...message, details: { card: chosenCard } });
+
+        if (returnStatus === false) {
+          // TODO Should we do anything else (like re-choose?) if a junkEffect that has no valid targets is chosen? Opens a can of worms on what if ALL choices are invalid, etc. So likely just notify player and they can pay more attention next time
+          action.sendError('Drastic misuse of scientific resources', message.playerId);
+        }
+
         action.sync();
       }
+    } else {
+      sendC('doneScientist', message.details);
     }
   },
 

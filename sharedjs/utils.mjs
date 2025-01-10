@@ -13,11 +13,9 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = 10; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 20; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
-
-let reshuffleTimeout;
 
 const utils = {
   hasPlayerDataById(playerId) {
@@ -111,7 +109,7 @@ const utils = {
       }
 
       return filteredSlots.map((slot) => {
-        return slot.content ? String(slot.content.id) : gs.SLOT_ID_PREFIX + slot.index;
+        return slot.content ? String(slot.content.id) : SLOT_ID_PREFIX + slot.index;
       });
     } else if (effectName === 'restoreCard') {
       let targets = [
@@ -308,22 +306,17 @@ const utils = {
         return null;
       }
 
-      // TODO Better UI handling of reshuffling - remove timeout, block UI interaction (dialog?), play an animation, etc.
+      // TODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
       const reshuffledDeck = utils.shuffleDeck(gs.discard);
-      if (reshuffleTimeout) {
-        clearTimeout(reshuffleTimeout);
-      }
-      reshuffleTimeout = setTimeout(() => {
-        gs.deck = reshuffledDeck;
-        gs.deckCount = gs.deck.length;
-        gs.discard = [];
-        gs.discardCount = 0;
+      gs.deck = reshuffledDeck;
+      gs.deckCount = gs.deck.length;
+      gs.discard = [];
+      gs.discardCount = 0;
 
-        action.sync();
-      }, 1000);
+      action.sync();
 
       action.sendError('Reshuffled the draw deck');
-      toReturn = reshuffledDeck.shift();
+      toReturn = gs.deck.shift();
     }
 
     return toReturn;

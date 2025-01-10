@@ -1,20 +1,23 @@
 <dialog
   id="campPromptDialog"
-  class="camps-dialog"
+  class="camps-dialog three-card-dialog"
   @close="!getPlayerData().doneCamps ? showCampPromptDialog() : null"
 >
   <header>
     <h2>Choose Your 3 Camps</h2>
   </header>
-  <p>To start the game you choose <span x-text="3 - selectedCampCount()"></span> camps from a random option of 6</p>
-  <div class="center camps-dialog-wrap">
+  <p>
+    To start the game you choose <span x-text="CORRECT_CAMP_NUM - selectedCampCount()"></span> camps from a random option of
+    6
+  </p>
+  <div class="center">
     <template x-for="camp in getMyCamps()">
-      <div @click="chooseCamp(camp)" class="camp-choice-wrap">
+      <div @click="chooseCamp(camp)" class="three-card-choice-wrap">
         <img
           :alt="camp.img"
           :src="'images/cards/camps/' + camp.img"
           draggable="false"
-          :class="'camp-choice' + (camp.selected ? ' camp-choice-sel' : '')"
+          :class="'card-choice' + (camp?.selected ? ' card-choice-sel' : '')"
         />
       </div>
     </template>

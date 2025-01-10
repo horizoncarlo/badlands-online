@@ -33,6 +33,11 @@ body:has(dialog[open]) {
   overflow: hidden;
 }
 
+::backdrop {
+  /* Styling for modal backdrop of built in HTML dialog */
+  overflow-y: scroll;
+}
+
 .repositionable {
   position: absolute;
   cursor: move;
@@ -251,22 +256,30 @@ menu {
   animation: tiltToken 2s infinite alternate ease-in-out;
 }
 
-.camps-dialog,
-.camps-dialog-wrap {
-  text-align: center;
+.three-card-dialog,
+.three-card-dialog > div:first-of-type {
   min-width: calc(var(--card-width-full) * 3 + 200px);
+  text-align: center;
 }
 
-.camp-choice-wrap {
+.camps-dialog {
+  text-align: center;
+}
+
+.three-card-choice-wrap {
   display: inline-block;
   margin: 0 5px 0 5px;
 }
 
-.camp-choice {
+.card-choice {
   filter: saturate(50%);
 }
 
-.camp-choice-sel {
+.card-choice:hover {
+  outline: 5px outset var(--success);
+}
+
+.card-choice-sel {
   outline: 5px solid var(--success);
   filter: brightness(120%) saturate(100%);
 }
