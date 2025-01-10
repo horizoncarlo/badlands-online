@@ -155,7 +155,7 @@ gs.campDeck = createCampDeck();
 function setupComponents() {
   for (const dirEntry of Deno.readDirSync(COMPONENT_DIRECTORY)) {
     if (dirEntry?.name?.toLowerCase().endsWith('.html')) {
-      const tag = `<${dirEntry.name.substring(0, dirEntry.name.length - '.html'.length)}/>`;
+      const tag = `<${dirEntry.name.substring(0, dirEntry.name.length - '.html'.length)} />`;
       componentList.set(tag, Deno.readTextFileSync(COMPONENT_DIRECTORY + dirEntry.name));
     }
   }
