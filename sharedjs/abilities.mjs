@@ -7,7 +7,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 /**
  * Internal function to centralize handling targetting
  * Returns true if still need to do targetting, false if we had targets and handled them
- * By default calls damageCard, but can pass an optionalFunc string name to use instead (such as destroyCard)
+ * By default calls doDamageCard, but can pass an optionalFunc string name to use instead (such as destroyCard)
  */
 function _needTargets(message, optionalFunc) {
   const targets = utils.checkSelectedTargets(message);
@@ -16,7 +16,7 @@ function _needTargets(message, optionalFunc) {
       if (typeof optionalFunc === 'string') {
         action[optionalFunc]({ ...message, details: { card: { id: targetId } } });
       } else {
-        action.damageCard({ ...message, details: { card: { id: targetId } } });
+        action.doDamageCard({ ...message, details: { card: { id: targetId } } });
       }
     });
     return false;
@@ -24,28 +24,9 @@ function _needTargets(message, optionalFunc) {
   return true;
 }
 
-function _didDamageUnprotectedCard(message, helpText) {
-  if (_needTargets(message)) {
-    const unprotectedCardIds = utils.getUnprotectedCards(message);
-    if (unprotectedCardIds?.length) {
-      message.validTargets = unprotectedCardIds;
-
-      action.targetMode(message, {
-        help: helpText ?? 'Select an unprotected card to damage',
-        cursor: 'damageCard',
-        colorType: 'danger',
-      });
-      return false;
-    } else {
-      throw new Error(MSG_INVALID_TARGETS);
-    }
-  }
-  return true;
-}
-
 // Abilities that require targetting or special cases are generally called twice
 // Once without targets, when we turn targetMode on, then again after the client has chosen
-// On the second call we should apply our effect, such as damageCard from Sniper
+// On the second call we should apply our effect, such as doDamageCard from Sniper
 const abilities = {
   // destroyCard an unprotected enemy person
   assassin(message) {
@@ -103,7 +84,7 @@ const abilities = {
 
       if (unprotectedPeopleIds?.length) {
         unprotectedPeopleIds.forEach((targetId) => {
-          action.damageCard({ ...message, details: { card: { id: +targetId } } });
+          action.doDamageCard({ ...message, details: { card: { id: +targetId } } });
         });
       } else {
         throw new Error(MSG_INVALID_TARGETS);
@@ -114,7 +95,7 @@ const abilities = {
   // damageCard unprotected card, if it's a camp, draw a card
   looter(message) {
     if (!onClient) {
-      if (_didDamageUnprotectedCard(message, 'Select an unprotected card to damage with Looter')) {
+      if (action.damageCard(message, 'Select an unprotected card to damage with Looter')) {
         // If we just handled our targets, check if any were a camp and draw
         const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
@@ -150,7 +131,7 @@ const abilities = {
   rabbleRouser(message) {
     if (!onClient) {
       if (utils.playerHasPunk(message.playerId)) {
-        _didDamageUnprotectedCard(message, 'Select an unprotected card to damage with Rabble Rouser');
+        action.damageCard(message, 'Select an unprotected card to damage with Rabble Rouser');
       } else {
         throw new Error('No Punk, so cannot use card ability');
       }
@@ -254,7 +235,7 @@ const abilities = {
           const camp = opponentCamps[columnCampTargetIndex];
           if (!camp.isDestroyed) {
             // Damage the camp first of all
-            action.damageCard({ ...message, details: { card: { id: String(camp.id) } } });
+            action.doDamageCard({ ...message, details: { card: { id: String(camp.id) } } });
           }
 
           // Damage everyone in the column
@@ -262,7 +243,7 @@ const abilities = {
           if (slots?.length) {
             slots.forEach((slot) => {
               if (slot.content !== null) {
-                action.damageCard({ ...message, details: { card: { id: String(slot.content.id) } } });
+                action.doDamageCard({ ...message, details: { card: { id: String(slot.content.id) } } });
               }
             });
           }

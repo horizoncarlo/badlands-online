@@ -270,6 +270,7 @@ const rawAction = {
           action.sync(message.playerId);
         }
       } catch (err) {
+        console.error('Error using ability', err);
         action.sendError(err?.message, message.playerId);
       }
     }
@@ -374,7 +375,7 @@ const rawAction = {
       sendC('junkCard', message);
     } else {
       try {
-        // TODO Check validity of junkEffect before processing, current options are: raid, drawCard, restoreCard, gainWater, injurePerson, gainPunk - if only there was some...kind...of...typing system
+        // TODO Check validity of junkEffect before processing, current options are: raid, drawCard, restoreCard, gainWater, damageCard, injurePerson, gainPunk - if only there was some...kind...of...typing system
         const returnStatus = utils.fireAbilityOrJunk(message, message?.details?.card?.junkEffect);
 
         // If we aren't targetting, we can just remove the card that initiated the junk effect now
@@ -387,6 +388,7 @@ const rawAction = {
         }
         return returnStatus;
       } catch (err) {
+        console.error('Error junking card', err);
         action.sendError(err?.message, message.playerId);
       }
     }
@@ -487,7 +489,7 @@ const rawAction = {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
         targets.forEach((targetId) => {
-          action.damageCard({ ...message, details: { card: { id: targetId } } });
+          action.doDamageCard({ ...message, details: { card: { id: targetId } } });
         });
       } else {
         action.targetMode(message, { help: 'Select an unprotected person to Injure', colorType: 'danger' });
@@ -495,7 +497,31 @@ const rawAction = {
     }
   },
 
-  damageCard(message) {
+  // Target a card for damage, then doDamageCard to it once valid
+  damageCard(message, helpTextOverride) {
+    if (!onClient) {
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        targets.forEach((targetId) => {
+          action.doDamageCard({ ...message, details: { card: { id: targetId } } });
+        });
+        return true;
+      } else {
+        // If we don't have validTargets, which can happen from an ability not an action, just set them
+        if (!message.validTargets) {
+          message.validTargets = utils.getUnprotectedCards(message);
+        }
+
+        action.targetMode(message, {
+          help: helpTextOverride ?? 'Select an unprotected person or camp to damage',
+          colorType: 'danger',
+        });
+      }
+    }
+  },
+
+  // Directly damage the passed message.details.card (normally meant to be called through damageCard for targetting first)
+  doDamageCard(message) {
     if (!onClient) {
       const { cardObj } = utils.findCardInGame(message.details.card);
       if (cardObj) {

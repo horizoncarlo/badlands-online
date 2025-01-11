@@ -58,6 +58,7 @@ const utils = {
             effectName === 'drawCard' ? { fromServerRequest: true } : undefined,
           );
         } catch (err) {
+          console.error('Error firing ability or junk', err);
           action.sendError(err?.message, message.playerId);
           return false;
         }
@@ -70,7 +71,7 @@ const utils = {
   },
 
   effectRequiresTarget(effectName) {
-    return ['injurePerson', 'restoreCard', 'gainPunk'].includes(effectName);
+    return ['injurePerson', 'damageCard', 'restoreCard', 'gainPunk'].includes(effectName);
   },
 
   determineValidTargets(effectName, message) {
@@ -126,8 +127,10 @@ const utils = {
     } else if (effectName === 'injurePerson') {
       // Look for unprotected people
       return utils.getUnprotectedCards(message, { peopleOnly: true });
+    } else if (effectName === 'damageCard') {
+      // Look for unprotected people AND camps
+      return utils.getUnprotectedCards(message);
     }
-    // TODO Eventually do plain Damage (person or camp) effect as well that we can just pass in here generically from playing cards (obviously not from junk effects)
   },
 
   determineValidDropSlot(targetSlot, allSlots) {
