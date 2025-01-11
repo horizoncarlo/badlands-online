@@ -222,8 +222,12 @@ const rawAction = {
     if (onClient) {
       if (message.card.abilities?.length) {
         if (typeof userAbilityIndex !== 'number' && message.card.abilities?.length > 1) {
-          showAbilityChooserDialog(message.card);
-          return;
+          // Before showing a choice determine if we even have enough water to use any ability
+          // The backend still validates, but we want to avoid showing a dialog that has no point on the client
+          if (message.card.abilities.some((ability) => (ability.cost <= getPlayerData()?.waterCount))) {
+            showAbilityChooserDialog(message.card);
+            return;
+          }
         }
 
         // Track what ability we're using on the card
@@ -433,11 +437,13 @@ const rawAction = {
             const slotBelow = playerSlots[utils.indexBelow(targetSlotIndex)];
             if (!slotBelow.content) {
               slotBelow.content = newPunk;
+              action.sync();
               return;
             }
           }
 
           playerSlots[targetSlotIndex].content = newPunk;
+          action.sync();
         } else {
           const inTargetSlot = utils.findCardInGame({ id: targetId });
 
@@ -460,6 +466,7 @@ const rawAction = {
 
           // And add the new punk
           playerSlots[inTargetSlot.slotIndex].content = newPunk;
+          action.sync();
         }
       } else {
         action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });

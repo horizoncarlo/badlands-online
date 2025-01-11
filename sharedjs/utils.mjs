@@ -272,6 +272,16 @@ const utils = {
     };
   },
 
+  playerHasPunk(playerId) {
+    if (playerId && utils.getPlayerNumById(playerId)) {
+      const slots = gs.slots[utils.getPlayerNumById(playerId)];
+      if (slots) {
+        return slots.some((slot) => slot.content?.isPunk);
+      }
+    }
+    return false;
+  },
+
   shuffleDeck(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

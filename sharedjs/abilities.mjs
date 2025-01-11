@@ -24,6 +24,25 @@ function _needTargets(message, optionalFunc) {
   return true;
 }
 
+function _didDamageUnprotectedCard(message, helpText) {
+  if (_needTargets(message)) {
+    const unprotectedCardIds = utils.getUnprotectedCards(message);
+    if (unprotectedCardIds?.length) {
+      message.validTargets = unprotectedCardIds;
+
+      action.targetMode(message, {
+        help: helpText ?? 'Select an unprotected card to damage',
+        cursor: 'damageCard',
+        colorType: 'danger',
+      });
+      return false;
+    } else {
+      throw new Error(MSG_INVALID_TARGETS);
+    }
+  }
+  return true;
+}
+
 // Abilities that require targetting or special cases are generally called twice
 // Once without targets, when we turn targetMode on, then again after the client has chosen
 // On the second call we should apply our effect, such as damageCard from Sniper
@@ -95,20 +114,7 @@ const abilities = {
   // damageCard unprotected card, if it's a camp, draw a card
   looter(message) {
     if (!onClient) {
-      if (_needTargets(message)) {
-        const unprotectedCardIds = utils.getUnprotectedCards(message);
-        if (unprotectedCardIds?.length) {
-          message.validTargets = unprotectedCardIds;
-
-          action.targetMode(message, {
-            help: 'Select an unprotected card to damage with Looter',
-            cursor: 'damageCard',
-            colorType: 'danger',
-          });
-        } else {
-          throw new Error(MSG_INVALID_TARGETS);
-        }
-      } else {
+      if (_didDamageUnprotectedCard(message, 'Select an unprotected card to damage with Looter')) {
         // If we just handled our targets, check if any were a camp and draw
         const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
@@ -140,8 +146,15 @@ const abilities = {
     }
   },
 
+  // if you have a punk, damageCard (second ability)
   rabbleRouser(message) {
-    // TTODO Rabble Rouser (second ability)
+    if (!onClient) {
+      if (utils.playerHasPunk(message.playerId)) {
+        _didDamageUnprotectedCard(message, 'Select an unprotected card to damage with Rabble Rouser');
+      } else {
+        throw new Error('No Punk, so cannot use card ability');
+      }
+    }
   },
 
   // discard top 3 cards of the deck, MAY use the junk effect from 1 of them

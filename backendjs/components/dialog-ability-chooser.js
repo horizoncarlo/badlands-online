@@ -7,12 +7,12 @@ function showAbilityChooserDialog(forCard) {
 
 function hideAbilityChooserDialog() {
   document.getElementById('abilityChooserDialog')?.close();
+  ui.cardData.abilityCard = null;
 }
 
 function chooseAbilityOnCard(abilityIndex) {
-  hideAbilityChooserDialog();
-
   action.useCard({ card: ui.cardData.abilityCard }, abilityIndex);
+  hideAbilityChooserDialog();
 }
 
 function handleKeyup(event) {
