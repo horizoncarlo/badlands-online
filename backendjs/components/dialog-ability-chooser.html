@@ -1,0 +1,26 @@
+<dialog
+  id="abilityChooserDialog"
+  class="three-card-dialog"
+>
+  <header>
+    <h2><span x-text="utils.cardImgToName(cardData.abilityCard?.img)"></span> - Choose the ability to use</h2>
+  </header>
+  <template x-if="cardData.abilityCard">
+    <div class="center" @keyup.window="handleKeyup($event)">
+      <template x-if="cardData.abilityCard?.img">
+        <img
+          :alt="cardData.abilityCard.img"
+          :src="'images/cards/people/' + cardData.abilityCard.img"
+          draggable="false"
+        />
+      </template>
+      <br />
+      <template x-for="(ability, index) in cardData.abilityCard.abilities">
+        <button @click="chooseAbilityOnCard(index)" style="margin-right: 20px">
+          <template x-for="i in ability.cost"><div class="inline">💧</div></template>
+          Ability <u><span x-text="index+1"></span></u>
+        </button>
+      </template>
+    </div>
+  </template>
+</dialog>

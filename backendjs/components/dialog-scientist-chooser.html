@@ -1,8 +1,8 @@
 <dialog
   id="scientistChooserDialog"
   class="three-card-dialog"
+  @close="doneScientist ? null : showScientistDialog()"
 >
-  <!-- @close="cardData.doneScientist ? null : showScientistDialog()" -->
   <header>
     <h2>Scientist - Choose 1 card for the Junk effect</h2>
   </header>
@@ -17,7 +17,7 @@
           :alt="card.img"
           :src="'images/cards/people/' + card.img"
           draggable="false"
-          :class="'card-choice' + (card?.selected ? ' card-choice-sel' : '')"
+          class="card-choice"
         />
       </div>
     </template>

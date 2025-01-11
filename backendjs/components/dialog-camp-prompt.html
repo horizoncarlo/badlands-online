@@ -26,7 +26,7 @@
     <template x-if="selectedCampCount() > 0">
       <span>Your starting hand size will be <span x-text="selectedCampDrawCount()"></span> cards</span>
     </template>
-    <button onclick="doneChooseCamps()" :disabled="selectedCampCount() !== CORRECT_CAMP_NUM" class="success">
+    <button @click="doneChooseCamps()" :disabled="selectedCampCount() !== CORRECT_CAMP_NUM" class="success">
       Done Choices
     </button>
   </footer>

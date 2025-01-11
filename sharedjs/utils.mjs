@@ -13,7 +13,7 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = 20; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 30; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
 
@@ -82,7 +82,7 @@ const utils = {
     // Returns a relevant list of validTargets as an array of string IDs of the targets
     const fromPlayerNum = utils.getPlayerNumById(message.playerId);
     if (effectName === 'gainPunk') {
-      // TODO As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
+      // TODO Should reshuffle here automatically. As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
       if (!onClient && gs.deck?.length <= 1) {
         return [];
       }
@@ -91,7 +91,6 @@ const utils = {
       // If ALL our slots are full then we can place anywhere and destroy the occupant
       let filteredSlots = [];
       if (utils.areAllSlotsFull(gs.slots[fromPlayerNum])) {
-        console.log('All slots are full, so use entirety');
         filteredSlots = gs.slots[fromPlayerNum];
       } else {
         filteredSlots = gs.slots[fromPlayerNum]
@@ -351,6 +350,27 @@ const utils = {
     }
 
     return Math.floor(randomNumber * (max - min + 1)) + min;
+  },
+
+  cardImgToName(img) {
+    if (!img) {
+      return img;
+    }
+
+    // Convert our img name such as rabble_rouser.png to Rabble Rouser
+    img = img.substring(0, 1).toUpperCase() + img.substring(1);
+    if (img.lastIndexOf('.') !== -1) {
+      img = img.substring(0, img.lastIndexOf('.'));
+    }
+    // Replace all _ with a space and capitalize the next character
+    while (img.indexOf('_') !== -1) {
+      img = img.substring(0, img.indexOf('_')) +
+        ' ' +
+        img.substring(img.indexOf('_') + 1, img.indexOf('_') + 2).toUpperCase() +
+        img.substring(img.indexOf('_') + 2);
+    }
+
+    return img;
   },
 
   // This particular slot index rules are based on the opponent board being (due to CSS rotation):

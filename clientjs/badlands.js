@@ -23,8 +23,8 @@ globalThis.ui = { // Local state
   },
   currentTargetIds: [],
   cardData: {
-    doneScientist: false,
     scientistChoices: [],
+    abilityCard: null, // card obj for multiple choice abilities
   },
 };
 const LOCAL_STORAGE = {

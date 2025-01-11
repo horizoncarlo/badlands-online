@@ -221,9 +221,9 @@ const rawAction = {
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
     if (onClient) {
       if (message.card.abilities?.length) {
-        // TTODO If we have multiple abilities prompt the user with a dialog choice on which to use - see Rabble Rouser as an example. For now just use our first ability
-        if (message.card.abilities?.length > 1) {
-          alert('TODO Prompt to choose ability to use');
+        if (typeof userAbilityIndex !== 'number' && message.card.abilities?.length > 1) {
+          showAbilityChooserDialog(message.card);
+          return;
         }
 
         // Track what ability we're using on the card

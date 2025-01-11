@@ -140,6 +140,10 @@ const abilities = {
     }
   },
 
+  rabbleRouser(message) {
+    // TTODO Rabble Rouser (second ability)
+  },
+
   // discard top 3 cards of the deck, MAY use the junk effect from 1 of them
   scientist(message) {
     if (!onClient) {
@@ -172,7 +176,6 @@ const abilities = {
 
       sendS('useAbility', message.details, message.playerId);
     } else {
-      ui.cardData.doneScientist = false;
       ui.cardData.scientistChoices = message.details.cardOptions;
       showScientistDialog();
     }

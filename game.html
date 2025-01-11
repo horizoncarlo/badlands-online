@@ -44,7 +44,7 @@
           <li>
             Debug Menu
             <menu>
-              <li onclick="action.dumpDebug()">Log Gamestate</li>
+              <li @click="action.dumpDebug()">Log Gamestate</li>
             </menu>
           </li>
           <template x-if="!inGame">
@@ -52,8 +52,8 @@
               Join As
               <menu>
                 <!-- TODO One potential issue with our Alpine.js approach is the mix of heavy lifting here in the UI and heavy lifting in the "backing" plain JS. Like should this action call be wrapped in a function? -->
-                <li onclick="action.joinGame({player: 'player1'})" @keyup.window.1="$el.click()">Be Player <u>1</u></li>
-                <li onclick="action.joinGame({player: 'player2'})" @keyup.window.2="$el.click()">Be Player <u>2</u></li>
+                <li @click="action.joinGame({player: 'player1'})">Be Player <u>1</u></li>
+                <li @click="action.joinGame({player: 'player2'})">Be Player <u>2</u></li>
               </menu>
             </li>
           </template>
@@ -108,10 +108,10 @@
       <template x-if="!inGame">
         <div>
           <h1>To start the game join as a player</h1>
-          <button onclick="action.joinGame({player: 'player1'})" class="success" @keydown.window.1="$el.click()">
+          <button @click="action.joinGame({player: 'player1'})" class="success" @keyup.window.1="$el.click()">
             Be Player <u>1</u>
           </button>
-          <button onclick="action.joinGame({player: 'player2'})" class="success" @keydown.window.2="$el.click()">
+          <button @click="action.joinGame({player: 'player2'})" class="success" @keyup.window.2="$el.click()">
             Be Player <u>2</u>
           </button>
         </div>
@@ -121,7 +121,7 @@
         <div :class="`panel target-mode-help target-mode-help-${targetMode.cursor || targetMode.type}`">
           <span x-text="targetMode.help"></span>
           <br />
-          <button onclick="action.cancelTarget()" type="reset">Cancel</button>
+          <button @click="action.cancelTarget()" type="reset">Cancel</button>
         </div>
       </template>
 
@@ -150,7 +150,7 @@
           >
             <template x-if="deckCount > 0">
               <img
-                onclick="userDrawCard()"
+                @click="userDrawCard()"
                 src="images/cards/people/punk.png"
                 draggable="false"
                 class="card-size"
@@ -165,7 +165,7 @@
               @click="hideWaterCost()"
               title="Take the Water Silo for 1 Water (hotkey 'W')"
             >
-              <img class="bd-accent" src="images/cards/people/water_silo.png" onclick="userTakeWaterSilo()" />
+              <img class="bd-accent" src="images/cards/people/water_silo.png" @click="userTakeWaterSilo()" />
             </div>
           </template>
           <template x-if="draggedCard">
@@ -347,6 +347,10 @@
 
       <template x-teleport="body">
         <dialog-scientist-chooser />
+      </template>
+
+      <template x-teleport="body">
+        <dialog-ability-chooser />
       </template>
     </section>
 
