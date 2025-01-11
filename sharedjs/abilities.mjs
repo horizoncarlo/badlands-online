@@ -50,6 +50,18 @@ const abilities = {
     }
   },
 
+  // if opponent has an event, damageCard
+  doomsayer(message) {
+    if (!onClient) {
+      // TODO When event system is done fix Doomsayer card to check if the opponent has an event in play. For now use plain damage
+      // if (utils.opponentHasEvent(utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId)))) {
+      action.damageCard(message, 'Select an unprotected card to damage with Doomsayer');
+      // } else {
+      //   throw new Error('No opponent Event, so cannot use card ability');
+      // }
+    }
+  },
+
   // destroyCard to all damaged enemy people
   exterminator(message) {
     if (!onClient) {
