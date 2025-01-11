@@ -33,7 +33,7 @@ const abilities = {
     if (!onClient) {
       if (_needTargets(message, 'destroyCard')) {
         // Get a list of valid targets for injurePerson, then when we target destroyCard instead
-        const unprotectedPeopleIds = utils.determineValidTargets('injurePerson', message);
+        const unprotectedPeopleIds = utils.determineGenericTargets(message, 'injurePerson');
 
         if (unprotectedPeopleIds?.length) {
           message.validTargets = unprotectedPeopleIds;
@@ -119,7 +119,7 @@ const abilities = {
   gunner(message) {
     if (!onClient) {
       // Get a list of valid targets for injurePerson, instead of targetting these we just injure them all
-      const unprotectedPeopleIds = utils.determineValidTargets('injurePerson', message);
+      const unprotectedPeopleIds = utils.determineGenericTargets(message, 'injurePerson');
 
       if (unprotectedPeopleIds?.length) {
         unprotectedPeopleIds.forEach((targetId) => {

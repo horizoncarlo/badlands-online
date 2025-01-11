@@ -40,13 +40,14 @@ const utils = {
 
   fireAbilityOrJunk(message, effectName) {
     if (!onClient && effectName) {
+      // Check if we have a matching action for the requested effect
       const toCallFunc = action[effectName];
       if (typeof toCallFunc === 'function') {
         try {
           const requiresTarget = utils.effectRequiresTarget(effectName);
           let validTargets = undefined;
           if (requiresTarget) {
-            validTargets = utils.determineValidTargets(effectName, message);
+            validTargets = utils.determineGenericTargets(message, effectName);
             // TODO Need to handle the case where we have SOME validTargets but not equal to expectedTargetCount (when it's not the default of 1, such as a Gunner)
             if (!validTargets.length) {
               throw new Error(MSG_INVALID_TARGETS);
@@ -63,6 +64,7 @@ const utils = {
           return false;
         }
       } else if (typeof abilities[effectName] === 'function') {
+        // Action wasn't found, so we try an ability instead
         return abilities[effectName]({ ...message, type: effectName });
       } else {
         throw new Error('Invalid card effect');
@@ -71,10 +73,13 @@ const utils = {
   },
 
   effectRequiresTarget(effectName) {
-    return ['injurePerson', 'damageCard', 'restoreCard', 'gainPunk'].includes(effectName);
+    return ['gainPunk', 'restoreCard', 'injurePerson', 'damageCard'].includes(effectName);
   },
 
-  determineValidTargets(effectName, message) {
+  /**
+   * Determine targets for the basic effects that require a target: gainPunk, restoreCard, injurePerson, damageCard
+   */
+  determineGenericTargets(message, effectName) {
     // TODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
     if (!message) {
       return [];
