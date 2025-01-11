@@ -133,6 +133,13 @@ const utils = {
     }
   },
 
+  determineOwnSlotTargets(message) {
+    const playerNum = utils.getPlayerNumById(message.playerId);
+    return gs.slots[playerNum]
+      .filter((slot) => slot.content && slot.content.id !== message.details.card.id)
+      .map((slot) => String(slot.content.id));
+  },
+
   determineValidDropSlot(targetSlot, allSlots) {
     if (onClient && (!ui.draggedCard || ui.draggedCard.isWaterSilo)) {
       return false;

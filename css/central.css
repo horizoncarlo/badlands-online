@@ -11,6 +11,9 @@
   --gap: calc(var(--gap-full) * var(--card-scale));
   --icon-size: 45px;
   --flip-tray-button-size: 150px;
+  --target-mode-bg: var(--bg-accent);
+  --target-mode-fg: var(--fg-accent);
+  --target-mode: var(--accent);
 }
 
 html,

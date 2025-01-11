@@ -713,7 +713,7 @@ const rawAction = {
               validTargets: gs.pendingTargetAction.validTargets,
             });
 
-            if (returnStatus !== false) {
+            if (gs.pendingTargetAction && gs.pendingTargetAction?.card && returnStatus !== false) {
               // TODO Probably clean up this flag reliance?
               // If we don't have a chosenAbilityIndex that means we junked and should discard
               if (typeof gs.pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {

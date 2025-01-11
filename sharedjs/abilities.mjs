@@ -50,6 +50,33 @@ const abilities = {
     }
   },
 
+  // destroy one of your people, then damageCard
+  cultLeader(message) {
+    if (!onClient) {
+      if (_needTargets(message, 'destroyCard')) {
+        // Target your own person to destroy first
+        const validTargets = utils.determineOwnSlotTargets(message);
+        if (validTargets?.length) {
+          message.validTargets = validTargets;
+
+          action.targetMode(message, {
+            help: 'Select a person to destroy for Cult Leader',
+            cursor: 'destroyCard',
+            colorType: 'danger',
+          });
+        } else {
+          throw new Error(MSG_INVALID_TARGETS);
+        }
+      } // Once our targets are done we continue with Cult Leader to a simple damageCard
+      else {
+        return action.damageCard({
+          type: 'damageCard',
+          playerId: message.playerId,
+        });
+      }
+    }
+  },
+
   // if opponent has an event, damageCard
   doomsayer(message) {
     if (!onClient) {
@@ -172,11 +199,7 @@ const abilities = {
         });
         action.sync();
       } else {
-        const playerNum = utils.getPlayerNumById(message.playerId);
-        const validTargets = gs.slots[playerNum]
-          .filter((slot) => slot.content && slot.content.id !== message.details.card.id)
-          .map((slot) => String(slot.content.id));
-
+        const validTargets = utils.determineOwnSlotTargets(message);
         if (validTargets?.length) {
           message.validTargets = validTargets;
 
