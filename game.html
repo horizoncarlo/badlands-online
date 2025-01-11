@@ -121,6 +121,7 @@
         <div :class="`panel target-mode-help target-mode-help-${targetMode.cursor || targetMode.type}`">
           <span x-text="targetMode.help"></span>
           <br />
+          <!-- TODO Add Escape key support to cancel targetMode -->
           <button @click="action.cancelTarget()" type="reset">Cancel</button>
         </div>
       </template>

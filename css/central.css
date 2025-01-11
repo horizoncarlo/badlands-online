@@ -307,28 +307,16 @@ menu {
   max-width: 25%;
   text-align: center;
   z-index: 9999;
-  background-color: var(--bg-danger);
-  color: var(--fg-danger);
-  box-shadow: 5px 5px 5px var(--danger);
+  background-color: var(--target-mode-bg);
+  color: var(--target-mode-fg);
+  box-shadow: 5px 5px 5px var(--target-mode);
   padding: 20px 40px 20px 40px;
   opacity: 0.9;
 }
 
 .target-mode-section {
-  box-shadow: 0 0 50px var(--danger) inset;
+  box-shadow: 0 0 50px var(--target-mode) inset;
   cursor: crosshair;
-}
-
-.target-mode-help-restoreCard {
-  /* TODO Better handling of color swap for junk effect / targetting mode besides hardcoded classes based on each effect */
-  background-color: var(--bg-success);
-  color: var(--fg-success);
-  box-shadow: 5px 5px 5px var(--success);
-}
-.target-mode-help-gainPunk {
-  background-color: var(--bg-variant);
-  color: var(--fg-variant);
-  box-shadow: 5px 5px 5px var(--variant);
 }
 
 .target-mode-section-damageCard {

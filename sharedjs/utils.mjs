@@ -275,6 +275,16 @@ const utils = {
     };
   },
 
+  convertPunkToCard(punkId) {
+    if (!onClient) {
+      const matchingPunkIndex = gs.punks.findIndex((punk) => punkId === punk.id);
+      if (matchingPunkIndex !== -1) {
+        return gs.punks.splice(matchingPunkIndex, 1)[0];
+      }
+    }
+    return null;
+  },
+
   playerHasPunk(playerId) {
     if (playerId && utils.getPlayerNumById(playerId)) {
       const slots = gs.slots[utils.getPlayerNumById(playerId)];

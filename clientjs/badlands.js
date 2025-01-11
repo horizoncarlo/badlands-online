@@ -376,6 +376,13 @@ function handleTargetClick(event) {
 function enableTargetMode(targetModeObj) {
   ui.targetMode = targetModeObj;
   ui.targetMode.enabled = true;
+
+  // Apply our colors
+  const root = document.querySelector(':root');
+  root.style.setProperty('--target-mode', `var(--${ui.targetMode.colorType})`);
+  root.style.setProperty('--target-mode-fg', `var(--fg-${ui.targetMode.colorType})`);
+  root.style.setProperty('--target-mode-bg', `var(--bg-${ui.targetMode.colorType})`);
+
   setValidTargetsFromIds(ui.targetMode.validTargets);
 }
 

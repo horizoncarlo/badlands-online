@@ -79,7 +79,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
       abilities: [{ cost: 1, abilityEffect: 'gainPunk' }, { cost: 1, abilityEffect: 'rabbleRouser' }],
     },
     { img: 'repair_bot', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 2, abilityEffect: 'restoreCard' }] },
-    { img: 'rescue_team', cost: 1, junkEffect: 'injurePerson' },
+    { img: 'rescue_team', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'rescueTeam' }] },
     { img: 'scientist', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'scientist' }] },
     { img: 'scout', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 1, abilityEffect: 'raid' }] },
     { img: 'sniper', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'sniper' }] }, // TTODO Start with named abilities for any special cards, and if we find overlaps make them generic, such as "damageAny"
@@ -128,10 +128,10 @@ const _shuffleNewDeck = (array) => {
   array = utils.shuffleDeck(array);
 
   // Assign image extensions to every item and a sequential ID
-  array.forEach((card, index) => {
+  array.forEach((card) => {
     currentCardId++;
+    card.id = currentCardId;
     card.img += DECK_IMAGE_EXTENSION;
-    card.id = currentCardId + index + 1;
   });
   return array;
 };

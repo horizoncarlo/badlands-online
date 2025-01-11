@@ -301,11 +301,16 @@ const rawAction = {
 
   reduceWater(message, overrideCost) {
     if (!onClient) {
-      utils.getPlayerDataById(message.playerId).waterCount -= overrideCost || message.details.cost;
+      const waterCost = overrideCost ?? message.details.cost;
 
-      sendS('reduceWater', {
-        cost: overrideCost || message.details.cost,
-      }, message.playerId);
+      // Only bother sending if water is actually going to change
+      if (waterCost > 0) {
+        utils.getPlayerDataById(message.playerId).waterCount -= waterCost;
+
+        sendS('reduceWater', {
+          cost: waterCost,
+        }, message.playerId);
+      }
     }
   },
 
@@ -471,7 +476,7 @@ const rawAction = {
           action.sync();
         }
       } else {
-        action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'info' });
+        action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'variant' });
       }
     }
   },
@@ -797,7 +802,7 @@ const rawAction = {
         type: message.type,
         help: params.help ?? '',
         cursor: params.cursor ?? '',
-        colorType: params.colorType ?? 'info',
+        colorType: params.colorType ?? 'accent',
         expectedTargetCount: params.expectedTargetCount ?? 1,
         validTargets: message.validTargets.filter((target) => target && target !== null),
       };

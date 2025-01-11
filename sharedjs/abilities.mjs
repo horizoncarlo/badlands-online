@@ -150,6 +150,46 @@ const abilities = {
     }
   },
 
+  // return one of your people to your hand
+  rescueTeam(message) {
+    if (!onClient) {
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        const playerNum = utils.getPlayerNumById(message.playerId);
+        const playerData = utils.getPlayerDataById(message.playerId);
+        targets.forEach((targetId) => {
+          // Find the card and return to hand
+          const target = utils.findCardInGame({ id: targetId });
+          if (target) {
+            // If we're a Punk convert to the actual card (is hidden information before)
+            if (target.cardObj.isPunk) {
+              target.cardObj = utils.convertPunkToCard(target.cardObj.id);
+            }
+
+            playerData.cards.push(target.cardObj);
+            gs.slots[playerNum][target.slotIndex].content = null;
+          }
+        });
+        action.sync();
+      } else {
+        const playerNum = utils.getPlayerNumById(message.playerId);
+        const validTargets = gs.slots[playerNum]
+          .filter((slot) => slot.content && slot.content.id !== message.details.card.id)
+          .map((slot) => String(slot.content.id));
+
+        if (validTargets?.length) {
+          message.validTargets = validTargets;
+
+          action.targetMode(message, {
+            help: 'Select your person to return to hand (Punks are people too)',
+          });
+        } else {
+          throw new Error(MSG_INVALID_TARGETS);
+        }
+      }
+    }
+  },
+
   // discard top 3 cards of the deck, MAY use the junk effect from 1 of them
   scientist(message) {
     if (!onClient) {
