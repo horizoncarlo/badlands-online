@@ -146,6 +146,16 @@ const abilities = {
     }
   },
 
+  // use ability of one of your ready people, or any undamaged enemy
+  mimic(message) {
+    // TTODO Mimic - figure out valid targets, then when receiving chosen target do a useCard with the target?
+  },
+
+  // damage and/or restore, then damage self
+  mutant(message) {
+    // TTODO Mutant - prompt user if they want to do damage + restore or just one? Could just chain damageCard + restoreCard and allow cancel, but that would abort the followup
+  },
+
   // damageCard an unprotected enemy camp
   pyromaniac(message) {
     if (!onClient) {
@@ -295,6 +305,11 @@ const abilities = {
     }
   },
 
+  // damageCard, then opponent does damageCard
+  vanguard(message) {
+    // TTODO Vanguard - damageCard is simple, but doing an out of turn prompt for the opponent will be tough with the action proxy
+  },
+
   /*********************** UNIQUE CARDS ***********************/
   // damageCard all cards in one opponent column
   magnusKarv(message) {
@@ -369,6 +384,11 @@ const abilities = {
         }
       }
     }
+  },
+
+  // draw 3 cards, then discard 3 cards (not Water Silo)
+  zetoKhan(message) {
+    // TTODO Zeto Khan - prompt in a new generic discard dialog, with a desired count and an allowWaterSilo=true/false
   },
 };
 
