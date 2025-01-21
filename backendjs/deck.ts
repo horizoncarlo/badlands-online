@@ -82,7 +82,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'rescue_team', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'rescueTeam' }] },
     { img: 'scientist', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'scientist' }] },
     { img: 'scout', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 1, abilityEffect: 'raid' }] },
-    { img: 'sniper', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'sniper' }] }, // TTODO Start with named abilities for any special cards, and if we find overlaps make them generic, such as "damageAny"
+    { img: 'sniper', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'sniper' }] },
     { img: 'vanguard', cost: 1, junkEffect: 'raid' },
     { img: 'vigilante', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'injurePerson' }] },
     { img: 'wounded_soldier', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
@@ -93,7 +93,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'magnus_karv', cost: 3, abilities: [{ cost: 2, abilityEffect: 'magnusKarv' }] },
     { img: 'molgur_stang', cost: 4, abilities: [{ cost: 1, abilityEffect: 'molgurStang' }] },
     { img: 'vera_vosh', cost: 3, abilities: [{ cost: 1, abilityEffect: 'injurePerson' }] },
-    { img: 'zeto_khan', cost: 3 },
+    { img: 'zeto_khan', cost: 3, abilities: [{ cost: 1, abilityEffect: 'zetoKhan' }] },
   ].map((uniq) => {
     uniq['junkEffect'] = 'gainPunk';
     return uniq;

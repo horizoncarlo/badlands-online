@@ -5,6 +5,7 @@ import { utils } from './utils.mjs';
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
 const undoQueue = [];
+let discardCardTimer;
 
 const rawAction = {
   joinGame(message) {
@@ -332,7 +333,14 @@ const rawAction = {
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
       if (foundIndex !== -1) {
         gs.discard.push(cards.splice(foundIndex, 1)[0]);
-        action.sync(message.playerId);
+
+        // Sync on a timer, so that if we have multiple requests in a row we just sync once
+        if (discardCardTimer) {
+          clearTimeout(discardCardTimer);
+        }
+        discardCardTimer = setTimeout(() => {
+          action.sync(message.playerId);
+        }, 500);
       }
     }
   },

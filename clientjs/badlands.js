@@ -25,6 +25,8 @@ globalThis.ui = { // Local state
   cardData: {
     scientistChoices: [],
     abilityCard: null, // card obj for multiple choice abilities
+    expectedDiscards: 1,
+    myCards: [],
   },
 };
 const LOCAL_STORAGE = {
@@ -223,12 +225,14 @@ function setupHotkeys() {
 
     const key = event.key.toLowerCase();
 
-    if (key === 'f') flipTray();
-    else if (key === 't') focusChatIn();
-    else if (key === 'd') userDrawCard();
-    else if (key === 'w') userTakeWaterSilo(); // TODO Have this as a toggle so 'W' will junk the water silo if we already have it
-    else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
-    else if (key === 'e') userEndTurn();
+    if (ui.inGame) {
+      if (key === 'f') flipTray();
+      else if (key === 't') focusChatIn();
+      else if (key === 'd') userDrawCard();
+      else if (key === 'w') userTakeWaterSilo(); // TODO Have this as a toggle so 'W' will junk the water silo if we already have it
+      else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
+      else if (key === 'e') userEndTurn();
+    }
   });
 }
 

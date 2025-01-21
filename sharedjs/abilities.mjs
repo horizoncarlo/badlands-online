@@ -388,7 +388,26 @@ const abilities = {
 
   // draw 3 cards, then discard 3 cards (not Water Silo)
   zetoKhan(message) {
-    // TTODO Zeto Khan - prompt in a new generic discard dialog, with a desired count and an allowWaterSilo=true/false
+    if (!onClient) {
+      for (let i = 0; i < 3; i++) {
+        action.drawCard({
+          ...message,
+          details: {
+            ...message.details,
+            multiAnimation: true,
+          },
+        }, { fromServerRequest: true });
+      }
+
+      action.reduceWater(message, message.details.card.abilities[0].cost);
+      action.sync(message.playerId);
+
+      const abilityMessage = { ...message.details, effectName: 'zetoKhan', expectedDiscards: 3 };
+      gs.pendingTargetAction = structuredClone(abilityMessage);
+      sendS('useAbility', abilityMessage, message.playerId);
+    } else {
+      showDiscardDialog(message.details.expectedDiscards, { allowWaterSilo: false });
+    }
   },
 };
 

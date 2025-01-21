@@ -1,0 +1,31 @@
+<dialog
+  id="discardDialog"
+  class="three-card-dialog"
+  @close="doneDiscard ? null : showDiscardDialog()"
+  x-data="{ selectedDiscards: [] }"
+>
+  <header>
+    <h2>Choose <b><span x-text="cardData.expectedDiscards"></span></b> to Discard</h2>
+  </header>
+  <div class="center">
+    <template x-for="card in cardData.myCards">
+      <div @click="chooseDiscardCard(card, selectedDiscards)" class="three-card-choice-wrap">
+        <img
+          :alt="card.img"
+          :src="'images/cards/people/' + card.img"
+          draggable="false"
+          :class="'card-size card-choice' + (isSelectedDiscard(card, selectedDiscards) ? ' card-choice-sel' : '')"
+        />
+      </div>
+    </template>
+  </div>
+  <footer>
+    <button
+      @click="doneChooseDiscards(selectedDiscards)"
+      :disabled="selectedDiscards.length !== cardData.expectedDiscards"
+      class="success"
+    >
+      Discard Selected
+    </button>
+  </footer>
+</dialog>
