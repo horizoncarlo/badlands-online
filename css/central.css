@@ -368,3 +368,7 @@ menu {
   width: calc(var(--card-width) / 2);
   height: calc(var(--card-height) / 2);
 }
+
+.mutant-dialog-wrap > label {
+  font-size: x-large;
+}

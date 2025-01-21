@@ -70,7 +70,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'looter', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 2, abilityEffect: 'looter' }] },
     { img: 'mimic', cost: 1, junkEffect: 'injurePerson' },
     { img: 'muse', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'gainWater' }] },
-    { img: 'mutant', cost: 1, junkEffect: 'injurePerson' },
+    { img: 'mutant', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'mutant' }] },
     { img: 'pyromaniac', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 1, abilityEffect: 'pyromaniac' }] },
     {
       img: 'rabble_rouser',

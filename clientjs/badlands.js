@@ -24,6 +24,7 @@ globalThis.ui = { // Local state
   currentTargetIds: [],
   cardData: {
     scientistChoices: [],
+    mutantChoice: MUTANT_CHOICES.Both,
     abilityCard: null, // card obj for multiple choice abilities
     expectedDiscards: 1,
     myCards: [],

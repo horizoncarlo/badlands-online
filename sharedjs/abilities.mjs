@@ -153,7 +153,21 @@ const abilities = {
 
   // damage and/or restore, then damage self
   mutant(message) {
-    // TTODO Mutant - prompt user if they want to do damage + restore or just one? Could just chain damageCard + restoreCard and allow cancel, but that would abort the followup
+    if (!onClient) {
+      // TTTODO Mutant - prompt user if they want to do damage + restore or just one? Could just chain damageCard + restoreCard and allow cancel, but that would abort the followup
+      action.reduceWater(message, message.details.card.abilities[0].cost);
+
+      message.details = {
+        effectName: message.type,
+      };
+
+      gs.pendingTargetAction = structuredClone(message);
+
+      sendS('useAbility', message.details, message.playerId);
+    } else {
+      console.log('SHOW MUTANT DIALOG');
+      showMutantDialog();
+    }
   },
 
   // damageCard an unprotected enemy camp
