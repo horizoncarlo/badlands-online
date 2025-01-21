@@ -19,13 +19,16 @@ function hideDiscardDialog() {
 
 function doneChooseDiscards(selectedDiscards) {
   if (selectedDiscards?.length === ui.cardData.expectedDiscards) {
-    doneDiscard = true;
-    hideDiscardDialog();
-
     selectedDiscards.forEach((card) => {
       sendC('discardCard', { card: card });
     });
     selectedDiscards.length = 0; // Clear our discard selections
+
+    // Clear after a bit of a delay to match the server throttling
+    setTimeout(() => {
+      doneDiscard = true;
+      hideDiscardDialog();
+    }, 100);
   }
 }
 

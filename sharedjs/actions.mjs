@@ -340,7 +340,7 @@ const rawAction = {
         }
         discardCardTimer = setTimeout(() => {
           action.sync(message.playerId);
-        }, 500);
+        }, 200);
       }
     }
   },
