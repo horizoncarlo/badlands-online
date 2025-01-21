@@ -33,11 +33,6 @@ body {
 
 body:has(dialog[open]) {
   /* Prevent accidental background scrolling when a dialog is open */
-  overflow: hidden;
-}
-
-::backdrop {
-  /* Styling for modal backdrop of built in HTML dialog */
   overflow-y: scroll;
 }
 

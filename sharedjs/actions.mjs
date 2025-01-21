@@ -235,7 +235,7 @@ const rawAction = {
         message.card.chosenAbilityIndex = typeof userAbilityIndex === 'number' ? userAbilityIndex : 0;
 
         sendC('useCard', message);
-      } else {
+      } else if (!message.card.isPunk) {
         action.sendError('TODO Ability not available or implemented yet');
       }
     } else {
@@ -721,7 +721,7 @@ const rawAction = {
               validTargets: gs.pendingTargetAction.validTargets,
             });
 
-            if (gs.pendingTargetAction && gs.pendingTargetAction?.card && returnStatus !== false) {
+            if (gs.pendingTargetAction && gs.pendingTargetAction?.details?.card && returnStatus !== false) {
               // TODO Probably clean up this flag reliance?
               // If we don't have a chosenAbilityIndex that means we junked and should discard
               if (typeof gs.pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
