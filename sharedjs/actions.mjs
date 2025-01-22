@@ -221,21 +221,21 @@ const rawAction = {
 
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
     if (onClient) {
-      if (message.card.abilities?.length) {
-        if (typeof userAbilityIndex !== 'number' && message.card.abilities?.length > 1) {
+      if (message.details.card.abilities?.length) {
+        if (typeof userAbilityIndex !== 'number' && message.details.card.abilities?.length > 1) {
           // Before showing a choice determine if we even have enough water to use any ability
           // The backend still validates, but we want to avoid showing a dialog that has no point on the client
-          if (message.card.abilities.some((ability) => (ability.cost <= getPlayerData()?.waterCount))) {
-            showAbilityChooserDialog(message.card);
+          if (message.details.card.abilities.some((ability) => (ability.cost <= getPlayerData()?.waterCount))) {
+            showAbilityChooserDialog(message.details.card);
             return;
           }
         }
 
         // Track what ability we're using on the card
-        message.card.chosenAbilityIndex = typeof userAbilityIndex === 'number' ? userAbilityIndex : 0;
+        message.details.card.chosenAbilityIndex = typeof userAbilityIndex === 'number' ? userAbilityIndex : 0;
 
-        sendC('useCard', message);
-      } else if (!message.card.isPunk) {
+        sendC('useCard', message.details);
+      } else if (!message.details.card.isPunk) {
         action.sendError('TODO Ability not available or implemented yet');
       }
     } else {

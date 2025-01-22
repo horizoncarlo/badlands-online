@@ -251,7 +251,7 @@
                 <template x-if="slot.content">
                   <img
                     :id="`${targetModePrefix}${slot.content.id}`"
-                    @click="isMySlot && action.useCard({card: slot.content})"
+                    @click="isMySlot && action.useCard({details: { card: slot.content}})"
                     @mouseover="isMySlot && showWaterCost(getCheapestAbility(slot.content))"
                     @mouseout="isMySlot && hideWaterCost()"
                     draggable="false"

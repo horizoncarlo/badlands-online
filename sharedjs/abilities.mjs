@@ -148,7 +148,39 @@ const abilities = {
 
   // use ability of one of your ready people, or any undamaged enemy
   mimic(message) {
-    // TTODO Mimic - figure out valid targets, then when receiving chosen target do a useCard with the target?
+    if (!onClient) {
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        targets.forEach((targetId) => {
+          const target = utils.findCardInGame({ id: targetId });
+          if (target) {
+            // Act as if the user directly used this card
+            sendS('useCard', {
+              card: target.cardObj,
+            });
+          }
+        });
+      } else {
+        // Mimic can target ANY person that is undamaged and ready (and obviously not themselves)
+        // TODO Also only consider Ready people for Mimic use
+        const validTargets = [...gs.slots.player1, ...gs.slots.player2]
+          .filter((slot) =>
+            slot.content && slot.content.id !== message.details.card.id && (!slot.content.damage || slot.content.damage <= 0)
+          )
+          .map((slot) => String(slot.content.id));
+
+        if (validTargets?.length) {
+          message.validTargets = validTargets;
+
+          action.targetMode(message, {
+            help: 'Select a ready and undamaged person to Mimic the ability of',
+            colorType: 'active',
+          });
+        } else {
+          throw new Error(MSG_INVALID_TARGETS);
+        }
+      }
+    }
   },
 
   // damage and/or restore, then damage self

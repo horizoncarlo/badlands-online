@@ -11,7 +11,7 @@ function hideAbilityChooserDialog() {
 }
 
 function chooseAbilityOnCard(abilityIndex) {
-  action.useCard({ card: ui.cardData.abilityCard }, abilityIndex);
+  action.useCard({ details: { card: ui.cardData.abilityCard } }, abilityIndex);
   hideAbilityChooserDialog();
 }
 
