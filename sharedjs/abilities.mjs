@@ -154,19 +154,41 @@ const abilities = {
   // damage and/or restore, then damage self
   mutant(message) {
     if (!onClient) {
-      // TTTODO Mutant - prompt user if they want to do damage + restore or just one? Could just chain damageCard + restoreCard and allow cancel, but that would abort the followup
-      action.reduceWater(message, message.details.card.abilities[0].cost);
-
-      message.details = {
-        effectName: message.type,
-      };
-
+      message.details.effectName = message.type;
       gs.pendingTargetAction = structuredClone(message);
 
       sendS('useAbility', message.details, message.playerId);
     } else {
-      console.log('SHOW MUTANT DIALOG');
       showMutantDialog();
+    }
+  },
+
+  doneMutant(message) {
+    if (!onClient) {
+      // Check if we have a pending mutant action
+      if (
+        !gs.pendingTargetAction?.type ||
+        gs.pendingTargetAction.type !== 'mutant'
+      ) {
+        return;
+      }
+
+      action.reduceWater(message, gs.pendingTargetAction.details.card.abilities[0].cost);
+      action.doDamageCard(gs.pendingTargetAction);
+      gs.pendingTargetAction = null;
+
+      if (message.details.chosenAbilities === 'Both') {
+        // TTODO Rework pendingTargetAction to be an action queue instead, and once we finish each action we check if the next one needs to be fired?
+        // action.damageCard(message, 'Select an unprotected card to damage with Mutant');
+        // utils.fireAbilityOrJunk(message, 'restoreCard');
+        // action.doDamageCard(gs.pendingTargetAction); // Damage Mutant self
+      } else if (message.details.chosenAbilities === 'Damage') {
+        action.damageCard(message, 'Select an unprotected card to damage with Mutant');
+      } else if (message.details.chosenAbilities === 'Restore') {
+        utils.fireAbilityOrJunk(message, 'restoreCard');
+      }
+    } else {
+      sendC('doneMutant', message.details);
     }
   },
 

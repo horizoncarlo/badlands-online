@@ -27,6 +27,7 @@
     </label>
     <label class="inline">
       <input
+        type="radio"
         :value="MUTANT_CHOICES.Both"
         x-model="cardData.mutantChoice"
         @click="$nextTick(() => {chooseMutantAbility()})"

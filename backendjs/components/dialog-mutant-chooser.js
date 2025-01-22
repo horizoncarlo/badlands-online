@@ -18,15 +18,9 @@ function chooseMutantAbility() {
   doneMutant = true;
   hideMutantDialog();
 
-  console.log('MUTANT ABIL', ui.cardData.mutantChoice);
-
-  /* TTTODO Handle choosing a mutant ability
-  const chosenCardIndex = ui.cardData.scientistChoices.findIndex((choice) => choice === card);
-  abilities.doneScientist({
+  abilities.doneMutant({
     details: {
-      chosenCardIndex: chosenCardIndex,
-      cardOptions: ui.cardData.scientistChoices,
+      chosenAbilities: ui.cardData.mutantChoice,
     },
   });
-  */
 }
