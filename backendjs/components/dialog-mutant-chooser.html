@@ -7,6 +7,18 @@
     <h2>Mutant - Choose to Damage and/or Restore</h2>
   </header>
   <div class="mutant-dialog-wrap center">
+    <img src="images/cards/people/mutant.png" draggable="false" />
+    <br />
+
+    <label class="inline">
+      <input
+        type="radio"
+        :value="MUTANT_CHOICES.Both"
+        x-model="cardData.mutantChoice"
+        @click="$nextTick(() => {chooseMutantAbility()})"
+      />
+      Both
+    </label>
     <label class="inline">
       <input
         type="radio"
@@ -24,15 +36,6 @@
         @click="$nextTick(() => {chooseMutantAbility()})"
       />
       Restore
-    </label>
-    <label class="inline">
-      <input
-        type="radio"
-        :value="MUTANT_CHOICES.Both"
-        x-model="cardData.mutantChoice"
-        @click="$nextTick(() => {chooseMutantAbility()})"
-      />
-      Both
     </label>
   </div>
 </dialog>

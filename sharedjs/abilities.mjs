@@ -1,6 +1,6 @@
 import { action } from './actions.mjs';
 import { gs } from './gamestate.mjs';
-import { utils } from './utils.mjs';
+import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
@@ -165,7 +165,7 @@ const abilities = {
 
   doneMutant(message) {
     if (!onClient) {
-      // Check if we have a pending mutant action
+      // Check if we have a matching pending action and we're not just getting an invalid message
       if (
         !gs.pendingTargetAction?.type ||
         gs.pendingTargetAction.type !== 'mutant'
@@ -173,20 +173,23 @@ const abilities = {
         return;
       }
 
-      action.reduceWater(message, gs.pendingTargetAction.details.card.abilities[0].cost);
-      action.doDamageCard(gs.pendingTargetAction);
+      const mutantMessage = structuredClone(gs.pendingTargetAction);
       gs.pendingTargetAction = null;
 
-      if (message.details.chosenAbilities === 'Both') {
-        // TTODO Rework pendingTargetAction to be an action queue instead, and once we finish each action we check if the next one needs to be fired?
-        // action.damageCard(message, 'Select an unprotected card to damage with Mutant');
-        // utils.fireAbilityOrJunk(message, 'restoreCard');
-        // action.doDamageCard(gs.pendingTargetAction); // Damage Mutant self
-      } else if (message.details.chosenAbilities === 'Damage') {
-        action.damageCard(message, 'Select an unprotected card to damage with Mutant');
-      } else if (message.details.chosenAbilities === 'Restore') {
-        utils.fireAbilityOrJunk(message, 'restoreCard');
+      const choice = message.details.chosenAbilities;
+      if (choice === 'Both' || choice === 'Damage') {
+        codeQueue.add(
+          null,
+          () =>
+            action.damageCard({ ...mutantMessage, type: 'damageCard' }, 'Select an unprotected card to damage with Mutant'),
+        );
       }
+      if (choice === 'Both' || choice === 'Restore') {
+        codeQueue.add(choice === 'Both' ? 'doneTargets' : null, () => utils.fireAbilityOrJunk(mutantMessage, 'restoreCard'));
+      }
+      codeQueue.add(null, () => action.reduceWater(mutantMessage, mutantMessage.details.card.abilities[0].cost));
+      codeQueue.add(null, () => action.doDamageCard(mutantMessage));
+      codeQueue.start();
     } else {
       sendC('doneMutant', message.details);
     }

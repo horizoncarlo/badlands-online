@@ -4,7 +4,7 @@ import { gs } from './gamestate.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
-globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future
+globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future, TODO this is only consistently used on the deck generation, not throughout the app
 globalThis.CORRECT_CAMP_NUM = 3;
 globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
@@ -458,8 +458,49 @@ const utils = {
   },
 };
 
+const codeQueue = {
+  internalQueue: [], // Internal queue (FIFO) of server side code to execute, for complicated cards like Mutant
+
+  add(trigger, funcToQueue) {
+    if (typeof funcToQueue === 'function') {
+      this.internalQueue.push({
+        trigger: trigger,
+        func: funcToQueue,
+      });
+    }
+  },
+
+  start() {
+    if (!onClient) {
+      // This will fire the action proxy handlers, which will ensure the queue is stepped through
+      action.wait();
+    }
+  },
+
+  step(justCalledName) {
+    if (!onClient) {
+      if (this.internalQueue?.length) {
+        const nextItem = this.internalQueue[0];
+        if (!nextItem?.trigger || nextItem.trigger === justCalledName) {
+          this.internalQueue.shift(); // Actually remove from the queue
+
+          try {
+            nextItem.func();
+          } catch (err) {
+            console.error(
+              `Error when executing a step of the code queue. Trigger=${nextItem.trigger}, Func=${nextItem.func}`,
+              err,
+            );
+          }
+        }
+      }
+    }
+  },
+};
+
 if (onClient) {
   window.utils = utils;
+  window.codeQueue = codeQueue;
   (document || window).dispatchEvent(new Event('sharedReady'));
 }
-export { utils };
+export { codeQueue, utils };

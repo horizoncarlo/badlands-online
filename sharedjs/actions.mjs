@@ -1,10 +1,10 @@
 import { abilities } from './abilities.mjs';
 import { gs } from './gamestate.mjs';
-import { utils } from './utils.mjs';
+import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
-const undoQueue = [];
+const undoStack = []; // Stack (LIFO) of gs we can undo back to
 let discardCardTimer;
 
 const rawAction = {
@@ -140,8 +140,8 @@ const rawAction = {
     if (onClient) {
       sendC('undo');
     } else {
-      if (undoQueue.length > 0) {
-        Object.assign(gs, undoQueue.pop());
+      if (undoStack.length > 0) {
+        Object.assign(gs, undoStack.pop());
         action.sync();
       }
     }
@@ -621,6 +621,8 @@ const rawAction = {
               cardObj.damage = Math.min(0, cardObj.damage - 1);
 
               // TODO Mark card unready after a restore
+
+              action.sync(); // TODO Not ideal - restoreCard sync needed for Mutant because it directly calls fireAbilityOrJunk, whereas other approaches (like junkCard) naturally sync afterwards
             } else {
               action.sendError('No damage to Restore', message.playerId);
               throw new Error(); // Ditch if we didn't restore (would be an invalid target)
@@ -692,57 +694,6 @@ const rawAction = {
       }
 
       action.sync();
-    }
-  },
-
-  cancelTarget(message) {
-    if (onClient) {
-      sendC('cancelTarget', message);
-    } else {
-      if (gs.pendingTargetAction) {
-        gs.pendingTargetAction = null;
-        sendS('cancelTarget', {}, message.playerId);
-      } else {
-        action.sendError('Not in target mode', message.playerId);
-      }
-    }
-  },
-
-  doneTargets(message) {
-    if (onClient) {
-      sendC('doneTargets', message);
-    } else {
-      if (message.details.targets) {
-        try {
-          const pendingFunc = abilities[gs.pendingTargetAction?.type] || action[gs.pendingTargetAction?.type];
-          if (typeof pendingFunc === 'function') {
-            const returnStatus = pendingFunc({
-              ...message,
-              validTargets: gs.pendingTargetAction.validTargets,
-            });
-
-            if (gs.pendingTargetAction && gs.pendingTargetAction?.details?.card && returnStatus !== false) {
-              // TODO Probably clean up this flag reliance?
-              // If we don't have a chosenAbilityIndex that means we junked and should discard
-              if (typeof gs.pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
-                action.discardCard(gs.pendingTargetAction);
-              } // Otherwise reduce the water cost
-              else {
-                const abilityObj =
-                  gs.pendingTargetAction.details.card.abilities[gs.pendingTargetAction.details.card.chosenAbilityIndex];
-                action.reduceWater(message, abilityObj.cost);
-              }
-
-              gs.pendingTargetAction = null;
-            }
-          } else {
-            throw new Error();
-          }
-        } catch (err) {
-          console.error('Unknown target action', err);
-          action.sendError('Unknown target action', message.playerId);
-        }
-      }
     }
   },
 
@@ -819,6 +770,57 @@ const rawAction = {
     }
   },
 
+  cancelTarget(message) {
+    if (onClient) {
+      sendC('cancelTarget', message);
+    } else {
+      if (gs.pendingTargetAction) {
+        gs.pendingTargetAction = null;
+        sendS('cancelTarget', {}, message.playerId);
+      } else {
+        action.sendError('Not in target mode', message.playerId);
+      }
+    }
+  },
+
+  doneTargets(message) {
+    if (onClient) {
+      sendC('doneTargets', message);
+    } else {
+      if (message.details.targets) {
+        try {
+          const pendingFunc = abilities[gs.pendingTargetAction?.type] || action[gs.pendingTargetAction?.type];
+          if (typeof pendingFunc === 'function') {
+            const returnStatus = pendingFunc({
+              ...message,
+              validTargets: gs.pendingTargetAction.validTargets,
+            });
+
+            if (gs.pendingTargetAction && gs.pendingTargetAction?.details?.card && returnStatus !== false) {
+              // TODO Probably clean up this flag reliance?
+              // If we don't have a chosenAbilityIndex that means we junked and should discard
+              if (typeof gs.pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
+                action.discardCard(gs.pendingTargetAction);
+              } // Otherwise reduce the water cost
+              else {
+                const abilityObj =
+                  gs.pendingTargetAction.details.card.abilities[gs.pendingTargetAction.details.card.chosenAbilityIndex];
+                action.reduceWater(message, abilityObj.cost);
+              }
+
+              gs.pendingTargetAction = null;
+            }
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          console.error('Unknown target action', err);
+          action.sendError('Unknown target action', message.playerId);
+        }
+      }
+    }
+  },
+
   sync(playerIdOrNullForBoth, params) { // params.includeChat (default false)
     /* Dev notes: when to sync vs not
      Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
@@ -852,6 +854,7 @@ const rawAction = {
       delete updatedGs.deck;
       delete updatedGs.discard;
       delete updatedGs.punks;
+      delete updatedGs.pendingTargetAction;
 
       if (!params?.includeChat) {
         delete updatedGs.chat;
@@ -879,6 +882,10 @@ const rawAction = {
       internalSync(utils.getPlayerNumById(playerIdOrNullForBoth));
     }
   },
+
+  wait() {
+    // Spoiler, wait doesn't do anything, it more nebulously just ensures the actionHandler pre and post process is done
+  },
 };
 
 // Certain actions can be done outside of our turn, which means skipping the preprocessor
@@ -891,6 +898,7 @@ rawAction.dumpDebug.skipPreprocess = true;
 rawAction.sendError.skipPreprocess = true;
 rawAction.chat.skipPreprocess = true;
 rawAction.sync.skipPreprocess = true;
+rawAction.wait.skipPreprocess = true;
 
 // Certain actions can be Undone - basically anything that doesn't reveal new information (such as drawing cards)
 rawAction.playCard.recordUndo = true;
@@ -910,26 +918,31 @@ const actionHandler = {
   manageUndo(originalMethod, beforeGS) {
     if (!onClient) {
       if (originalMethod?.recordUndo) {
-        undoQueue.push(beforeGS);
+        undoStack.push(beforeGS);
       }
       if (originalMethod?.clearUndo) {
-        undoQueue.length = 0;
+        undoStack.length = 0;
       }
     }
   },
-  get(target, prop) {
-    const originalMethod = target[prop];
+  get(allActions, requestedAction) {
+    const originalMethod = allActions[requestedAction];
     if (typeof originalMethod === 'function') {
       if (!onClient) {
-        console.log('...action=' + prop);
+        console.log('...action=' + requestedAction);
       }
 
       return function (...args) {
-        const beforeGS = JSON.parse(JSON.stringify(gs));
+        const applyOriginalMethod = (originalMethod, context, args) => {
+          const beforeGS = JSON.parse(JSON.stringify(gs));
+          actionHandler.manageUndo(originalMethod, beforeGS);
+          const res = originalMethod.apply(context, args);
+          codeQueue.step(requestedAction);
+          return res;
+        };
 
         if (originalMethod?.skipPreprocess) {
-          actionHandler.manageUndo(originalMethod, beforeGS);
-          return originalMethod.apply(this, args);
+          return applyOriginalMethod(originalMethod, this, args);
         }
 
         // PRE PROCESS hook for all actions
@@ -939,8 +952,7 @@ const actionHandler = {
           return;
         }
 
-        actionHandler.manageUndo(originalMethod, beforeGS);
-        return originalMethod.apply(this, args);
+        return applyOriginalMethod(originalMethod, this, args);
       };
     }
 
