@@ -13,7 +13,7 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = 30; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 30; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
 
@@ -27,6 +27,10 @@ const utils = {
 
   getOppositePlayerNum(playerNum) {
     return playerNum === 'player1' ? 'player2' : 'player1';
+  },
+
+  getOppositePlayerId(playerId) {
+    return utils.getPlayerIdByNum(utils.getOppositePlayerNum(utils.getPlayerNumById(playerId))); // lol
   },
 
   getContentFromSlots(checkSlots, params) { // params.idOnly: boolean
@@ -460,6 +464,7 @@ const utils = {
 
 const codeQueue = {
   internalQueue: [], // Internal queue (FIFO) of server side code to execute, for complicated cards like Mutant
+  skipPreprocess: false,
 
   add(trigger, funcToQueue) {
     if (typeof funcToQueue === 'function') {
@@ -470,8 +475,12 @@ const codeQueue = {
     }
   },
 
-  start() {
+  start(params) { // params.skipPreprocess: boolean to skip preprocess until the code queue is empty. For out of turn actions, like Vanguard
     if (!onClient) {
+      if (params?.skipPreprocess) {
+        this.skipPreprocess = true;
+      }
+
       // This will fire the action proxy handlers, which will ensure the queue is stepped through
       action.wait();
     }
@@ -491,6 +500,11 @@ const codeQueue = {
               `Error when executing a step of the code queue. Trigger=${nextItem.trigger}, Func=${nextItem.func}`,
               err,
             );
+          }
+
+          // If we're done our current queue reset the skipPreprocess flag
+          if (this.internalQueue.length === 0) {
+            this.skipPreprocess = false;
           }
         }
       }

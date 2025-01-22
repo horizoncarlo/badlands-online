@@ -81,7 +81,7 @@ const abilities = {
   doomsayer(message) {
     if (!onClient) {
       // TODO When event system is done fix Doomsayer card to check if the opponent has an event in play. For now use plain damage
-      // if (utils.opponentHasEvent(utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId)))) {
+      // if (utils.opponentHasEvent(utils.getOppositePlayerId(message.playerId))) {
       action.damageCard(message, 'Select an unprotected card to damage with Doomsayer');
       // } else {
       //   throw new Error('No opponent Event, so cannot use card ability');
@@ -136,8 +136,7 @@ const abilities = {
     if (!onClient) {
       if (action.damageCard(message, 'Select an unprotected card to damage with Looter')) {
         // If we just handled our targets, check if any were a camp and draw
-        const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-        const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
+        const opponentCamps = utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.camps;
         const targets = utils.checkSelectedTargets(message);
         if (opponentCamps.some((camp) => String(camp.id) === targets[0])) {
           action.drawCard(message, { fromServerRequest: true });
@@ -378,7 +377,24 @@ const abilities = {
 
   // damageCard, then opponent does damageCard
   vanguard(message) {
-    // TTODO Vanguard - damageCard is simple, but doing an out of turn prompt for the opponent will be tough with the action proxy
+    if (!onClient) {
+      const opponentMessage = { ...message };
+      opponentMessage.playerId = utils.getOppositePlayerId(message.playerId);
+
+      // TODO For Vanguard when the opponent is doing the damage back we should put a blocking dialog to prevent interaction - in general this would be a handy feature. Could clear on next sync?
+      codeQueue.add(
+        null,
+        () => action.damageCard({ ...message, type: 'damageCard' }, 'Select an unprotected card to damage with Vanguard'),
+      );
+      // TTODO codeQueue improvement - multiple triggers: for Vanguard we need to also trigger on cancelTarget (for both of these), otherwise the follow up breaks - maybe pass trigger into the added anonymous func as a param and behave accordingly? Also likely for Mutant if you cancel target on damageCard step?
+      codeQueue.add(
+        'reduceWater',
+        () =>
+          action.damageCard({ ...opponentMessage, type: 'damageCard' }, "Use your opponent's Vanguard to do damage back"),
+      );
+      codeQueue.add('reduceWater', () => action.wait());
+      codeQueue.start({ skipPreprocess: true }); // Skip our preprocessing to allow the out of turn Vanguard damage
+    }
   },
 
   /*********************** UNIQUE CARDS ***********************/
@@ -438,8 +454,7 @@ const abilities = {
   molgurStang(message) {
     if (!onClient) {
       if (_needTargets(message, 'destroyCard')) {
-        const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-        const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
+        const opponentCamps = utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.camps;
         if (opponentCamps?.length) {
           message.validTargets = opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id));
         }

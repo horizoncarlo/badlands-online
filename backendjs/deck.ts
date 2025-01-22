@@ -83,7 +83,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'scientist', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'scientist' }] },
     { img: 'scout', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 1, abilityEffect: 'raid' }] },
     { img: 'sniper', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'sniper' }] },
-    { img: 'vanguard', cost: 1, junkEffect: 'raid' },
+    { img: 'vanguard', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'vanguard' }] },
     { img: 'vigilante', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'injurePerson' }] },
     { img: 'wounded_soldier', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
   ];

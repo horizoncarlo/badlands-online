@@ -166,7 +166,7 @@ const rawAction = {
       const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
       let targetSlot = playerSlots[message.details.slot.index];
       if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
-        action.sendError('Invalid card position');
+        action.sendError('Invalid card position', message.playerId);
         return;
       }
 
@@ -235,8 +235,6 @@ const rawAction = {
         message.details.card.chosenAbilityIndex = typeof userAbilityIndex === 'number' ? userAbilityIndex : 0;
 
         sendC('useCard', message.details);
-      } else if (!message.details.card.isPunk) {
-        action.sendError('TODO Ability not available or implemented yet');
       }
     } else {
       // TTODO Check if card is ready before trying to use a card ability
@@ -251,7 +249,7 @@ const rawAction = {
       // Check for water validity before continuing
       const abilityObj = message.details.card.abilities[chosenAbilityIndex];
       if (abilityObj.cost > utils.getPlayerDataById(message.playerId).waterCount) {
-        action.sendError('Not enough Water to use that ability');
+        action.sendError('Not enough Water to use that ability', message.playerId);
         return;
       }
 
@@ -286,12 +284,13 @@ const rawAction = {
         const foundIndex = playerData.cards.findIndex((card) => card.isWaterSilo);
 
         if (!playerData.hasWaterSilo || foundIndex === -1) {
-          action.sendError('No Water Silo taken to junk');
+          action.sendError('No Water Silo taken to junk', message.playerId);
           return false;
         }
 
         playerData.cards.splice(foundIndex, 1);
         playerData.hasWaterSilo = false;
+        action.sync();
       }
 
       playerData.waterCount += 1;
@@ -413,10 +412,10 @@ const rawAction = {
     } else {
       const playerData = utils.getPlayerDataById(message.playerId);
       if (playerData.hasWaterSilo) {
-        action.sendError('Already have Water Silo');
+        action.sendError('Already have Water Silo', message.playerId);
         return;
       } else if (playerData.waterCount < 1) {
-        action.sendError('Not enough Water to take Water Silo');
+        action.sendError('Not enough Water to take Water Silo', message.playerId);
         return;
       }
 
@@ -791,26 +790,32 @@ const rawAction = {
         try {
           const pendingFunc = abilities[gs.pendingTargetAction?.type] || action[gs.pendingTargetAction?.type];
           if (typeof pendingFunc === 'function') {
+            // Bit of a complicated one, but gs.pendingTargetAction USED to be reset at the bottom of this function
+            // The problem is with the codeQueue there is a chance we trigger a new action code path in the proxy handler
+            // Which might want to set the target action - so clearing it at the end here (as we did before)
+            //  would interrupt and mess with that ordering
+            const pendingTargetActionClone = structuredClone(gs.pendingTargetAction);
+            gs.pendingTargetAction = null;
+
             const returnStatus = pendingFunc({
               ...message,
-              validTargets: gs.pendingTargetAction.validTargets,
+              validTargets: pendingTargetActionClone.validTargets,
             });
 
-            if (gs.pendingTargetAction && gs.pendingTargetAction?.details?.card && returnStatus !== false) {
+            if (pendingTargetActionClone.details?.card && returnStatus !== false) {
               // TODO Probably clean up this flag reliance?
               // If we don't have a chosenAbilityIndex that means we junked and should discard
-              if (typeof gs.pendingTargetAction?.details?.card?.chosenAbilityIndex !== 'number') {
-                action.discardCard(gs.pendingTargetAction);
+              if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
+                action.discardCard(pendingTargetActionClone);
               } // Otherwise reduce the water cost
               else {
                 const abilityObj =
-                  gs.pendingTargetAction.details.card.abilities[gs.pendingTargetAction.details.card.chosenAbilityIndex];
+                  pendingTargetActionClone.details.card.abilities[pendingTargetActionClone.details.card.chosenAbilityIndex];
                 action.reduceWater(message, abilityObj.cost);
               }
-
-              gs.pendingTargetAction = null;
             }
           } else {
+            console.error('Unknown pendingTargetAction type', gs.pendingTargetAction);
             throw new Error();
           }
         } catch (err) {
@@ -941,7 +946,8 @@ const actionHandler = {
           return res;
         };
 
-        if (originalMethod?.skipPreprocess) {
+        // If our action or current code queue skips the preprocess just execute the function now
+        if (originalMethod?.skipPreprocess || codeQueue.skipPreprocess) {
           return applyOriginalMethod(originalMethod, this, args);
         }
 
