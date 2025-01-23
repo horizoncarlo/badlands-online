@@ -165,7 +165,7 @@ function getMyCamps() {
 
 function getCampImage(camp) {
   // TODO Preload the DESTROYED image so it doesn't flicker when first being shown. Argument could be made to preload every card image in the background?
-  return `images/cards/camps/${camp.isDestroyed ? 'DESTROYED.png' : camp.img}`;
+  return fullCardPath(camp.isDestroyed ? 'DESTROYED.png' : camp);
 }
 
 function getOpponentCardCount() {
@@ -358,6 +358,31 @@ function submitChat(ele) {
     text: ui.currentChat,
   });
   ele.value = '';
+}
+
+function fullCardPath(card) {
+  if (card || card.img) {
+    let dir = 'people';
+
+    if (card.img) {
+      if (card.isWaterSilo) {
+        dir = 'silo';
+      } else if (card.isEvent) {
+        dir = 'events';
+      } else if (typeof card.drawCount === 'number') {
+        dir = 'camps';
+      }
+    } else {
+      if (card === 'punk') {
+        card += DECK_IMAGE_EXTENSION;
+      } else if (card === 'water_silo') {
+        dir = 'silo';
+        card += DECK_IMAGE_EXTENSION;
+      }
+    }
+
+    return `images/cards/${dir}/${card.img ?? card}`;
+  }
 }
 
 function handleTargetClick(event) {

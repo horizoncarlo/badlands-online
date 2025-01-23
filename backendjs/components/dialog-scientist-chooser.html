@@ -15,7 +15,7 @@
       <div @click="chooseScientistCard(card)" class="three-card-choice-wrap">
         <img
           :alt="card.img"
-          :src="'images/cards/people/' + card.img"
+          :src="fullCardPath(card)"
           draggable="false"
           class="card-choice"
         />

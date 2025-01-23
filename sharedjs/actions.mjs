@@ -123,6 +123,8 @@ const rawAction = {
         }
       });
 
+      // TTODO Handle Event queue moving forward on start of turn, plus triggering any effects
+
       action.drawCard(message, { fromServerRequest: true });
       action.sync();
     }

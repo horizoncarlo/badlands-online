@@ -10,7 +10,7 @@
       <template x-if="cardData.abilityCard?.img">
         <img
           :alt="cardData.abilityCard.img"
-          :src="'images/cards/people/' + cardData.abilityCard.img"
+          :src="fullCardPath(cardData.abilityCard)"
           draggable="false"
         />
       </template>

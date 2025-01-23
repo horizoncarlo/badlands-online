@@ -98,20 +98,19 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     uniq['junkEffect'] = 'gainPunk';
     return uniq;
   });
-  // TODO For now keep events out for simplicity
-  const dupeEvents = [];
-  // const dupeEvents = [
-  //   { img: 'banish', cost: 1 },
-  //   { img: 'bombardment', cost: 4 },
-  //   { img: 'famine', cost: 1 },
-  //   { img: 'high_ground', cost: 0 },
-  //   { img: 'interrogate', cost: 1 },
-  //   { img: 'napalm', cost: 2 },
-  //   { img: 'radiation', cost: 2 },
-  //   { img: 'strafe', cost: 2 },
-  //   { img: 'truce', cost: 2 },
-  //   { img: 'uprising', cost: 1 },
-  // ];
+  // TTODO Add abilities to events and handle them firing elsewhere
+  const dupeEvents = [
+    { img: 'banish', cost: 1, isEvent: true },
+    { img: 'bombardment', cost: 4, isEvent: true },
+    { img: 'famine', cost: 1, isEvent: true },
+    { img: 'high_ground', cost: 0, isEvent: true },
+    { img: 'interrogate', cost: 1, isEvent: true },
+    { img: 'napalm', cost: 2, isEvent: true },
+    { img: 'radiation', cost: 2, isEvent: true },
+    { img: 'strafe', cost: 2, isEvent: true },
+    { img: 'truce', cost: 2, isEvent: true },
+    { img: 'uprising', cost: 1, isEvent: true },
+  ];
 
   const deck = _shuffleNewDeck([
     ...uniqPeople,
