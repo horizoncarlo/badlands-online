@@ -69,18 +69,20 @@ const rawAction = {
 
           // Play some random cards on the board as easy targets
           utils.getPlayerDataById(autoPlayerId).waterCount = 20; // Make sure we can get plenty of cards out
-          for (let i = 0; i < 4; i++) {
-            action.playCard({
-              type: 'playCard',
-              playerId: autoPlayerId,
-              details: {
-                card: utils.getPlayerDataById(autoPlayerId).cards[0],
-                slot: {
-                  index: i,
+          utils.getPlayerDataById(autoPlayerId).cards.forEach((card, index) => {
+            if (!card.isEvent) {
+              action.playCard({
+                type: 'playCard',
+                playerId: autoPlayerId,
+                details: {
+                  card: card,
+                  slot: {
+                    index: index,
+                  },
                 },
-              },
-            });
-          }
+              });
+            }
+          });
 
           utils.sleep(500);
 
@@ -393,6 +395,7 @@ const rawAction = {
 
       const newCard = utils.drawFromDeck();
       if (newCard) {
+        // TODO Sort hand to have water silo at the front, then people, then events (and eventually a setting to toggle this option off)
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
 
         const newMessage = {
@@ -520,7 +523,7 @@ const rawAction = {
 
   raid(message) {
     if (!onClient) {
-      // TODO Insert or advance raiders
+      // TODO Insert or advance raiders - when they fire: damage one of the opponents camps of their choice
       action.sendError('Raid effect not implemented yet', message.playerId);
       return false;
     }
@@ -709,7 +712,7 @@ const rawAction = {
       totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS > 0 ? DEBUG_DRAW_SO_MANY_CARDS : totalDrawCount;
 
       if (DEBUG_AUTO_OPPONENT && message.details.debugDrawAutoOpponent) {
-        totalDrawCount = 4;
+        totalDrawCount = DEBUG_AUTO_OPPONENT_DRAW;
       }
 
       for (let i = 0; i < totalDrawCount; i++) {

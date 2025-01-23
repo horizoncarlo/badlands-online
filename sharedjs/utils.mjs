@@ -16,6 +16,7 @@ globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to autom
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = 30; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
+globalThis.DEBUG_AUTO_OPPONENT_DRAW = 6; // Debugging flag for the number of cards the auto-opponent should draw on their first turn, regardless of camps
 
 const utils = {
   hasPlayerDataById(playerId) {
