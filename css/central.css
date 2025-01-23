@@ -58,11 +58,6 @@ menu {
   margin: 0;
 }
 
-.bright-hover:hover {
-  filter: brightness(120%);
-  transform: scale(1.05);
-}
-
 .junk-pile {
   position: absolute;
   text-align: center;
@@ -203,7 +198,8 @@ menu {
   padding: var(--card-padding);
 }
 
-.slot-card:hover {
+.slot-card:hover,
+.bright-hover:hover {
   filter: brightness(120%);
   transform: scale(1.05);
 }
