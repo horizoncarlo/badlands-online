@@ -202,9 +202,11 @@
           x-init="repositionFromStorage($el.id)"
         >
           <template x-if="getPlayerData().waterCount > 0">
-            <template x-for="water in getPlayerData().waterCount">
-              <img x-init="waterTokenEles.push($el)" src="images/water.png" class="water-token" draggable="false" />
-            </template>
+            <div>
+              <template x-for="water in getPlayerData().waterCount">
+                <img x-init="waterTokenEles.push($el)" src="images/water.png" class="water-token" draggable="false" />
+              </template>
+            </div>
           </template>
           <template x-if="getPlayerData().waterCount <= 0">
             <span>No Water remains</span>
@@ -243,22 +245,37 @@
             <template x-for="(slot, index) in playerSlots">
               <div
                 :id="isMySlot ? `${targetModePrefix}${SLOT_ID_PREFIX}${index}` : `opponent_${SLOT_ID_PREFIX}${index}`"
-                class="bd-default"
+                class="bd-default relative"
                 @dragleave="dragLeaveHighlight($el)"
                 @dragover.prevent="isMySlot && dragOverSlot(slot, $el)"
                 @drop.prevent="isMySlot && dropCardInSlot(slot, $el)"
               >
                 <template x-if="slot.content">
-                  <img
-                    :id="`${targetModePrefix}${slot.content.id}`"
-                    @click="isMySlot && action.useCard({details: { card: slot.content}})"
-                    @mouseover="isMySlot && showWaterCost(getCheapestAbility(slot.content))"
-                    @mouseout="isMySlot && hideWaterCost()"
-                    draggable="false"
-                    :alt="slot.content.img"
-                    :src="'images/cards/people/' + slot.content.img"
-                    :class="'bright-hover card-size card-anim slot-card ' + (slot.content.damage >= 1 ? ' damaged-card' : '')"
-                  />
+                  <span>
+                    <template x-if="isMySlot && slot.content.unReady">
+                      <span>
+                        <template
+                          x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"
+                        >
+                          <img
+                            :src="`images/${(slot.content.unReadyCost === 0 || !slot.content.unReadyCost) ? 'water_back' : 'water'}.png`"
+                            class="water-token-overlay"
+                            :style="`top: ${index*10}px; right: ${index*10}px;`"
+                          />
+                        </template>
+                      </span>
+                    </template>
+                    <img
+                      :id="`${targetModePrefix}${slot.content.id}`"
+                      @click="isMySlot && !slot.content.unReady && action.useCard({details: { card: slot.content}})"
+                      @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
+                      @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
+                      draggable="false"
+                      :alt="slot.content.img"
+                      :src="'images/cards/people/' + slot.content.img"
+                      :class="`bright-hover card-size card-anim slot-card ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
+                    />
+                  </span>
                 </template>
               </div>
             </template>

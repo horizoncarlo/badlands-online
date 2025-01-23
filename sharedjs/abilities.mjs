@@ -59,6 +59,7 @@ const abilities = {
         if (validTargets?.length) {
           message.validTargets = validTargets;
 
+          // TODO Bug: Cult Leader destroying himself on use?
           action.targetMode(message, {
             help: 'Select a person to destroy for Cult Leader',
             cursor: 'destroyCard',
@@ -153,6 +154,10 @@ const abilities = {
         targets.forEach((targetId) => {
           const target = utils.findCardInGame({ id: targetId });
           if (target) {
+            /* TODO Mimic issues (global "processingMimic=boolean" flag to handle some of this? Ugly though...):
+            Mimic marks the used target as unReady instead of herself
+            Mutant self damage hits the target Mutant (even if it's the opponent) instead of Mimic
+            */
             // Act as if the user directly used this card
             sendS('useCard', {
               card: target.cardObj,
@@ -161,10 +166,10 @@ const abilities = {
         });
       } else {
         // Mimic can target ANY person that is undamaged and ready (and obviously not themselves)
-        // TODO Also only consider Ready people for Mimic use
         const validTargets = [...gs.slots.player1, ...gs.slots.player2]
           .filter((slot) =>
-            slot.content && slot.content.id !== message.details.card.id && (!slot.content.damage || slot.content.damage <= 0)
+            slot.content && slot.content.id !== message.details.card.id && !slot.content.unReady &&
+            (!slot.content.damage || slot.content.damage <= 0)
           )
           .map((slot) => String(slot.content.id));
 
@@ -345,8 +350,8 @@ const abilities = {
         const returnStatus = action.junkCard({ ...message, details: { card: chosenCard } });
 
         if (returnStatus === false) {
-          // TODO Should we do anything else (like re-choose?) if a junkEffect that has no valid targets is chosen? Opens a can of worms on what if ALL choices are invalid, etc. So likely just notify player and they can pay more attention next time
-          action.sendError('Drastic misuse of scientific resources', message.playerId);
+          // TODO Convert junkEffect to readable text for scientist error note
+          action.sendError(`Drastic misuse of scientific resources (${chosenCard.junkEffect})`, message.playerId);
         }
 
         action.sync();

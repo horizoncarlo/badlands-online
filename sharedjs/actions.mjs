@@ -111,9 +111,20 @@ const rawAction = {
       gs.turn[nextPlayerNum].turnCount++;
       gs.turn.currentPlayer = nextPlayerNum;
 
-      action.drawCard(message, { fromServerRequest: true });
+      // Reset ready state of cards, then apply for our damaged cards
+      utils.markAllSlotsReady();
+      gs.slots[nextPlayerNum].forEach((slot) => {
+        if (slot.content) {
+          if (slot.content.damage > 0) {
+            slot.content.unReady = true;
+          } else {
+            delete slot.content.unReady;
+          }
+        }
+      });
 
-      action.sync(); // Sync to update turn status
+      action.drawCard(message, { fromServerRequest: true });
+      action.sync();
     }
   },
 
@@ -121,7 +132,10 @@ const rawAction = {
     if (onClient) {
       sendC('endTurn');
     } else {
-      const nextPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
+      utils.markAllSlotsReady();
+
+      const currentPlayerNum = utils.getPlayerNumById(message.playerId);
+      const nextPlayerNum = utils.getOppositePlayerNum(currentPlayerNum);
       const nextPlayerId = utils.getPlayerIdByNum(nextPlayerNum);
 
       if (nextPlayerId) {
@@ -129,6 +143,7 @@ const rawAction = {
         action.startTurn({
           playerId: nextPlayerId,
         });
+        action.sync(); // For applying the reset of slot ready state
       } else {
         action.sendError('No opponent yet', message.playerId);
         return;
@@ -237,7 +252,12 @@ const rawAction = {
         sendC('useCard', message.details);
       }
     } else {
-      // TTODO Check if card is ready before trying to use a card ability
+      // Check if card is ready before trying to use a card ability
+      if (message.details?.card?.unReady) { // TODO General validation that we'll need to improve - in this case instead of trusting the client we'd use the card.id to check our server gs and use the unReady from that version
+        action.sendError('Card is not ready to be used', message.playerId);
+        return;
+      }
+
       let chosenAbilityIndex = 0;
       if (
         message.details?.card?.abilities?.length > 1 &&
@@ -260,10 +280,8 @@ const rawAction = {
           abilityObj.abilityEffect,
         );
 
-        // If we aren't targetting, we can just mark the card unready that initiated the effect
+        // If we aren't targetting, we can just mark the card not ready when it initiated the effect
         if (!gs.pendingTargetAction && returnStatus !== false) {
-          // TTODO Mark a used card unready
-
           action.reduceWater(message, abilityObj.cost);
         } else {
           action.sync(message.playerId);
@@ -299,9 +317,19 @@ const rawAction = {
     }
   },
 
-  reduceWater(message, overrideCost) {
+  reduceWater(message, overrideCost, params) { // params.ignoreUnready: boolean true for draw card, silo, etc. where we don't need to mark the card as not ready
     if (!onClient) {
       const waterCost = overrideCost ?? message.details.cost;
+
+      // Manage our ready state, specifically around cost
+      if (!params?.ignoreUnready && message.details.card) {
+        const card = utils.findCardInGame(message.details.card);
+        if (card?.cardObj) {
+          card.cardObj.unReady = true;
+          card.cardObj.unReadyCost = waterCost;
+          action.sync(); // Needed for the unReady to apply
+        }
+      }
 
       // Only bother sending if water is actually going to change
       if (waterCost > 0) {
@@ -358,7 +386,7 @@ const rawAction = {
           return false;
         }
 
-        action.reduceWater(message, 2);
+        action.reduceWater(message, 2, { ignoreUnready: true });
       }
 
       const newCard = utils.drawFromDeck();
@@ -423,7 +451,7 @@ const rawAction = {
       playerData.cards.unshift(utils.makeWaterSiloCard());
       playerData.hasWaterSilo = true;
 
-      action.reduceWater(message, 1);
+      action.reduceWater(message, 1, { ignoreUnready: true });
       action.sync(message.playerId);
     }
   },
@@ -618,8 +646,7 @@ const rawAction = {
               // Slot and camp are handled similar, except we technically delete a non-existent flag on a slot (shrug)
               delete cardObj.isDestroyed;
               cardObj.damage = Math.min(0, cardObj.damage - 1);
-
-              // TODO Mark card unready after a restore
+              cardObj.unReady = true; // Mark card unReady after a restore
 
               action.sync(); // TODO Not ideal - restoreCard sync needed for Mutant because it directly calls fireAbilityOrJunk, whereas other approaches (like junkCard) naturally sync afterwards
             } else {
@@ -811,7 +838,7 @@ const rawAction = {
               else {
                 const abilityObj =
                   pendingTargetActionClone.details.card.abilities[pendingTargetActionClone.details.card.chosenAbilityIndex];
-                action.reduceWater(message, abilityObj.cost);
+                action.reduceWater(pendingTargetActionClone, abilityObj.cost);
               }
             }
           } else {

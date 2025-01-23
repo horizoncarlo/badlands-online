@@ -35,7 +35,7 @@ const gs = {
     player2: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })),
   },
   deck: [
-    /* { id, img, damage? } */
+    /* cardObj: { id, img, damage, unReady, unReadyCost (water tokens to show on UI, such as from play or ability cost) } */
   ],
   discard: [
     /* { same as ... deck} */

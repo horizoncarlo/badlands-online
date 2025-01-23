@@ -8,6 +8,7 @@
   --card-width: calc(var(--card-width-full) * var(--card-scale));
   --card-height: calc(var(--card-height-full) * var(--card-scale));
   --card-padding: calc(var(--card-padding-full) * var(--card-scale));
+  --water-token-size: 100px;
   --gap: calc(var(--gap-full) * var(--card-scale));
   --icon-size: 45px;
   --flip-tray-button-size: 150px;
@@ -242,7 +243,13 @@ menu {
 }
 
 .water-token {
-  max-width: 100px;
+  max-width: var(--water-token-size);
+}
+
+.water-token-overlay {
+  position: absolute;
+  z-index: 1;
+  max-width: 50px;
 }
 
 .water-token-cost {
@@ -348,7 +355,8 @@ menu {
   outline: 10px solid var(--active);
 }
 
-.invalid-target {
+.invalid-target,
+.unready-card {
   filter: saturate(10%) brightness(10%);
   pointer-events: none;
 }

@@ -93,7 +93,7 @@ const utils = {
     const fromPlayerNum = utils.getPlayerNumById(message.playerId);
     if (effectName === 'gainPunk') {
       // TODO Should reshuffle here automatically. As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
-      if (!onClient && gs.deck?.length <= 1) {
+      if (!onClient && gs.deck?.length < 1) {
         return [];
       }
 
@@ -309,6 +309,15 @@ const utils = {
       }
     }
     return false;
+  },
+
+  markAllSlotsReady() {
+    // Set all cards to ready state
+    [...gs.slots.player1, ...gs.slots.player2].forEach((slot) => {
+      if (slot.content) {
+        delete slot.content.unReady;
+      }
+    });
   },
 
   shuffleDeck(array) {

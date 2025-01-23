@@ -66,7 +66,7 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'doomsayer', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 1, abilityEffect: 'doomsayer' }] },
     { img: 'exterminator', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 1, abilityEffect: 'exterminator' }] },
     { img: 'gunner', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'gunner' }] },
-    { img: 'holdout', cost: 2, junkEffect: 'raid', abilities: [{ cost: 2, abilityEffect: 'damageCard' }] },
+    { img: 'holdout', cost: 2, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
     { img: 'looter', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 2, abilityEffect: 'looter' }] },
     { img: 'mimic', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'mimic' }] },
     { img: 'muse', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'gainWater' }] },
