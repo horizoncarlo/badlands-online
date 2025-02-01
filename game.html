@@ -62,9 +62,11 @@
               Card Scale
               <menu>
                 <li>
-                  <!-- TTODO Have a mouseover/hover scale as well and use in the CSS instead of a preset 1.05 -->
                   <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
-                  <span x-text="cardScale + '%'"></span>
+                  <span x-text="`Cards: ${cardScale}%`"></span>
+
+                  <input type="range" min="5" max="300" step="5" x-model="hoverScale" @input="applyHoverScale()" />
+                  <span x-text="`Hover: ${hoverScale}%`"></span>
                 </li>
               </menu>
             </li>
@@ -275,7 +277,7 @@
                       draggable="false"
                       :alt="slot.content.img"
                       :src="fullCardPath(slot.content)"
-                      :class="`bright-hover card-size card-anim slot-card ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
+                      :class="`bright-hover card card-size card-anim slot-card ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
                     />
                   </span>
                 </template>

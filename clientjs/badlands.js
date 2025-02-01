@@ -7,6 +7,7 @@ globalThis.ui = { // Local state
   repositionZIndex: 0,
   waterTokenEles: [],
   cardScale: 70, // Percent of card and board size
+  hoverScale: 110, // Percent for hovering any card to zoom in
   chatMax: 50, // As a view height property
   trayIsCamps: false,
   trayIsCards: true,
@@ -32,6 +33,7 @@ globalThis.ui = { // Local state
 };
 const LOCAL_STORAGE = {
   cardScale: 'cardScale',
+  hoverScale: 'hoverScale',
   repositionable: 'repositionable',
 };
 
@@ -72,7 +74,15 @@ function alpineInit() {
   } catch (ls) {
     ui.cardScale = 70;
   }
+  try {
+    if (localStorage.getItem(LOCAL_STORAGE.hoverScale)) {
+      ui.hoverScale = localStorage.getItem(LOCAL_STORAGE.hoverScale);
+    }
+  } catch (ls) {
+    ui.hoverScale = 110;
+  }
   applyCardScale();
+  applyHoverScale();
 
   Alpine.effect(() => {
     // Marginally less readable variables (wHy TWo flAgS?!) here but easy concise state in the UI
@@ -82,6 +92,9 @@ function alpineInit() {
 
   Alpine.effect(() => {
     localStorage.setItem(LOCAL_STORAGE.cardScale, ui.cardScale);
+  });
+  Alpine.effect(() => {
+    localStorage.setItem(LOCAL_STORAGE.hoverScale, ui.hoverScale);
   });
 }
 
@@ -208,6 +221,10 @@ function getPlayerData() {
 
 function applyCardScale() {
   document.documentElement.style.setProperty('--card-scale', ui.cardScale / 100);
+}
+
+function applyHoverScale() {
+  document.documentElement.style.setProperty('--hover-scale', ui.hoverScale / 100);
 }
 
 function applyChatMax(params) {

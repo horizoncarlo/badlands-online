@@ -4,6 +4,7 @@
   --card-padding-full: 10px;
   --gap-full: 30px;
   --card-scale: 1;
+  --hover-scale: 1;
   --chat-max-height: 50vh;
   --card-width: calc(var(--card-width-full) * var(--card-scale));
   --card-height: calc(var(--card-height-full) * var(--card-scale));
@@ -198,10 +199,8 @@ menu {
   padding: var(--card-padding);
 }
 
-.slot-card:hover,
 .bright-hover:hover {
   filter: brightness(120%);
-  transform: scale(1.05);
 }
 
 .camp-choice:hover,
@@ -209,8 +208,14 @@ menu {
   box-shadow: 0 0 20px var(--active);
 }
 
+.slot-card:hover {
+  box-shadow: 0 0 20px var(--accent);
+}
+
 .card:hover {
   animation: tiltCard 2s infinite alternate ease-in-out;
+  position: relative;
+  z-index: 5;
 }
 
 .card-error {
