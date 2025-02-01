@@ -277,7 +277,7 @@
                       draggable="false"
                       :alt="slot.content.img"
                       :src="fullCardPath(slot.content)"
-                      :class="`bright-hover card card-size card-anim slot-card ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
+                      :class="`bright-hover card-size card-anim slot-card ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
                     />
                   </span>
                 </template>

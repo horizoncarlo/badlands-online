@@ -205,11 +205,14 @@ menu {
 
 .camp-choice:hover,
 .card:hover {
-  box-shadow: 0 0 20px var(--active);
+  box-shadow: 0 0 20px var(--accent);
 }
 
-.slot-card:hover {
-  box-shadow: 0 0 20px var(--accent);
+.card-friendly:hover {
+  box-shadow: 0 0 20px var(--success);
+}
+.card-opponent:hover {
+  box-shadow: 0 0 20px var(--danger);
 }
 
 .card:hover {
