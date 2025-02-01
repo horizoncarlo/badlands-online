@@ -239,6 +239,11 @@ menu {
   transform: rotate(90deg) !important;
 }
 
+.event-queue {
+  right: 25%;
+  top: 15%;
+}
+
 .water-wrap {
   left: 2%;
   bottom: 5%;

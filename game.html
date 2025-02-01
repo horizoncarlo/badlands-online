@@ -285,8 +285,20 @@
             </template>
           </div>
         </template>
+      </template>
 
-        <!-- TTODO Add Event queue UI to right of the board (make draggable though?), 3 slots numbered with bombs 1/2/3 -->
+      <!-- TTODO Add Event queue UI to right of the board (make draggable though?), 3 slots numbered with bombs 1/2/3 -->
+      <template x-if="inGame">
+        <div
+          id="eventQueue"
+          draggable="true"
+          @dragstart="repositionStart($event)"
+          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+          class="repositionable panel event-queue bd-muted"
+          x-init="repositionFromStorage($el.id)"
+        >
+          Event Queue
+        </div>
       </template>
 
       <template x-if="inGame">
