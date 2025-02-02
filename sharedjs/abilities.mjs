@@ -497,7 +497,7 @@ const abilities = {
       gs.pendingTargetAction = structuredClone(abilityMessage);
       sendS('useAbility', abilityMessage, message.playerId);
     } else {
-      showDiscardDialog(message.details.expectedDiscards, { allowWaterSilo: false });
+      showDiscardDialog(message, { allowWaterSilo: false });
     }
   },
 };

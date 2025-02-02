@@ -347,7 +347,7 @@ const rawAction = {
           message,
           message.details.card.abilityEffect,
         );
-        
+
         // TTODO Anything to do after firing an event? Do we even need returnStatus above?
       } catch (err) {
         console.error('Error using event', err);

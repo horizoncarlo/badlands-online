@@ -46,6 +46,28 @@ const events = {
 
   // draw 4 then discard 3 of THOSE drawn cards
   interrogate(message) {
+    if (!onClient) {
+      for (let i = 0; i < 4; i++) {
+        action.drawCard({
+          ...message,
+          details: {
+            ...message.details,
+            multiAnimation: true,
+          },
+        }, { fromServerRequest: true });
+      }
+
+      action.sync(message.playerId);
+
+      // Setup our return message, but only include card choices from the pile we just drew
+      const abilityMessage = { ...message.details, effectName: message.details.card.abilityEffect, expectedDiscards: 3 };
+      const playerCards = gs[utils.getPlayerNumById(message.playerId)].cards;
+      abilityMessage['cardChoices'] = playerCards.slice(playerCards.length - 4);
+      gs.pendingTargetAction = structuredClone(abilityMessage);
+      sendS('useAbility', abilityMessage, message.playerId);
+    } else {
+      showDiscardDialog(message, { allowWaterSilo: false });
+    }
   },
 
   // destroy all enemies in one column (see magnusKarv for column)
@@ -54,6 +76,7 @@ const events = {
 
   // injurePerson ALL people
   radiation(message) {
+    // TTODO Radiation event - injure all people - almost like Gunner, but we just get EVERYONE on the board and damage them
   },
 
   // injurePerson all unprotected enemy people

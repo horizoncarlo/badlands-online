@@ -1,9 +1,9 @@
 let doneDiscard = false;
 
-function showDiscardDialog(expectedDiscards = 1, params) { // params.allowWaterSilo: boolean to let Water Silo be discarded or not
+function showDiscardDialog(message, params) { // params.allowWaterSilo: boolean to let Water Silo be discarded or not
   doneDiscard = false;
-  ui.cardData.expectedDiscards = expectedDiscards;
-  ui.cardData.myCards = getMyCards();
+  ui.cardData.expectedDiscards = message.details.expectedDiscards ?? 1;
+  ui.cardData.myCards = message.details.cardChoices ?? getMyCards();
 
   // Filter out the Water Silo as an option if requested
   if (!params || !params.allowWaterSilo) {

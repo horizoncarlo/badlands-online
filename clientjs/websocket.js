@@ -105,6 +105,8 @@ const receiveClientWebsocketMessage = (message) => {
     case 'useAbility':
       if (abilities && typeof abilities[message.details.effectName] === 'function') {
         abilities[message.details.effectName](message);
+      } else if (events && typeof events[message.details.effectName] === 'function') {
+        events[message.details.effectName](message);
       }
       break;
   }
