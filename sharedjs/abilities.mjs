@@ -391,7 +391,7 @@ const abilities = {
         null,
         () => action.damageCard({ ...message, type: 'damageCard' }, 'Select an unprotected card to damage with Vanguard'),
       );
-      // TTODO codeQueue improvement - multiple triggers: for Vanguard we need to also trigger on cancelTarget (for both of these), otherwise the follow up breaks - maybe pass trigger into the added anonymous func as a param and behave accordingly? Also likely for Mutant if you cancel target on damageCard step?
+      // TODO codeQueue improvement - multiple triggers: for Vanguard we need to also trigger on cancelTarget (for both of these), otherwise the follow up breaks - maybe pass trigger into the added anonymous func as a param and behave accordingly? Also likely for Mutant if you cancel target on damageCard step?
       codeQueue.add(
         'reduceWater',
         () =>
@@ -406,7 +406,7 @@ const abilities = {
   // damageCard all cards in one opponent column
   magnusKarv(message) {
     if (!onClient) {
-      // TTODO Do a proxy/raw style for abilities and store a bunch of local convenience variables from our utility functions, like playerNum, opponentNum, etc. so we don't have to do long chains like the next line in each function?
+      // TODO Do a proxy/raw style for abilities and store a bunch of local convenience variables from our utility functions, like playerNum, opponentNum, etc. so we don't have to do long chains like the next line in each function?
       const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
       const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
       const targets = utils.checkSelectedTargets(message);

@@ -246,13 +246,12 @@
             :class="'slots ' + (isMySlot ? 'my-slots' : 'opponent-slots')"
           >
             <template x-for="(slot, index) in playerSlots">
-              <!-- TTODO Handle dragging Event card.isEvent, which should go in the event queue or junk only -->
               <div
                 :id="isMySlot ? `${targetModePrefix}${SLOT_ID_PREFIX}${index}` : `opponent_${SLOT_ID_PREFIX}${index}`"
                 class="bd-default relative"
-                @dragleave="dragLeaveHighlight($el)"
-                @dragover.prevent="isMySlot && dragOverSlot(slot, $el)"
-                @drop.prevent="isMySlot && dropCardInSlot(slot, $el)"
+                @dragleave="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragLeaveHighlight($el)"
+                @dragover.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragOverSlot(slot, $el)"
+                @drop.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dropCardInGame(slot, $el)"
               >
                 <template x-if="slot.content">
                   <span>
@@ -277,7 +276,7 @@
                       draggable="false"
                       :alt="slot.content.img"
                       :src="fullCardPath(slot.content)"
-                      :class="`bright-hover card-size card-anim slot-card ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
+                      :class="`card-size card-anim ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
                     />
                   </span>
                 </template>
@@ -287,18 +286,40 @@
         </template>
       </template>
 
-      <!-- TTODO Add Event queue UI to right of the board (make draggable though?), 3 slots numbered with bombs 1/2/3 -->
       <template x-if="inGame">
-        <div
-          id="eventQueue"
-          draggable="true"
-          @dragstart="repositionStart($event)"
-          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-          class="repositionable panel event-queue bd-muted"
-          x-init="repositionFromStorage($el.id)"
-        >
-          Event Queue
-        </div>
+        <template x-for="(playerEvents, playerNum) in getEvents()">
+          <div
+            :id="`${ isMyEvent ? 'myEvents' : 'opponentEvents'}`"
+            draggable="true"
+            @dragstart="repositionStart($event)"
+            @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+            @dragleave="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dragLeaveHighlight($el)"
+            @dragover.prevent="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dragOverEvent(event, $el)"
+            @drop.prevent="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dropCardInGame(event, $el)"
+            x-init="repositionFromStorage($el.id)"
+            x-data="{ isMyEvent: playerNum === myPlayerNum }"
+            :class="`repositionable events ${isMyEvent ? 'my-events' : 'opponent-events'}`"
+          >
+            <template x-for="(event, index) in playerEvents">
+              <!-- Ignore displaying the first (0 index) event space, we use this for tracking immediate events and keeping startSpace sane and 1-based, but we don't show it -->
+              <template x-if="index > 0">
+                <div class="bd-default relative">
+                  <div class="event-number" x-text="index">
+                    <!-- TTODO Use an event queue bomb icon here instead of a plain text number -->
+                  </div>
+                  <template x-if="event">
+                    <img
+                      draggable="false"
+                      :alt="event.img"
+                      :src="fullCardPath(event)"
+                      :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' }`"
+                    />
+                  </template>
+                </div>
+              </template>
+            </template>
+          </div>
+        </template>
       </template>
 
       <template x-if="inGame">

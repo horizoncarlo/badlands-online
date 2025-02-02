@@ -70,18 +70,16 @@ const rawAction = {
           // Play some random cards on the board as easy targets
           utils.getPlayerDataById(autoPlayerId).waterCount = 20; // Make sure we can get plenty of cards out
           utils.getPlayerDataById(autoPlayerId).cards.forEach((card, index) => {
-            if (!card.isEvent) {
-              action.playCard({
-                type: 'playCard',
-                playerId: autoPlayerId,
-                details: {
-                  card: card,
-                  slot: {
-                    index: index,
-                  },
+            action.playCard({
+              type: 'playCard',
+              playerId: autoPlayerId,
+              details: {
+                card: card,
+                slot: {
+                  index: index,
                 },
-              });
-            }
+              },
+            });
           });
 
           utils.sleep(500);
@@ -181,57 +179,87 @@ const rawAction = {
         return;
       }
 
-      // Determine if our column is full or other validity scenarios
-      const playerSlots = gs[utils.getPlayerNumById(message.playerId)].slots;
-      let targetSlot = playerSlots[message.details.slot.index];
-      if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
-        action.sendError('Invalid card position', message.playerId);
-        return;
-      }
+      // Now we split our behaviour, but keep this a long winded function instead of breaking it up
+      // Either we're an event and we need to manage our queue, or we're into a slot and need to adjust the board
+      if (utils.cardIsEvent(message.details.card)) {
+        // Event queue rules:
+        // If our event is space 0 we just do the effect immediately
+        // Normally just place in startSpace
+        // If that is full, try the one behind it, and so on until either we find an empty space or are outside the queue (and can't play the card)
+        let targetSpace = message.details.card.startSpace;
+        const eventQueue = gs[utils.getPlayerNumById(message.playerId)].events;
 
-      // Check if we're playing a card on a card that has an empty slot above - push other card up
-      if (targetSlot.content && utils.isBottomRow(targetSlot.index)) {
-        const slotAbove = playerSlots[utils.indexAbove(targetSlot.index)];
-        if (!slotAbove.content) {
-          slotAbove.content = structuredClone(targetSlot.content);
-          targetSlot.content = null;
+        if (targetSpace === 0) {
+          // TTODO Immediately perform the event
+        } else {
+          for (let i = targetSpace; i <= eventQueue.length; i++) {
+            targetSpace = i;
+            if (!eventQueue[i] || i > eventQueue.length) {
+              break;
+            }
+          }
+        }
 
-          // Send an extra slot message to notify a card was pushed
-          sendS('slot', {
-            playerNum: utils.getPlayerNumById(message.playerId),
-            index: slotAbove.index,
-            card: slotAbove.content,
+        if (targetSpace >= eventQueue.length) {
+          action.sendError('No empty space for this Event', message.playerId);
+          return;
+        }
+
+        eventQueue.splice(targetSpace, 1, message.details.card);
+        action.sync(); // TODO Could send a more targetted message to JUST update the event queue (like the 'slot' send below), but meh we've been pretty lax with the syncing cause it's so fast
+      } else {
+        // Determine if our column is full or other validity scenarios
+        const playerSlots = gs[utils.getPlayerNumById(message.playerId)].slots;
+        let targetSlot = playerSlots[message.details.slot.index];
+        if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
+          action.sendError('Invalid card position', message.playerId);
+          return;
+        }
+
+        // Check if we're playing a card on a card that has an empty slot above - push other card up
+        if (targetSlot.content && utils.isBottomRow(targetSlot.index)) {
+          const slotAbove = playerSlots[utils.indexAbove(targetSlot.index)];
+          if (!slotAbove.content) {
+            slotAbove.content = structuredClone(targetSlot.content);
+            targetSlot.content = null;
+
+            // Send an extra slot message to notify a card was pushed
+            sendS('slot', {
+              playerNum: utils.getPlayerNumById(message.playerId),
+              index: slotAbove.index,
+              card: slotAbove.content,
+            });
+          }
+        }
+
+        // If we have content in our targetSlot still, that means we're trying to destroy and replace the card in question due to having ALL our slots filled
+        // Instead of just nullifying the card (like we do when pushing a card up) we want to destroyCard it, so if it was a Punk it'll go in the deck properly
+        if (targetSlot.content?.isPunk) {
+          action.destroyPunk({
+            ...message,
+            details: {
+              ...message.details,
+              card: targetSlot.content,
+            },
           });
+          targetSlot.content = null;
         }
-      }
 
-      // If we have content in our targetSlot still, that means we're trying to destroy and replace the card in question due to having ALL our slots filled
-      // Instead of just nullifying the card (like we do when pushing a card up) we want to destroyCard it, so if it was a Punk it'll go in the deck properly
-      if (targetSlot.content?.isPunk) {
-        action.destroyPunk({
-          ...message,
-          details: {
-            ...message.details,
-            card: targetSlot.content,
-          },
+        // Check if we're playing a card with an empty slot below - drop card down to bottom row
+        if (utils.isTopRow(targetSlot.index)) {
+          const slotBelow = playerSlots[utils.indexBelow(targetSlot.index)];
+          if (!slotBelow.content) {
+            targetSlot = slotBelow;
+          }
+        }
+
+        targetSlot.content = message.details.card;
+        sendS('slot', {
+          playerNum: utils.getPlayerNumById(message.playerId),
+          index: targetSlot.index,
+          card: message.details.card,
         });
-        targetSlot.content = null;
       }
-
-      // Check if we're playing a card with an empty slot below - drop card down to bottom row
-      if (utils.isTopRow(targetSlot.index)) {
-        const slotBelow = playerSlots[utils.indexBelow(targetSlot.index)];
-        if (!slotBelow.content) {
-          targetSlot = slotBelow;
-        }
-      }
-
-      targetSlot.content = message.details.card;
-      sendS('slot', {
-        playerNum: utils.getPlayerNumById(message.playerId),
-        index: targetSlot.index,
-        card: message.details.card,
-      });
 
       action.reduceWater(message, waterCost);
       action.removeCard(message);
@@ -328,7 +356,7 @@ const rawAction = {
       // Manage our ready state, specifically around cost
       if (!params?.ignoreUnready && message.details.card) {
         const card = utils.findCardInGame(message.details.card);
-        if (card?.cardObj) {
+        if (card?.cardObj && !utils.cardIsEvent(card?.cardObj)) {
           card.cardObj.unReady = true;
           card.cardObj.unReadyCost = waterCost;
           action.sync(); // Needed for the unReady to apply

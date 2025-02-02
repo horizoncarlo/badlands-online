@@ -401,6 +401,14 @@ const utils = {
     return Math.floor(randomNumber * (max - min + 1)) + min;
   },
 
+  cardIsEvent(card) {
+    return typeof card?.startSpace === 'number';
+  },
+
+  cardIsCamp(card) {
+    return typeof card?.drawCount === 'number';
+  },
+
   cardImgToName(img) {
     if (!img) {
       return img;

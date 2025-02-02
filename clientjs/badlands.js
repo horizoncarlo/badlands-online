@@ -203,8 +203,16 @@ function getSlots() {
   // Split our slots up into the opponent (index 0) and our player slots (index 1)
   // This allows us to share the same loop in the UI but easily differentiate which set of slots we're on
   return {
-    [utils.getOppositePlayerNum(gs.myPlayerNum)]: getOpponentSlots(),
+    [gs.opponentPlayerNum]: getOpponentSlots(),
     [gs.myPlayerNum]: getMySlots(),
+  };
+}
+
+function getEvents() {
+  // Split our events up in a similar way to slots
+  return {
+    [gs.opponentPlayerNum]: gs[gs.opponentPlayerNum].events,
+    [gs.myPlayerNum]: gs[gs.myPlayerNum].events,
   };
 }
 
@@ -327,12 +335,22 @@ function getCheapestAbility(card) {
 function dragOverSlot(slot, ele) {
   // TODO Could determine if we have enough water to play the card and reject based on that (can't just disallow drag as we can still junk the card for no water)
 
+  if (utils.cardIsEvent(ui.draggedCard)) {
+    return false;
+  }
+
   const isValid = utils.determineValidDropSlot(slot, getMySlots());
   if (!isValid) {
     return false;
   }
 
   dragOverHighlight(ele);
+}
+
+function dragOverEvent(event, ele) {
+  if (utils.cardIsEvent(ui.draggedCard)) {
+    dragOverHighlight(ele);
+  }
 }
 
 function dragOverHighlight(ele, overrideHighlight) {
@@ -351,13 +369,19 @@ function dropCardInJunk(ele) {
   });
 }
 
-function dropCardInSlot(slot, ele) {
+function dropCardInGame(target, ele) {
   dragLeaveHighlight(ele);
 
-  action.playCard({
+  const playMessage = {
     card: ui.draggedCard,
-    slot: slot,
-  });
+  };
+
+  // Pass along our slot if we're playing a non-event onto the board
+  if (!utils.cardIsEvent(ui.draggedCard)) {
+    playMessage['slot'] = target;
+  }
+
+  action.playCard(playMessage);
 }
 
 function getDroppedCard(event) {
@@ -384,9 +408,9 @@ function fullCardPath(card) {
     if (card.img) {
       if (card.isWaterSilo) {
         dir = 'silo';
-      } else if (card.isEvent) {
+      } else if (utils.cardIsEvent(card)) {
         dir = 'events';
-      } else if (typeof card.drawCount === 'number') {
+      } else if (utils.cardIsCamp(card)) {
         dir = 'camps';
       }
     } else {

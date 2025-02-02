@@ -13,6 +13,7 @@ const gs = {
     camps: [],
     doneCamps: false,
     slots: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })), // For a 3x2 grid containing { index, content }
+    events: Array.from({ length: 4 }), // For a 1-based 3 slot event queue { index, content: cardObj, with .startSpace (aka isEvent) }
   },
   player2: {
     playerId: null,
@@ -22,6 +23,7 @@ const gs = {
     camps: [],
     doneCamps: false,
     slots: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })),
+    events: Array.from({ length: 4 }),
   },
   turn: {
     currentPlayer: null, // player1 or player2

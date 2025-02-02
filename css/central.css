@@ -72,6 +72,7 @@ menu {
 }
 
 .slots,
+.events,
 .tray {
   display: flex;
   flex-wrap: wrap;
@@ -84,6 +85,36 @@ menu {
 
 .slots {
   max-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
+}
+
+.events {
+  width: var(--card-width);
+}
+
+.event-number {
+  pointer-events: none; /* Pass events to the card underneath */
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: larger;
+  font-weight: bold;
+  font-family: monospace;
+  color: white;
+  text-shadow: 0 0 5px black;
+  z-index: 2;
+}
+
+.my-events {
+  top: 50%;
+  right: 20%;
+  background: var(--bg-accent);
+}
+
+.opponent-events {
+  top: 5%;
+  left: 20%;
+  transform: rotate(180deg);
+  background: var(--bg-danger);
 }
 
 .my-slots {
@@ -188,7 +219,8 @@ menu {
 }
 
 .card-size,
-.slots div {
+.slots div,
+.events div {
   width: var(--card-width);
   height: var(--card-height);
 }
@@ -212,6 +244,10 @@ menu {
   box-shadow: 0 0 20px var(--success);
 }
 .card-opponent:hover {
+  /*
+  TODO Need to flip opponent cards around so we can read them, but this messes up the rest of the mouseover animation
+  transform: rotate(180deg) !important;
+  */
   box-shadow: 0 0 20px var(--danger);
 }
 
@@ -237,11 +273,6 @@ menu {
 .damaged-card:hover {
   filter: none;
   transform: rotate(90deg) !important;
-}
-
-.event-queue {
-  right: 25%;
-  top: 15%;
 }
 
 .water-wrap {
