@@ -76,7 +76,14 @@ const events = {
 
   // injurePerson ALL people
   radiation(message) {
-    // TTODO Radiation event - injure all people - almost like Gunner, but we just get EVERYONE on the board and damage them
+    if (!onClient) {
+      const giveEmTheFallout = [...gs.player1.slots, ...gs.player2.slots];
+      giveEmTheFallout.forEach((slot) => {
+        if (slot.content) {
+          action.doDamageCard({ ...message, details: { card: { id: +slot.content.id } } });
+        }
+      });
+    }
   },
 
   // injurePerson all unprotected enemy people
