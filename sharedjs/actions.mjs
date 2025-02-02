@@ -1,4 +1,5 @@
 import { abilities } from './abilities.mjs';
+import { events } from './events.mjs';
 import { gs } from './gamestate.mjs';
 import { codeQueue, utils } from './utils.mjs';
 
@@ -123,7 +124,22 @@ const rawAction = {
         }
       });
 
-      // TTODO Handle Event queue moving forward on start of turn, plus triggering any effects
+      // Handle Event queue moving forward on start of turn, plus triggering any effects
+      const eventQueue = gs[nextPlayerNum].events;
+      for (let i = 0; i < eventQueue.length; i++) {
+        eventQueue[i] = eventQueue[i + 1];
+      }
+
+      // If an event just came off the queue (aka is at index 0) we trigger it
+      if (eventQueue[0]) {
+        action.triggerEvent({
+          playerId: message.playerId,
+          details: {
+            card: structuredClone(eventQueue[0]),
+          },
+        });
+        eventQueue[0] = undefined;
+      }
 
       action.drawCard(message, { fromServerRequest: true });
       action.sync();
@@ -182,19 +198,18 @@ const rawAction = {
       // Now we split our behaviour, but keep this a long winded function instead of breaking it up
       // Either we're an event and we need to manage our queue, or we're into a slot and need to adjust the board
       if (utils.cardIsEvent(message.details.card)) {
-        // Event queue rules:
-        // If our event is space 0 we just do the effect immediately
-        // Normally just place in startSpace
-        // If that is full, try the one behind it, and so on until either we find an empty space or are outside the queue (and can't play the card)
         let targetSpace = message.details.card.startSpace;
         const eventQueue = gs[utils.getPlayerNumById(message.playerId)].events;
 
+        // If our event is space 0 we just do the effect immediately
         if (targetSpace === 0) {
-          // TTODO Immediately perform the event
+          action.triggerEvent(message);
         } else {
+          // Normally just place in startSpace
+          // If that is full, try the one behind it, and so on until either we find an empty space or are outside the queue (and can't play the card)
           for (let i = targetSpace; i <= eventQueue.length; i++) {
             targetSpace = i;
-            if (!eventQueue[i] || i > eventQueue.length) {
+            if (!eventQueue[i]) { // Found an empty space
               break;
             }
           }
@@ -320,6 +335,22 @@ const rawAction = {
         }
       } catch (err) {
         console.error('Error using ability', err);
+        action.sendError(err?.message, message.playerId);
+      }
+    }
+  },
+
+  triggerEvent(message) {
+    if (!onClient) {
+      try {
+        const returnStatus = utils.fireAbilityOrJunk(
+          message,
+          message.details.card.abilityEffect,
+        );
+        
+        // TTODO Anything to do after firing an event? Do we even need returnStatus above?
+      } catch (err) {
+        console.error('Error using event', err);
         action.sendError(err?.message, message.playerId);
       }
     }
@@ -848,7 +879,8 @@ const rawAction = {
     } else {
       if (message.details.targets) {
         try {
-          const pendingFunc = abilities[gs.pendingTargetAction?.type] || action[gs.pendingTargetAction?.type];
+          const pendingFunc = events[gs.pendingTargetAction?.type] || abilities[gs.pendingTargetAction?.type] ||
+            action[gs.pendingTargetAction?.type];
           if (typeof pendingFunc === 'function') {
             // Bit of a complicated one, but gs.pendingTargetAction USED to be reset at the bottom of this function
             // The problem is with the codeQueue there is a chance we trigger a new action code path in the proxy handler
@@ -863,11 +895,13 @@ const rawAction = {
             });
 
             if (pendingTargetActionClone.details?.card && returnStatus !== false) {
-              // TODO Probably clean up this flag reliance?
+              if (utils.cardIsEvent(pendingTargetActionClone.details?.card)) {
+                // No extra handling needed for a triggered event
+              } // TODO Probably clean up this flag reliance?
               // If we don't have a chosenAbilityIndex that means we junked and should discard
-              if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
+              else if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
                 action.discardCard(pendingTargetActionClone);
-              } // Otherwise reduce the water cost
+              } // Otherwise reduce the water cost of a used ability from a played card
               else {
                 const abilityObj =
                   pendingTargetActionClone.details.card.abilities[pendingTargetActionClone.details.card.chosenAbilityIndex];
@@ -975,6 +1009,7 @@ rawAction.takeWaterSilo.recordUndo = true;
 rawAction.joinGame.clearUndo = true;
 rawAction.promptCamps.clearUndo = true;
 rawAction.doneCamps.clearUndo = true;
+rawAction.triggerEvent.recordUndo = true;
 rawAction.startTurn.clearUndo = true;
 rawAction.endTurn.clearUndo = true;
 rawAction.drawCard.clearUndo = true;

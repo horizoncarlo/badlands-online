@@ -98,18 +98,17 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     uniq['junkEffect'] = 'gainPunk';
     return uniq;
   });
-  // TTODO Add abilities to events and handle them firing elsewhere
   const dupeEvents = [
-    { img: 'banish', cost: 1, startSpace: 1, junkEffect: 'raid', abilityEffect: 'banish' }, // destroy any enemy person
-    { img: 'bombardment', cost: 4, startSpace: 3, junkEffect: 'restoreCard', abilityEffect: 'bombardment' }, // damage all opponent camps, then drawCard for each destroyed camp they have
-    { img: 'famine', cost: 1, startSpace: 1, junkEffect: 'injurePerson', abilityEffect: 'famine' }, // each player starting with you destroy all but one of their people (...just choose/target survivor?)
-    { img: 'high_ground', cost: 0, startSpace: 1, junkEffect: 'gainWater', abilityEffect: 'highGround' }, // rearrange your people, then this turn all opponent cards (including camps) are unprotected
-    { img: 'interrogate', cost: 1, startSpace: 0, junkEffect: 'gainWater', abilityEffect: 'interrogate' }, // draw 4 then discard 3 of THOSE drawn cards
-    { img: 'napalm', cost: 2, startSpace: 1, junkEffect: 'restoreCard', abilityEffect: 'napalm' }, // destroy all enemies in one column (see magnusKarv for column)
-    { img: 'radiation', cost: 2, startSpace: 1, junkEffect: 'raid', abilityEffect: 'radiation' }, // injure all people
-    { img: 'strafe', cost: 2, startSpace: 0, junkEffect: 'drawCard', abilityEffect: 'strafe' }, // = gunner
-    { img: 'truce', cost: 2, startSpace: 0, junkEffect: 'injurePerson', abilityEffect: 'truce' }, // return all people (including punks) to their owners' hands
-    { img: 'uprising', cost: 1, startSpace: 2, junkEffect: 'injurePerson', abilityEffect: 'uprising' }, // gain 3 punks (or as many free slots as there are)
+    { img: 'banish', cost: 1, startSpace: 1, junkEffect: 'raid', abilityEffect: 'banish' },
+    { img: 'bombardment', cost: 4, startSpace: 3, junkEffect: 'restoreCard', abilityEffect: 'bombardment' },
+    { img: 'famine', cost: 1, startSpace: 1, junkEffect: 'injurePerson', abilityEffect: 'famine' },
+    { img: 'high_ground', cost: 0, startSpace: 1, junkEffect: 'gainWater', abilityEffect: 'highGround' },
+    { img: 'interrogate', cost: 1, startSpace: 0, junkEffect: 'gainWater', abilityEffect: 'interrogate' },
+    { img: 'napalm', cost: 2, startSpace: 1, junkEffect: 'restoreCard', abilityEffect: 'napalm' },
+    { img: 'radiation', cost: 2, startSpace: 1, junkEffect: 'raid', abilityEffect: 'radiation' },
+    { img: 'strafe', cost: 2, startSpace: 0, junkEffect: 'drawCard', abilityEffect: 'strafe' },
+    { img: 'truce', cost: 2, startSpace: 0, junkEffect: 'injurePerson', abilityEffect: 'truce' },
+    { img: 'uprising', cost: 1, startSpace: 2, junkEffect: 'injurePerson', abilityEffect: 'uprising' },
   ];
 
   const deck = _shuffleNewDeck([

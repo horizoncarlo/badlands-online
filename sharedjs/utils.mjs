@@ -1,5 +1,6 @@
 import { abilities } from './abilities.mjs';
 import { action } from './actions.mjs';
+import { events } from './events.mjs';
 import { gs } from './gamestate.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
@@ -71,6 +72,9 @@ const utils = {
       } else if (typeof abilities[effectName] === 'function') {
         // Action wasn't found, so we try an ability instead
         return abilities[effectName]({ ...message, type: effectName });
+      } else if (typeof events[effectName] === 'function') {
+        // Ability wasn't found, so we try an event instead
+        return events[effectName]({ ...message, type: effectName });
       } else {
         throw new Error('Invalid card effect');
       }
