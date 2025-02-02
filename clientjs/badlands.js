@@ -196,7 +196,7 @@ function getOpponentCamps() {
 }
 
 function getOpponentSlots() {
-  return gs.slots[gs.opponentPlayerNum];
+  return gs[gs.opponentPlayerNum].slots;
 }
 
 function getSlots() {
@@ -209,7 +209,7 @@ function getSlots() {
 }
 
 function getMySlots() {
-  return gs.slots[gs.myPlayerNum];
+  return gs[gs.myPlayerNum].slots;
 }
 
 function getPlayerData() {
@@ -464,22 +464,22 @@ function setValidTargetsFromIds(validTargets, params) { // params.removeInstead:
   let checkList = [];
   if (validTargets.some((target) => typeof target === 'string' && target.startsWith(SLOT_ID_PREFIX))) {
     checkList = [
-      ...gs.slots[gs.myPlayerNum]
+      ...gs[gs.myPlayerNum].slots
         .filter((slot) => {
           return validTargets.includes(SLOT_ID_PREFIX + slot.index);
         })
         .map((slot) => {
           return { id: SLOT_ID_PREFIX + slot.index };
         }),
-      ...utils.getContentFromSlots(gs.slots.player1),
-      ...utils.getContentFromSlots(gs.slots.player2),
+      ...utils.getContentFromSlots(gs.player1.slots),
+      ...utils.getContentFromSlots(gs.player2.slots),
     ];
   } else {
     checkList = [
       ...gs.player1.camps,
-      ...utils.getContentFromSlots(gs.slots.player1),
+      ...utils.getContentFromSlots(gs.player1.slots),
       ...gs.player2.camps,
-      ...utils.getContentFromSlots(gs.slots.player2),
+      ...utils.getContentFromSlots(gs.player2.slots),
       ...gs[gs.myPlayerNum].cards,
     ];
   }

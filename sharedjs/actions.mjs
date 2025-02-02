@@ -115,7 +115,7 @@ const rawAction = {
 
       // Reset ready state of cards, then apply for our damaged cards
       utils.markAllSlotsReady();
-      gs.slots[nextPlayerNum].forEach((slot) => {
+      gs[nextPlayerNum].slots.forEach((slot) => {
         if (slot.content) {
           if (slot.content.damage > 0) {
             slot.content.unReady = true;
@@ -182,7 +182,7 @@ const rawAction = {
       }
 
       // Determine if our column is full or other validity scenarios
-      const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
+      const playerSlots = gs[utils.getPlayerNumById(message.playerId)].slots;
       let targetSlot = playerSlots[message.details.slot.index];
       if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
         action.sendError('Invalid card position', message.playerId);
@@ -476,7 +476,7 @@ const rawAction = {
 
         // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards OR replace entirely
         const targetId = targets[0];
-        const playerSlots = gs.slots[utils.getPlayerNumById(message.playerId)];
+        const playerSlots = gs[utils.getPlayerNumById(message.playerId)].slots;
         if (targetId.startsWith(SLOT_ID_PREFIX)) {
           const targetSlotIndex = parseInt(targetId.substring(SLOT_ID_PREFIX.length));
 
@@ -593,7 +593,7 @@ const rawAction = {
         // TODO Play a destroy animation so the card being removed from the board is less abrupt
         if (typeof foundRes.slotIndex === 'number') {
           // Destroy our card
-          const playerSlots = gs.slots[foundRes.playerNum];
+          const playerSlots = gs[foundRes.playerNum].slots;
           playerSlots[foundRes.slotIndex].content = null;
 
           // Check if we have a card in above of our destroyed card, if we do, slide it down towards the camp

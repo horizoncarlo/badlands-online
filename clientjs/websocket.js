@@ -26,7 +26,7 @@ const receiveClientWebsocketMessage = (message) => {
       ui.inGame = true;
       break;
     case 'slot':
-      gs.slots[message.details.playerNum][message.details.index].content = message.details.card;
+      gs[message.details.playerNum].slots[message.details.index].content = message.details.card;
       break;
     case 'addCard': {
       const addUniqCard = (cardToAdd) => {

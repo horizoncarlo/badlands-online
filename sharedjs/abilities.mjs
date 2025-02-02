@@ -94,7 +94,7 @@ const abilities = {
   exterminator(message) {
     if (!onClient) {
       const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-      const damagedSlots = gs.slots[opponentNum].filter((slot) =>
+      const damagedSlots = gs[opponentNum].slots.filter((slot) =>
         slot.content && typeof slot.content.damage === 'number' && slot.content.damage > 0
       );
 
@@ -166,7 +166,7 @@ const abilities = {
         });
       } else {
         // Mimic can target ANY person that is undamaged and ready (and obviously not themselves)
-        const validTargets = [...gs.slots.player1, ...gs.slots.player2]
+        const validTargets = [...gs.player1.slots, ...gs.player2.slots]
           .filter((slot) =>
             slot.content && slot.content.id !== message.details.card.id && !slot.content.unReady &&
             (!slot.content.damage || slot.content.damage <= 0)
@@ -279,7 +279,7 @@ const abilities = {
             }
 
             playerData.cards.push(target.cardObj);
-            gs.slots[playerNum][target.slotIndex].content = null;
+            gs[playerNum].slots[target.slotIndex].content = null;
           }
         });
         action.sync();
@@ -367,7 +367,7 @@ const abilities = {
       if (_needTargets(message)) {
         const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         message.validTargets = [
-          ...gs.slots[opponentNum].filter((slot) => slot.content ? true : false).map((slot) => String(slot.content.id)),
+          ...gs[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) => String(slot.content.id)),
           ...gs[opponentNum].camps.map((camp) => String(camp.id)),
         ];
 

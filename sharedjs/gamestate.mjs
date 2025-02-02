@@ -12,6 +12,7 @@ const gs = {
     cards: [],
     camps: [],
     doneCamps: false,
+    slots: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })), // For a 3x2 grid containing { index, content }
   },
   player2: {
     playerId: null,
@@ -20,6 +21,7 @@ const gs = {
     cards: [],
     camps: [],
     doneCamps: false,
+    slots: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })),
   },
   turn: {
     currentPlayer: null, // player1 or player2
@@ -29,10 +31,6 @@ const gs = {
     player2: {
       turnCount: 0,
     },
-  },
-  slots: {
-    player1: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })), // For a 3x2 grid containing { index, content }
-    player2: Array.from({ length: 6 }, (_, index) => ({ index: index, content: null })),
   },
   deck: [
     /* cardObj: { id, img, damage, unReady, unReadyCost (water tokens to show on UI, such as from play or ability cost) } */

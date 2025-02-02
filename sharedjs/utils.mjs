@@ -101,17 +101,17 @@ const utils = {
       // Determine where our Punk can go
       // If ALL our slots are full then we can place anywhere and destroy the occupant
       let filteredSlots = [];
-      if (utils.areAllSlotsFull(gs.slots[fromPlayerNum])) {
-        filteredSlots = gs.slots[fromPlayerNum];
+      if (utils.areAllSlotsFull(gs[fromPlayerNum].slots)) {
+        filteredSlots = gs[fromPlayerNum].slots;
       } else {
-        filteredSlots = gs.slots[fromPlayerNum]
+        filteredSlots = gs[fromPlayerNum].slots
           .filter((slot, index) => {
             // if our target is an empty slot we can place
             if (!slot.content) {
               return true;
             } // Determine if we're dropping a Punk on a card that has a slot above, in which case we can push that card up
             else if (utils.isBottomRow(index)) {
-              if (!gs.slots[fromPlayerNum][utils.indexAbove(index)].content) {
+              if (!gs[fromPlayerNum].slots[utils.indexAbove(index)].content) {
                 return true;
               }
             }
@@ -123,7 +123,7 @@ const utils = {
       });
     } else if (effectName === 'restoreCard') {
       let targets = [
-        ...utils.getContentFromSlots(gs.slots[fromPlayerNum]),
+        ...utils.getContentFromSlots(gs[fromPlayerNum].slots),
         ...utils.getPlayerDataById(message.playerId).camps,
       ];
       // Target must be damaged and cannot be self
@@ -145,7 +145,7 @@ const utils = {
 
   determineOwnSlotTargets(message) {
     const playerNum = utils.getPlayerNumById(message.playerId);
-    return gs.slots[playerNum]
+    return gs[playerNum].slots
       .filter((slot) => slot.content && slot.content.id !== message.details.card.id)
       .map((slot) => String(slot.content.id));
   },
@@ -188,7 +188,7 @@ const utils = {
     // Get the outermost unprotected opponent card in each column and return their IDs as targets
     const unprotectedCardIds = [];
     const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-    const opponentSlots = gs.slots[opponentPlayerNum];
+    const opponentSlots = gs[opponentPlayerNum]?.slots;
     const opponentCamps = gs[opponentPlayerNum]?.camps;
     for (let i = 0; i <= SLOT_NUM_ROWS; i++) {
       if (!params?.campsOnly && opponentSlots[i].content !== null) {
@@ -263,12 +263,12 @@ const utils = {
 
   findCardInSlots(card) {
     function findCardInPlayerSlots(card, playerNum) {
-      const slotIndex = gs.slots[playerNum].findIndex((loopSlot) => {
+      const slotIndex = gs[playerNum].slots.findIndex((loopSlot) => {
         return loopSlot?.content?.id === (typeof card.id === 'number' ? card.id : +card.id); // TODO Better consistent number typing throughout the whole app
       });
       if (slotIndex !== -1) {
         return {
-          cardObj: gs.slots[playerNum][slotIndex].content,
+          cardObj: gs[playerNum].slots[slotIndex].content,
           slotIndex,
           playerNum,
         };
@@ -304,7 +304,7 @@ const utils = {
 
   playerHasPunk(playerId) {
     if (playerId && utils.getPlayerNumById(playerId)) {
-      const slots = gs.slots[utils.getPlayerNumById(playerId)];
+      const slots = gs[utils.getPlayerNumById(playerId)].slots;
       if (slots) {
         return slots.some((slot) => slot.content?.isPunk);
       }
@@ -314,7 +314,7 @@ const utils = {
 
   markAllSlotsReady() {
     // Set all cards to ready state
-    [...gs.slots.player1, ...gs.slots.player2].forEach((slot) => {
+    [...gs.player1.slots, ...gs.player2.slots].forEach((slot) => {
       if (slot.content) {
         delete slot.content.unReady;
       }
@@ -466,7 +466,7 @@ const utils = {
     const slotsInColumn = [];
     for (let rowIndex = 0; rowIndex < SLOT_NUM_ROWS; rowIndex++) {
       const slotIndex = columnIndex + rowIndex * SLOT_NUM_COLS;
-      slotsInColumn.push(gs.slots[playerNum][slotIndex]);
+      slotsInColumn.push(gs[playerNum].slots[slotIndex]);
     }
     return slotsInColumn;
   },
