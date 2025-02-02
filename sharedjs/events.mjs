@@ -34,6 +34,20 @@ const events = {
   // TTODO All the event effects in events.mjs
   // damage all opponent camps, then drawCard for each destroyed camp they have
   bombardment(message) {
+    const opponentCamps = gs[utils.getOpponentNumById(message.playerId)].camps;
+    opponentCamps.forEach((camp) => {
+      action.doDamageCard({ ...message, details: { card: { id: camp.id } } });
+    });
+
+    const drawCount = opponentCamps.filter((camp) => camp.isDestroyed)?.length;
+    if (drawCount > 0) {
+      action.drawCard({
+        ...message,
+        details: {
+          multiAnimation: drawCount > 1,
+        },
+      }, { fromServerRequest: true });
+    }
   },
 
   // each player starting with you destroy all but one of their people (...just choose/target survivor?)

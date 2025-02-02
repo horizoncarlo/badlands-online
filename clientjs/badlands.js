@@ -178,7 +178,7 @@ function getMyCamps() {
 
 function getCampImage(camp) {
   // TODO Preload the DESTROYED image so it doesn't flicker when first being shown. Argument could be made to preload every card image in the background?
-  return fullCardPath(camp.isDestroyed ? 'DESTROYED.png' : camp);
+  return fullCardPath(camp.isDestroyed ? { img: 'DESTROYED.png', drawCount: 0 } : camp);
 }
 
 function getOpponentCardCount() {

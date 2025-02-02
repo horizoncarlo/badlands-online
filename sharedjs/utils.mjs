@@ -227,7 +227,7 @@ const utils = {
   },
 
   getOpponentNumById(playerId) {
-    getOppositePlayerNum(utils.getPlayerNumById(playerId));
+    return utils.getOppositePlayerNum(utils.getPlayerNumById(playerId));
   },
 
   getPlayerDataById(playerId) {
