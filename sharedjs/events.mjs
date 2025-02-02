@@ -110,6 +110,28 @@ const events = {
 
   // return all people (including punks) to their owners' hands
   truce(message) {
+    function returnCardsToHand(playerId) {
+      const playerNum = utils.getPlayerNumById(playerId);
+      gs[playerNum].slots.forEach((slot) => {
+        if (slot.content) {
+          const foundCard = utils.findCardInGame({ id: slot.content.id });
+          if (foundCard) {
+            // If we're a Punk convert to the actual card (is hidden information before)
+            if (foundCard.cardObj.isPunk) {
+              foundCard.cardObj = utils.convertPunkToCard(foundCard.cardObj.id);
+            }
+
+            gs[playerNum].cards.push(foundCard.cardObj);
+            gs[playerNum].slots[foundCard.slotIndex].content = null;
+          }
+        }
+      });
+    }
+
+    returnCardsToHand(message.playerId);
+    returnCardsToHand(utils.getOppositePlayerId(message.playerId));
+
+    action.sync();
   },
 
   // gain 3 punks (or as many free slots as there are)
