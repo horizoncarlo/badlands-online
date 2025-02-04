@@ -93,7 +93,7 @@ const events = {
             hideCancel: true,
           });
         } else {
-          action.doneTargets();
+          action.doneTargets(); // This is to fire off the matching event to contine our codeQueue
           action.sendError('Famine does nothing to player'); // TODO Integrate player names?
         }
       }
@@ -102,7 +102,62 @@ const events = {
 
   // rearrange your people, then this turn all opponent cards (including camps) are unprotected
   highGround(message) {
-    // TTODO High Ground
+    if (!onClient) {
+      utils.universal.highGround = true;
+
+      const playerSlots = utils.getPlayerDataById(message.playerId)?.slots;
+      const targets = utils.checkSelectedTargets(message);
+
+      // Swap our two targets from the client
+      if (targets?.length === 2) {
+        // Repetition is readable!
+        const target0SlotIndex = targets[0].startsWith(SLOT_ID_PREFIX)
+          ? parseInt(targets[0].substring(SLOT_ID_PREFIX.length))
+          : utils.findCardInGame({ id: targets[0] })?.slotIndex;
+        const target1SlotIndex = targets[1].startsWith(SLOT_ID_PREFIX)
+          ? parseInt(targets[1].substring(SLOT_ID_PREFIX.length))
+          : utils.findCardInGame({ id: targets[1] })?.slotIndex;
+        const target0Content = structuredClone(playerSlots[target0SlotIndex].content);
+        const target1Content = structuredClone(playerSlots[target1SlotIndex].content);
+
+        playerSlots[target0SlotIndex].content = target1Content;
+        playerSlots[target1SlotIndex].content = target0Content;
+
+        // Have any card movement with empty slots below fall as normal
+        const settleCards = function (slotIndex, slotContent) {
+          if (utils.isTopRow(slotIndex)) {
+            const slotBelow = playerSlots[utils.indexBelow(slotIndex)];
+            if (!slotBelow.content) {
+              playerSlots[slotIndex].content = null;
+              slotBelow.content = slotContent;
+            }
+          }
+        };
+        settleCards(target0SlotIndex, target1Content);
+        settleCards(target1SlotIndex, target0Content);
+
+        action.sync();
+      }
+
+      // Keep on slamming targetting requests until the user cancels
+      let hasPeople = false; // Ensure we even have valid people to rearrange
+      message.type = 'highGround';
+      message.validTargets = playerSlots.map((slot) => {
+        if (slot.content) {
+          hasPeople = true;
+        }
+        return slot.content ? String(slot.content.id) : SLOT_ID_PREFIX + slot.index;
+      });
+
+      if (hasPeople && message.validTargets?.length) {
+        action.targetMode(message, {
+          expectedTargetCount: 2,
+          help: 'Select a card to rearrange with High Ground (click Cancel when done)',
+        });
+      } else {
+        action.sendError('High Ground has no valid targets');
+      }
+    }
   },
 
   // draw 4 then discard 3 of THOSE drawn cards

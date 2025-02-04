@@ -20,6 +20,16 @@ globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join t
 globalThis.DEBUG_AUTO_OPPONENT_DRAW = 6; // Debugging flag for the number of cards the auto-opponent should draw on their first turn, regardless of camps
 
 const utils = {
+  // TODO Can we leverage the 'universal' concept for trait flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
+  universal: {
+    // TTODO Show universal effects somewhere on the UI - such as High Ground being in effect
+    highGround: false, // Whether High Ground was played this turn or not
+  },
+
+  clearUniversal() {
+    utils.universal.highGround = false;
+  },
+
   hasPlayerDataById(playerId) {
     if (gs && playerId) {
       return gs.player1.playerId === playerId || gs.player2.playerId === playerId;
@@ -32,7 +42,7 @@ const utils = {
   },
 
   getOppositePlayerId(playerId) {
-    return utils.getPlayerIdByNum(utils.getOppositePlayerNum(utils.getPlayerNumById(playerId))); // lol
+    return utils.getPlayerIdByNum(utils.getOppositePlayerNum(utils.getPlayerNumById(playerId))); // lol nice chaining bro
   },
 
   getContentFromSlots(checkSlots, params) { // params.idOnly: boolean
@@ -200,6 +210,18 @@ const utils = {
     const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
     const opponentSlots = gs[opponentPlayerNum]?.slots;
     const opponentCamps = gs[opponentPlayerNum]?.camps;
+
+    // Special case juuuuuuuust for High Ground event
+    if (utils.universal.highGround) {
+      if (!params?.campsOnly) {
+        unprotectedCardIds.push(...opponentSlots.filter((slot) => slot.content).map((slot) => String(slot.content.id)));
+      }
+      if (!params?.peopleOnly) {
+        unprotectedCardIds.push(...opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id)));
+      }
+      return unprotectedCardIds;
+    }
+
     for (let i = 0; i <= SLOT_NUM_ROWS; i++) {
       if (!params?.campsOnly && opponentSlots[i].content !== null) {
         unprotectedCardIds.push(String(opponentSlots[i].content.id));

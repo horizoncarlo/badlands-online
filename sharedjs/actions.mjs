@@ -150,6 +150,7 @@ const rawAction = {
     if (onClient) {
       sendC('endTurn');
     } else {
+      utils.clearUniversal();
       utils.markAllSlotsReady();
 
       const currentPlayerNum = utils.getPlayerNumById(message.playerId);
@@ -343,12 +344,10 @@ const rawAction = {
   triggerEvent(message) {
     if (!onClient) {
       try {
-        const returnStatus = utils.fireAbilityOrJunk(
+        utils.fireAbilityOrJunk(
           message,
           message.details.card.abilityEffect,
         );
-
-        // TTODO Anything to do after firing an event? Do we even need returnStatus above?
       } catch (err) {
         console.error('Error using event', err);
         action.sendError(err?.message, message.playerId);
@@ -463,7 +462,7 @@ const rawAction = {
           deckCount: gs.deck.length,
         };
         if (message.details?.fromWater || params?.fromServerRequest) {
-          newMessage.showAnimation = true;
+          newMessage.showAnimation = true; // TODO Clean this flag up after use otherwise it'll be attached to the message / gamestate forever
         }
 
         sendS('addCard', newMessage, message.playerId);
@@ -885,46 +884,44 @@ const rawAction = {
   doneTargets(message) {
     if (onClient) {
       sendC('doneTargets', message);
-    } else {
-      if (message?.details?.targets) {
-        try {
-          const pendingFunc = events[gs.pendingTargetAction?.type] || abilities[gs.pendingTargetAction?.type] ||
-            action[gs.pendingTargetAction?.type];
-          if (typeof pendingFunc === 'function') {
-            // Bit of a complicated one, but gs.pendingTargetAction USED to be reset at the bottom of this function
-            // The problem is with the codeQueue there is a chance we trigger a new action code path in the proxy handler
-            // Which might want to set the target action - so clearing it at the end here (as we did before)
-            //  would interrupt and mess with that ordering
-            const pendingTargetActionClone = structuredClone(gs.pendingTargetAction);
-            gs.pendingTargetAction = null;
+    } else if (message?.details?.targets) {
+      try {
+        const pendingFunc = events[gs.pendingTargetAction?.type] || abilities[gs.pendingTargetAction?.type] ||
+          action[gs.pendingTargetAction?.type];
+        if (typeof pendingFunc === 'function') {
+          // Bit of a complicated one, but gs.pendingTargetAction USED to be reset at the bottom of this function
+          // The problem is with the codeQueue there is a chance we trigger a new action code path in the proxy handler
+          // Which might want to set the target action - so clearing it at the end here (as we did before)
+          //  would interrupt and mess with that ordering
+          const pendingTargetActionClone = structuredClone(gs.pendingTargetAction);
+          gs.pendingTargetAction = null;
 
-            const returnStatus = pendingFunc({
-              ...message,
-              validTargets: pendingTargetActionClone.validTargets,
-            });
+          const returnStatus = pendingFunc({
+            ...message,
+            validTargets: pendingTargetActionClone.validTargets,
+          });
 
-            if (pendingTargetActionClone.details?.card && returnStatus !== false) {
-              if (utils.cardIsEvent(pendingTargetActionClone.details?.card)) {
-                // No extra handling needed for a triggered event
-              } // TODO Probably clean up this flag reliance?
-              // If we don't have a chosenAbilityIndex that means we junked and should discard
-              else if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
-                action.discardCard(pendingTargetActionClone);
-              } // Otherwise reduce the water cost of a used ability from a played card
-              else {
-                const abilityObj =
-                  pendingTargetActionClone.details.card.abilities[pendingTargetActionClone.details.card.chosenAbilityIndex];
-                action.reduceWater(pendingTargetActionClone, abilityObj.cost);
-              }
+          if (pendingTargetActionClone.details?.card && returnStatus !== false) {
+            if (utils.cardIsEvent(pendingTargetActionClone.details?.card)) {
+              // No extra handling needed for a triggered event
+            } // TODO Probably clean up this flag reliance?
+            // If we don't have a chosenAbilityIndex that means we junked and should discard
+            else if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
+              action.discardCard(pendingTargetActionClone);
+            } // Otherwise reduce the water cost of a used ability from a played card
+            else {
+              const abilityObj =
+                pendingTargetActionClone.details.card.abilities[pendingTargetActionClone.details.card.chosenAbilityIndex];
+              action.reduceWater(pendingTargetActionClone, abilityObj.cost);
             }
-          } else {
-            console.error('Unknown pendingTargetAction type', gs.pendingTargetAction);
-            throw new Error();
           }
-        } catch (err) {
-          console.error('Unknown target action', err);
-          action.sendError('Unknown target action', message.playerId);
+        } else {
+          console.error('Unknown pendingTargetAction type', gs.pendingTargetAction);
+          throw new Error();
         }
+      } catch (err) {
+        console.error('Unknown target action', err);
+        action.sendError('Unknown target action', message.playerId);
       }
     }
   },
@@ -963,6 +960,7 @@ const rawAction = {
       delete updatedGs.discard;
       delete updatedGs.punks;
       delete updatedGs.pendingTargetAction;
+      delete updatedGs.pendingTargetCancellable;
 
       if (!params?.includeChat) {
         delete updatedGs.chat;
