@@ -15,9 +15,12 @@ type WebSocketDetails = {
 const IS_LIVE = Deno.env.get('isLive');
 const DEFAULT_PORT = IS_LIVE ? 80 : 2000;
 const DEFAULT_HOSTNAME = IS_LIVE ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
+const DEFAULT_PATH = 'lobby.html';
 const CLIENT_WEBSOCKET_ADDRESS = IS_LIVE ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts', '/backendjs/'];
 const DEFAULT_PLAYER_ID = 'newPlayer';
+const TEMPLATE_COMPONENTJS = '<component-js />';
+const TEMPLATE_HEADER = '<include-header />';
 const COMPONENT_DIRECTORY = './backendjs/components/';
 
 const gameId = uuidv4(); // TODO Generate different game IDs as we add a lobby system
@@ -27,7 +30,12 @@ const jsComponentList = new Array<string>();
 
 const handler = (req: Request) => {
   const url = new URL(req.url);
-  const filePath = url.pathname;
+  let filePath = url.pathname;
+
+  // Default our root
+  if (filePath === '/') {
+    filePath = DEFAULT_PATH;
+  }
 
   if (filePath === '/ws') {
     if (req.headers.get('upgrade') != 'websocket') {
@@ -54,25 +62,36 @@ const handler = (req: Request) => {
       }
     });
     return response;
-  } else if (filePath === '/' || filePath === '/game.html') {
+  } else if (filePath === '/lobby.html' || filePath === '/game.html') {
     // Get our main HTML to return, but replace any templating variables first
-    let html = Deno.readTextFileSync('./game.html');
+    let html = Deno.readTextFileSync('.' + filePath);
+
+    // Common header file shared between pages
+    if (html.includes(TEMPLATE_HEADER)) {
+      html = html.replaceAll(TEMPLATE_HEADER, Deno.readTextFileSync('./includes/header.html'));
+    }
 
     html = html.replaceAll('${PLAYER_ID}', uuidv4());
     html = html.replaceAll('${CLIENT_WEBSOCKET_ADDRESS}', CLIENT_WEBSOCKET_ADDRESS);
 
     // Replace any components we've read from files and can find tags for
-    if (htmlComponentMap.size > 0) {
-      htmlComponentMap.forEach((value, key) => {
-        html = html.replaceAll(key, value);
-      });
-    }
-    if (jsComponentList.length > 0) {
-      let combinedJS = '';
-      for (let i = 0; i < jsComponentList.length; i++) {
-        combinedJS += jsComponentList[i];
+    if (filePath === '/game.html') {
+      if (htmlComponentMap.size > 0) {
+        htmlComponentMap.forEach((value, key) => {
+          html = html.replaceAll(key, value);
+        });
       }
-      html = html.replaceAll('<component-js />', combinedJS);
+
+      if (jsComponentList.length > 0) {
+        let combinedJS = '';
+        for (let i = 0; i < jsComponentList.length; i++) {
+          combinedJS += jsComponentList[i];
+        }
+
+        html = html.replaceAll(TEMPLATE_COMPONENTJS, combinedJS);
+      }
+    } else {
+      html = html.replaceAll(TEMPLATE_COMPONENTJS, '');
     }
 
     return new Response(html, {

@@ -1,0 +1,353 @@
+.junk-pile {
+  position: absolute;
+  text-align: center;
+  padding: var(--gap);
+}
+
+.draw-animation {
+  position: absolute;
+  animation-timing-function: linear;
+  animation: drawCard 1.5s;
+}
+
+.slots,
+.events,
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--gap);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.slots {
+  max-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
+}
+
+.events {
+  width: var(--card-width);
+}
+
+.event-number {
+  pointer-events: none; /* Pass events to the card underneath */
+  position: absolute;
+  width: 100%;
+  text-align: left;
+  z-index: 2;
+}
+.event-number img {
+  opacity: 0.75;
+  width: 35%; /* Loosely scale to our card */
+}
+
+.my-events {
+  top: 50%;
+  right: 20%;
+  background: var(--bg-accent);
+}
+
+.opponent-events {
+  top: 5%;
+  left: 20%;
+  transform: rotate(180deg);
+  background: var(--bg-danger);
+}
+
+.my-slots {
+  border-top: 5px solid black;
+  background: linear-gradient(180deg, var(--bg-accent) 0, transparent 50%);
+  padding-top: 10px;
+}
+
+.opponent-slots {
+  background: linear-gradient(180deg, var(--bg-danger) 0, transparent 50%);
+}
+
+.opponent-slots,
+.opponent-camps {
+  /* TODO Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in badlands.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
+  transform: rotate(180deg);
+  padding-top: 10px; /* With the rotation this is actually...bottom */
+
+  /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent card colors:
+  filter: saturate(20%);
+  filter: invert(1);
+  */
+}
+
+.opponent-slots div {
+  /* TODO Could optionally allow players to have opponent cards facing them (aka rotated like this) or facing their opponent (no rotation, then the parent slot rotation handles it). OR just rotate on hover? */
+  /* transform: rotate(180deg); */
+}
+
+.opponent-camps {
+  height: calc(var(--card-height) / 2.5);
+  overflow-y: hidden;
+}
+
+.opponent-camp:hover {
+  height: var(--card-height);
+  transform: rotate(180deg);
+}
+
+.count-panel,
+.opponent-card-count,
+.deck-card-count,
+.discard-card-count {
+  position: absolute;
+  padding: 5px;
+  opacity: 0.9;
+  text-align: center;
+  white-space: pre-line;
+  font-size: smaller;
+  z-index: 1;
+}
+
+.deck-card-count,
+.discard-card-count {
+  left: -2px;
+  right: -2px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.opponent-card-count {
+  left: 0;
+  bottom: auto;
+  right: auto;
+  transform: rotate(180deg);
+}
+
+.deck-card-count {
+  top: -10px;
+}
+
+.discard-card-count {
+  bottom: -10px;
+}
+
+.tray-subtext {
+  font-size: 10px;
+}
+
+.tray {
+  width: fit-content;
+  min-width: calc(var(--card-width) * 3 + calc(var(--gap) * 2) + calc(var(--card-padding) * 20));
+  max-width: calc(100% - var(--flip-tray-button-size));
+  margin-top: var(--gap);
+}
+
+.flip-tray {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: var(--flip-tray-button-size);
+  height: var(--flip-tray-button-size);
+  background-color: var(--bg-default);
+  opacity: 0.9;
+}
+
+.card-size,
+.slots div,
+.events div {
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.slots div {
+  text-align: center;
+  vertical-align: middle;
+  padding: var(--card-padding);
+}
+
+.bright-hover:hover {
+  filter: brightness(120%);
+}
+
+.camp-choice:hover,
+.card:hover {
+  box-shadow: 0 0 20px var(--accent);
+}
+
+.card-friendly:hover {
+  box-shadow: 0 0 20px var(--success);
+}
+.card-opponent:hover {
+  /*
+  TODO Need to flip opponent cards around so we can read them, but this messes up the rest of the mouseover animation
+  transform: rotate(180deg) !important;
+  */
+  box-shadow: 0 0 20px var(--danger);
+}
+
+.card:hover {
+  animation: tiltCard 2s infinite alternate ease-in-out;
+  position: relative;
+  z-index: 5;
+}
+
+.card-error {
+  background-color: var(--bg-danger);
+}
+
+.slot-highlight {
+  background-color: var(--success);
+}
+
+.card-anim {
+  transition: transform 1s;
+}
+
+.damaged-card,
+.damaged-card:hover {
+  filter: none;
+  transform: rotate(90deg) !important;
+}
+
+.water-wrap {
+  left: 2%;
+  bottom: 5%;
+  display: flex;
+  gap: 15px;
+}
+
+.water-token {
+  max-width: var(--water-token-size);
+}
+
+.water-token-overlay {
+  position: absolute;
+  z-index: 1;
+  max-width: 50px;
+}
+
+.water-token-cost {
+  filter: brightness(50%) sepia(1) hue-rotate(-50deg) saturate(5) contrast(1.2);
+}
+
+.water-token:hover {
+  filter: drop-shadow(2px 2px white);
+  animation: tiltToken 2s infinite alternate ease-in-out;
+}
+
+.three-card-dialog,
+.three-card-dialog > div:first-of-type {
+  min-width: calc(var(--card-width-full) * 3 + 200px);
+  text-align: center;
+}
+
+.camps-dialog {
+  text-align: center;
+}
+
+.three-card-choice-wrap {
+  display: inline-block;
+  margin: 0 5px 0 5px;
+}
+
+.card-choice {
+  filter: saturate(50%);
+}
+
+.card-choice:hover {
+  outline: 5px outset var(--success);
+}
+
+.card-choice-sel {
+  outline: 5px solid var(--success);
+  filter: brightness(120%) saturate(100%);
+}
+
+.chat {
+  top: 5%;
+  right: 2%;
+}
+
+.chat-wrap {
+  scroll-behavior: smooth;
+  max-width: 20vw;
+  max-height: var(--chat-max-height);
+  overflow-y: hidden;
+}
+
+.chat-wrap:hover {
+  overflow-y: scroll;
+}
+
+.target-mode-help {
+  position: fixed;
+  top: 5px;
+  left: 5px;
+  max-width: 25%;
+  text-align: center;
+  z-index: 9999;
+  background-color: var(--target-mode-bg);
+  color: var(--target-mode-fg);
+  box-shadow: 5px 5px 5px var(--target-mode);
+  padding: 20px 40px 20px 40px;
+  opacity: 0.9;
+}
+
+.target-mode-section {
+  box-shadow: 0 0 50px var(--target-mode) inset;
+  cursor: crosshair;
+}
+
+.target-mode-section-damageCard {
+  cursor: url('../images/cursors/cursor-damage.png') 0 0, crosshair;
+}
+.target-mode-section-destroyCard {
+  cursor: url('../images/cursors/cursor-destroy.png') 0 0, crosshair;
+}
+.target-mode-section-injurePerson {
+  cursor: url('../images/cursors/cursor-injure.png') 0 0, crosshair;
+}
+.target-mode-section-restoreCard {
+  cursor: url('../images/cursors/cursor-restore.png') 0 0, crosshair;
+  box-shadow: 0 0 50px var(--success) inset;
+}
+.target-mode-section-gainPunk {
+  cursor: url('../images/cursors/cursor-punk.png') 0 0, crosshair;
+  box-shadow: 0 0 50px var(--variant) inset;
+}
+
+.valid-target {
+  filter: saturate(110%) brightness(110%);
+  background-color: var(--bg-success);
+}
+
+.valid-target:hover {
+  background-color: var(--success);
+}
+
+.valid-target-selected {
+  outline: 10px solid var(--active);
+}
+
+.invalid-target,
+.unready-card {
+  filter: saturate(10%) brightness(10%);
+  pointer-events: none;
+}
+
+.flip-tray-click {
+  transition: transform 0.3s linear;
+  transform: rotateY(360deg);
+}
+
+.take-water-silo {
+  position: absolute;
+  top: calc(50% - var(--card-height) / 4);
+  right: calc(var(--card-width) / -1.5);
+}
+
+.take-water-silo img {
+  width: calc(var(--card-width) / 2);
+  height: calc(var(--card-height) / 2);
+}
+
+.mutant-dialog-wrap > label {
+  font-size: x-large;
+}
