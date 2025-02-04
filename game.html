@@ -307,8 +307,8 @@
               <!-- Ignore displaying the first (0 index) event space, we use this for tracking immediate events and keeping startSpace sane and 1-based, but we don't show it -->
               <template x-if="index > 0">
                 <div class="bd-default relative">
-                  <div class="event-number" x-text="index">
-                    <!-- TTODO Use an event queue bomb icon here instead of a plain text number -->
+                  <div class="event-number">
+                    <img :src="`images/event-${index}.png`" :alt="`Event ${index}`" />
                   </div>
                   <template x-if="event">
                     <img

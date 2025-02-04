@@ -95,13 +95,12 @@ menu {
   pointer-events: none; /* Pass events to the card underneath */
   position: absolute;
   width: 100%;
-  text-align: center;
-  font-size: larger;
-  font-weight: bold;
-  font-family: monospace;
-  color: white;
-  text-shadow: 0 0 5px black;
+  text-align: right;
   z-index: 2;
+}
+.event-number img {
+  opacity: 0.75;
+  width: 35%; /* Loosely scale to our card */
 }
 
 .my-events {
