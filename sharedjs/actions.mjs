@@ -655,12 +655,13 @@ const rawAction = {
           const playerSlots = gs[foundRes.playerNum].slots;
           playerSlots[foundRes.slotIndex].content = null;
 
-          // Check if we have a card in above of our destroyed card, if we do, slide it down towards the camp
+          // Check if we have a card above of our destroyed card, if we do, slide it down towards the camp
           if (!message.details.noSlideDown) {
             if (utils.isBottomRow(foundRes.slotIndex)) {
               const slotAbove = playerSlots[utils.indexAbove(foundRes.slotIndex)];
               if (slotAbove.content) {
-                playerSlots[foundRes.slotIndex] = structuredClone(slotAbove.content);
+                playerSlots[foundRes.slotIndex].content = structuredClone(slotAbove.content);
+                playerSlots[foundRes.slotIndex].index = foundRes.slotIndex;
                 slotAbove.content = null;
               }
             }
@@ -846,6 +847,7 @@ const rawAction = {
   targetMode(message, params) { // message has playerId, type. params has help, colorType, cursor (optional), expectedTargetCount (optional, default 1)
     if (!onClient) {
       gs.pendingTargetAction = structuredClone(message);
+      gs.pendingTargetCancellable = !params.hideCancel;
       const toSend = {
         playerId: message.playerId,
         type: message.type,
@@ -854,6 +856,7 @@ const rawAction = {
         colorType: params.colorType ?? 'accent',
         expectedTargetCount: params.expectedTargetCount ?? 1,
         validTargets: message.validTargets?.filter((target) => target && target !== null),
+        hideCancel: params.hideCancel ?? false,
       };
 
       sendS('targetMode', toSend, message.playerId);
@@ -865,6 +868,12 @@ const rawAction = {
       sendC('cancelTarget', message);
     } else {
       if (gs.pendingTargetAction) {
+        // Protect against malicious attempts to cancel an uncancellable target
+        if (!gs.pendingTargetCancellable) {
+          action.sendError('Cannot cancel target mode', message.playerId);
+          return;
+        }
+
         gs.pendingTargetAction = null;
         sendS('cancelTarget', {}, message.playerId);
       } else {
@@ -877,7 +886,7 @@ const rawAction = {
     if (onClient) {
       sendC('doneTargets', message);
     } else {
-      if (message.details.targets) {
+      if (message?.details?.targets) {
         try {
           const pendingFunc = events[gs.pendingTargetAction?.type] || abilities[gs.pendingTargetAction?.type] ||
             action[gs.pendingTargetAction?.type];

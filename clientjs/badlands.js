@@ -20,6 +20,7 @@ globalThis.ui = { // Local state
     cursor: '', // target-mode-section-* cursor class
     colorType: '',
     expectedTargetCount: 1,
+    hideCancel: false,
     validTargets: [],
   },
   currentTargetIds: [],

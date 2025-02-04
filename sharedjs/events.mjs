@@ -31,7 +31,7 @@ const events = {
     }
   },
 
-  // TTODO All the event effects in events.mjs
+  // TTODO Raiders vrrrrrrrrroom raiders let's rip 'em to shreds vroooooooom
   // damage all opponent camps, then drawCard for each destroyed camp they have
   bombardment(message) {
     const opponentCamps = gs[utils.getOpponentNumById(message.playerId)].camps;
@@ -50,12 +50,54 @@ const events = {
     }
   },
 
-  // each player starting with you destroy all but one of their people (...just choose/target survivor?)
+  // each player starting with you destroy all but one of their people
   famine(message) {
+    if (!onClient) {
+      message.type = 'doneFamine';
+      const opponentMessage = { ...message };
+      opponentMessage.playerId = utils.getOppositePlayerId(message.playerId);
+
+      codeQueue.add(null, () => events.doneFamine(message));
+      codeQueue.add('doneTargets', () => events.doneFamine(opponentMessage));
+      codeQueue.add('doneTargets', () => action.wait());
+      codeQueue.start({ skipPreprocess: true });
+    }
+  },
+
+  doneFamine(message) {
+    if (!onClient) {
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        const famineList = utils.getPlayerDataById(message.playerId).slots
+          .filter((slot) => slot.content && slot.content.id !== +message.details.targets[0]);
+        famineList.forEach((slot) => {
+          action.destroyCard({
+            playerId: message.playerId,
+            details: {
+              card: slot.content,
+            },
+          });
+        });
+      } else {
+        // TODO Technically could do an auto-select here if we ONLY have a single filled slot, but it's a bit of a hassle to direct call doneTargets
+        message.validTargets = utils.determineOwnSlotTargets(message);
+        if (message.validTargets?.length) {
+          action.targetMode(message, {
+            help: 'Select your one survivor of Famine (all others will be destroyed)',
+            colorType: 'success',
+            hideCancel: true,
+          });
+        } else {
+          action.doneTargets();
+          action.sendError('Famine does nothing to player'); // TODO Integrate player names?
+        }
+      }
+    }
   },
 
   // rearrange your people, then this turn all opponent cards (including camps) are unprotected
   highGround(message) {
+    // TTODO High Ground
   },
 
   // draw 4 then discard 3 of THOSE drawn cards
@@ -84,8 +126,9 @@ const events = {
     }
   },
 
-  // destroy all enemies in one column (see magnusKarv for column)
+  // destroy all enemies in one column
   napalm(message) {
+    // TTODO Napalm (see magnusKarv for column)
   },
 
   // injurePerson ALL people

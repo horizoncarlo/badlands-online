@@ -55,6 +55,7 @@ const gs = {
   chat: [],
   // TODO Handle persisting gs.pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
   pendingTargetAction: null, // Clone of a message that initiated a targetMode
+  pendingTargetCancellable: true, // Determine if we allow cancelTarget to the pendingTargetAction
 };
 
 if (onClient) {

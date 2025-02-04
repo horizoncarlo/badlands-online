@@ -150,7 +150,13 @@ const utils = {
   determineOwnSlotTargets(message) {
     const playerNum = utils.getPlayerNumById(message.playerId);
     return gs[playerNum].slots
-      .filter((slot) => slot.content && slot.content.id !== message.details.card.id)
+      .filter((slot) => {
+        if (message.details?.card?.id) {
+          return slot.content && slot.content.id !== message.details.card.id;
+        } else {
+          return slot.content;
+        }
+      })
       .map((slot) => String(slot.content.id));
   },
 

@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-read --allow-env --allow-sys --allow-write --allow-run --watch=backendjs/components,main.ts main.ts",
+    "dev": "deno run --allow-net --allow-read --allow-env --allow-sys --allow-write --allow-run --no-clear-screen --watch=backendjs/components,main.ts main.ts",
     "check": "deno check main.ts",
     "lint": "deno lint"
   },
