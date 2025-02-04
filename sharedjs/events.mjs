@@ -36,7 +36,6 @@ const events = {
     }
   },
 
-  // TTODO Raiders vrrrrrrrrroom raiders let's rip 'em to shreds vroooooooom
   // damage all opponent camps, then drawCard for each destroyed camp they have
   bombardment(message) {
     const opponentCamps = gs[utils.getOpponentNumById(message.playerId)].camps;

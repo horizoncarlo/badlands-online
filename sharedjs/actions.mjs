@@ -5,6 +5,7 @@ import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
+const raidersEvent = { isRaid: true, img: 'raiders.png', cost: 0, startSpace: 2, abilityEffect: 'doRaid' };
 const undoStack = []; // Stack (LIFO) of gs we can undo back to
 let discardCardTimer;
 
@@ -359,7 +360,7 @@ const rawAction = {
     if (!onClient) {
       const playerData = utils.getPlayerDataById(message.playerId);
 
-      // Handle if we're junking the water silo
+      // Handle if we're junking the Water Silo
       if (message.details.card.isWaterSilo) {
         const foundIndex = playerData.cards.findIndex((card) => card.isWaterSilo);
 
@@ -453,7 +454,7 @@ const rawAction = {
 
       const newCard = utils.drawFromDeck();
       if (newCard) {
-        // TODO Sort hand to have water silo at the front, then people, then events (and eventually a setting to toggle this option off)
+        // TODO Sort hand to have Water Silo at the front, then people, then events (and eventually a setting to toggle this option off)
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
 
         const newMessage = {
@@ -581,9 +582,71 @@ const rawAction = {
 
   raid(message) {
     if (!onClient) {
-      // TODO Insert or advance raiders - when they fire: damage one of the opponents camps of their choice
-      action.sendError('Raid effect not implemented yet', message.playerId);
-      return false;
+      // If we have raiders in play advance them a space
+      const playerEvents = utils.getPlayerDataById(message.playerId)?.events;
+      let existingRaidersIndex = playerEvents?.findIndex((event) => event?.isRaid);
+
+      if (existingRaidersIndex > 0) {
+        if (!playerEvents[existingRaidersIndex - 1]) {
+          playerEvents[existingRaidersIndex - 1] = playerEvents[existingRaidersIndex];
+          playerEvents[existingRaidersIndex] = undefined;
+          existingRaidersIndex--;
+        } else {
+          action.sendError('Cannot advance Raiders, next event queue spot is full');
+          return false;
+        }
+
+        if (existingRaidersIndex === 0) {
+          // Queue here to ensure we finish our potential junk (that started this raid) before targetting
+          const toTrigger = structuredClone(playerEvents[0]);
+          codeQueue.add('sync', () =>
+            action.triggerEvent({
+              playerId: message.playerId,
+              details: {
+                card: toTrigger,
+              },
+            }));
+          playerEvents[0] = undefined;
+        } else {
+          action.sync();
+        }
+      } else {
+        action.playCard({
+          ...message,
+          details: {
+            card: raidersEvent,
+          },
+        });
+      }
+      return true;
+    }
+  },
+
+  doRaid(message) {
+    if (!onClient) {
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        targets.forEach((targetId) => {
+          action.doDamageCard({ ...message, details: { card: { id: targetId } } });
+        });
+      } else {
+        const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
+        const opponentPlayerId = utils.getPlayerIdByNum(opponentPlayerNum);
+        const opponentCamps = gs[opponentPlayerNum]?.camps;
+
+        // We use a queue here even though it's a single action specifically to skip preprocessing so we can do the out of turn opponent choice
+        message.validTargets = opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id));
+        message.playerId = opponentPlayerId;
+        codeQueue.add(null, () =>
+          action.targetMode(message, {
+            help: 'Raiders hit! Choose your camp to damage',
+            cursor: 'damageCard',
+            colorType: 'danger',
+            hideCancel: true,
+          }));
+        codeQueue.add('doneTargets', () => action.wait());
+        codeQueue.start({ skipPreprocess: true });
+      }
     }
   },
 
@@ -937,6 +1000,7 @@ const rawAction = {
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
     // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?). Might be easier to throttle these calls too so double calling doesn't matter (besides different params I guess...)
+    // TODO Need to throttle/batch syncs, for example junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
 
     function internalSync(playerNum) {
       const currentPlayerId = utils.getPlayerIdByNum(playerNum);

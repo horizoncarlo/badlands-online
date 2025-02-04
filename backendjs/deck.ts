@@ -1,6 +1,6 @@
 import { utils } from '../sharedjs/utils.mjs';
 
-let currentCardId = 0;
+let currentCardId = 10; // Start with some breathing room for special case cards like Water Silo
 
 const createCampDeck = (): Array<any> => { // TODO Camp typing
   return _shuffleNewDeck([
@@ -42,24 +42,6 @@ const createCampDeck = (): Array<any> => { // TODO Camp typing
 };
 
 const createNewDeck = (): Array<any> => { // TODO Card typing
-  // TODO Loose card structure?
-  // {
-  //   id: 1,
-  //   name: "Wounded Soldier",
-  //   img: "Wounded-Soldier.png",
-  //   cost: 1,
-  //   abilities: [
-  //     {
-  //       cost: 1,
-  //       symbol: "Damage",
-  //     }
-  //   ],
-  //   traits: [
-  //     {
-  //       text: "When this card enters play, [draw]. Then, damage [damage] this card"
-  //     }
-  //   ]
-  // }
   const dupePeople = [
     { img: 'assassin', cost: 1, junkEffect: 'raid', abilities: [{ cost: 2, abilityEffect: 'assassin' }] },
     { img: 'cult_leader', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 0, abilityEffect: 'cultLeader' }] },

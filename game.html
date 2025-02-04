@@ -166,7 +166,7 @@
           </div>
           <template x-if="!getPlayerData().hasWaterSilo">
             <div
-              class="bright-hover take-water-silo"
+              :class="'bright-hover take-water-silo' + (targetMode.enabled ? ' invalid-target' : '')"
               @mouseover="showWaterCost(1)"
               @mouseout="hideWaterCost()"
               @click="hideWaterCost()"

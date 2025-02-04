@@ -256,7 +256,7 @@ function setupHotkeys() {
       if (key === 'f') flipTray();
       else if (key === 't') focusChatIn();
       else if (key === 'd') userDrawCard();
-      else if (key === 'w') userTakeWaterSilo(); // TODO Have this as a toggle so 'W' will junk the water silo if we already have it
+      else if (key === 'w') userTakeWaterSilo(); // TODO Have this as a toggle so 'W' will junk the Water Silo if we already have it
       else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
       else if (key === 'e') userEndTurn();
     }
@@ -449,6 +449,15 @@ function handleTargetClick(event) {
 function enableTargetMode(targetModeObj) {
   ui.targetMode = targetModeObj;
   ui.targetMode.enabled = true;
+
+  // If our targets are ALL camps then flip our tray as needed
+  if (!ui.trayIsCamps) {
+    const idSet = new Set(getMyCamps().map((camp) => camp.id));
+    const onlyCamps = ui.targetMode.validTargets.every((campId) => idSet.has(parseInt(campId)));
+    if (onlyCamps) {
+      flipTray();
+    }
+  }
 
   // Apply our colors
   const root = document.querySelector(':root');
