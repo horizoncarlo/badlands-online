@@ -853,7 +853,7 @@ const rawAction = {
         cursor: params.cursor ?? '',
         colorType: params.colorType ?? 'accent',
         expectedTargetCount: params.expectedTargetCount ?? 1,
-        validTargets: message.validTargets.filter((target) => target && target !== null),
+        validTargets: message.validTargets?.filter((target) => target && target !== null),
       };
 
       sendS('targetMode', toSend, message.playerId);

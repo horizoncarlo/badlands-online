@@ -1,7 +1,7 @@
 import { abilities } from './abilities.mjs';
 import { action } from './actions.mjs';
 import { gs } from './gamestate.mjs';
-import { utils } from './utils.mjs';
+import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
@@ -136,6 +136,19 @@ const events = {
 
   // gain 3 punks (or as many free slots as there are)
   uprising(message) {
+    if (!onClient) {
+      // Determine how many empty slots we have
+      const playerData = utils.getPlayerDataById(message.playerId);
+      const numPunks = Math.min(3, playerData.slots.filter((slot) => !slot.content).length);
+
+      for (let i = 0; i < numPunks; i++) {
+        codeQueue.add(
+          i === 0 ? null : 'doneTargets',
+          () => utils.fireAbilityOrJunk(message, 'gainPunk'),
+        );
+      }
+      codeQueue.start();
+    }
   },
 };
 
