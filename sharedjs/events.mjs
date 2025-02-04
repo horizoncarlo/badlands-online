@@ -22,11 +22,16 @@ const events = {
           ...gs[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) => String(slot.content.id)),
         ];
 
-        action.targetMode(message, {
-          help: 'Select a card to destroy with Banish',
-          cursor: 'destroyCard',
-          colorType: 'danger',
-        });
+        if (message.validTargets?.length) {
+          action.targetMode(message, {
+            help: 'Select a card to destroy with Banish',
+            cursor: 'destroyCard',
+            colorType: 'danger',
+            hideCancel: true,
+          });
+        } else {
+          throw new Error(MSG_INVALID_TARGETS);
+        }
       }
     }
   },
@@ -128,7 +133,54 @@ const events = {
 
   // destroy all enemies in one column
   napalm(message) {
-    // TTODO Napalm (see magnusKarv for column)
+    if (!onClient) {
+      // TODO Fairly similar to Magnus Karv targetting and usage, but juuuuuust different enough - could revisit combining with a flag?
+      const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
+      const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
+      const targets = utils.checkSelectedTargets(message);
+      if (targets?.length) {
+        // Get the column we've chosen to damage
+        const columnCampTargetIndex = opponentCamps.findIndex((camp) => camp.id === +targets[0]);
+        if (columnCampTargetIndex !== -1) {
+          // Destroy everyone in the column
+          const slots = utils.getSlotsInColumn(columnCampTargetIndex, opponentPlayerNum);
+          if (slots?.length) {
+            slots.forEach((slot) => {
+              if (slot.content !== null) {
+                action.destroyCard({
+                  ...message,
+                  details: {
+                    noSlideDown: true,
+                    card: { id: String(slot.content.id) },
+                  },
+                });
+              }
+            });
+          }
+        }
+      } else {
+        // For simplicity just choose columns that are not empty then use the camp as the target
+        message.validTargets = [];
+
+        if (opponentCamps?.length) {
+          for (let i = 0; i < opponentCamps.length; i++) {
+            if (!utils.isColumnEmpty(i, opponentPlayerNum)) {
+              message.validTargets.push(String(opponentCamps[i].id));
+            }
+          }
+        }
+
+        if (message.validTargets?.length) {
+          action.targetMode(message, {
+            help: 'Select an entire column to Napalm and destroy all enemy people',
+            cursor: 'destroyCard',
+            colorType: 'danger',
+          });
+        } else {
+          throw new Error(MSG_INVALID_TARGETS);
+        }
+      }
+    }
   },
 
   // injurePerson ALL people

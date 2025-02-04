@@ -216,6 +216,7 @@ menu {
   width: var(--flip-tray-button-size);
   height: var(--flip-tray-button-size);
   background-color: var(--bg-default);
+  opacity: 0.9;
 }
 
 .card-size,

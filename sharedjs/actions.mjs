@@ -575,7 +575,7 @@ const rawAction = {
           action.sync();
         }
       } else {
-        action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'variant' });
+        action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'variant', hideCancel: true });
       }
     }
   },

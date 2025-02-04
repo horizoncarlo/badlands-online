@@ -382,6 +382,7 @@ function dropCardInGame(target, ele) {
     playMessage['slot'] = target;
   }
 
+  // TTODO Add water usage tokens onto Events that were played this turn
   action.playCard(playMessage);
 }
 
