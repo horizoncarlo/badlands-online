@@ -59,7 +59,6 @@ const abilities = {
         if (validTargets?.length) {
           message.validTargets = validTargets;
 
-          // TODO Bug: Cult Leader destroying himself on use?
           action.targetMode(message, {
             help: 'Select a person to destroy for Cult Leader',
             cursor: 'destroyCard',
@@ -195,7 +194,7 @@ const abilities = {
 
       sendS('useAbility', message.details, message.playerId);
     } else {
-      showMutantDialog();
+      showMutantDialog(message.details?.card?.img);
     }
   },
 
@@ -267,20 +266,8 @@ const abilities = {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
-        const playerNum = utils.getPlayerNumById(message.playerId);
-        const playerData = utils.getPlayerDataById(message.playerId);
         targets.forEach((targetId) => {
-          // Find the card and return to hand
-          const target = utils.findCardInGame({ id: targetId });
-          if (target) {
-            // If we're a Punk convert to the actual card (is hidden information before)
-            if (target.cardObj.isPunk) {
-              target.cardObj = utils.convertPunkToCard(target.cardObj.id);
-            }
-
-            playerData.cards.push(target.cardObj);
-            gs[playerNum].slots[target.slotIndex].content = null;
-          }
+          utils.returnCardToHand(message.playerId, targetId);
         });
         action.sync();
       } else {
@@ -330,7 +317,7 @@ const abilities = {
 
       sendS('useAbility', message.details, message.playerId);
     } else {
-      ui.cardData.scientistChoices = message.details.cardOptions;
+      ui.componentData.scientistChoices = message.details.cardOptions;
       showScientistDialog();
     }
   },
@@ -386,7 +373,7 @@ const abilities = {
       const opponentMessage = { ...message };
       opponentMessage.playerId = utils.getOppositePlayerId(message.playerId);
 
-      // TODO For Vanguard when the opponent is doing the damage back we should put a blocking dialog to prevent interaction - in general this would be a handy feature. Could clear on next sync?
+      // TODO For Vanguard when the opponent is doing the damage back we should put a blocking dialog to prevent interaction - in general this would be a handy feature (such as during Raid). Could clear on next sync?
       codeQueue.add(
         null,
         () => action.damageCard({ ...message, type: 'damageCard' }, 'Select an unprotected card to damage with Vanguard'),
@@ -405,47 +392,53 @@ const abilities = {
   /*********************** UNIQUE CARDS ***********************/
   // damageCard all cards in one opponent column
   magnusKarv(message) {
+    abilities.blowUpColumn(message, { isDamageAbility: true });
+  },
+
+  blowUpColumn(message, params) { // params.isDamageAbility: boolean - Used between Magnus Karv (unique person) and Napalm (event). The former has isDamageAbility=true
     if (!onClient) {
       // TODO Do a proxy/raw style for abilities and store a bunch of local convenience variables from our utility functions, like playerNum, opponentNum, etc. so we don't have to do long chains like the next line in each function?
       const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
       const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
       const targets = utils.checkSelectedTargets(message);
+
       if (targets?.length) {
-        // Get the column we've chosen to damage
         const columnCampTargetIndex = opponentCamps.findIndex((camp) => camp.id === +targets[0]);
         if (columnCampTargetIndex !== -1) {
-          const camp = opponentCamps[columnCampTargetIndex];
-          if (!camp.isDestroyed) {
-            // Damage the camp first of all
-            action.doDamageCard({ ...message, details: { card: { id: String(camp.id) } } });
-          }
-
-          // Damage everyone in the column
           const slots = utils.getSlotsInColumn(columnCampTargetIndex, opponentPlayerNum);
           if (slots?.length) {
             slots.forEach((slot) => {
               if (slot.content !== null) {
-                action.doDamageCard({ ...message, details: { card: { id: String(slot.content.id) } } });
+                const actionType = params?.isDamageAbility ? action.doDamageCard : action.destroyCard;
+                const details = !params?.isDamageAbility
+                  ? { noSlideDown: true, card: { id: String(slot.content.id) } }
+                  : { card: { id: String(slot.content.id) } };
+                actionType({ ...message, details });
               }
             });
           }
+          if (params?.isDamageAbility && !opponentCamps[columnCampTargetIndex].isDestroyed) {
+            action.doDamageCard({ ...message, details: { card: { id: String(opponentCamps[columnCampTargetIndex].id) } } });
+          }
         }
       } else {
-        // For simplicity just choose columns that are not empty or have an active camp, then use the camp as the target
         message.validTargets = [];
-
         if (opponentCamps?.length) {
           for (let i = 0; i < opponentCamps.length; i++) {
-            if (!opponentCamps[i].isDestroyed || !utils.isColumnEmpty(i, opponentPlayerNum)) {
+            if (
+              params?.isDamageAbility && (!opponentCamps[i].isDestroyed || !utils.isColumnEmpty(i, opponentPlayerNum)) ||
+              !params?.isDamageAbility && !utils.isColumnEmpty(i, opponentPlayerNum)
+            ) {
               message.validTargets.push(String(opponentCamps[i].id));
             }
           }
         }
-
         if (message.validTargets?.length) {
           action.targetMode(message, {
-            help: 'Select an entire column to damage everything with Magnus Karv',
-            cursor: 'damageCard',
+            help: params?.isDamageAbility
+              ? 'Select an entire column to damage everything with Magnus Karv'
+              : 'Select an entire column to Napalm and destroy all enemy people',
+            cursor: params?.isDamageAbility ? 'damageCard' : 'destroyCard',
             colorType: 'danger',
           });
         } else {

@@ -50,7 +50,7 @@ const handler = (req: Request) => {
       try {
         receiveServerWebsocketMessage(JSON.parse(event.data));
       } catch (err) {
-        console.error('Websocket Message error', err); // TODO Probably can just silently ignore these as it'd just be bad/junk data coming in
+        console.error('Websocket Message error', err);
       }
     });
     return response;
@@ -101,7 +101,6 @@ const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
     details: messageDetails ?? {},
   };
 
-  // TODO Rough debugging for everything but a few messages
   if (type !== 'sync' && type !== 'ping' && type !== 'pong') {
     console.log('SENT:', messageObj);
   }
@@ -161,7 +160,7 @@ gs.campDeck = createCampDeck();
 
 // Read our components/ in preparation for replacing in the HTML
 function setupComponents() {
-  // TODO Allow for subdirectories and smart handling of that
+  // TODO When needed allow for component subdirectories and smart handling of that
   for (const dirEntry of Deno.readDirSync(COMPONENT_DIRECTORY)) {
     if (dirEntry?.name?.toLowerCase().endsWith('.html')) {
       const tag = `<${dirEntry.name.substring(0, dirEntry.name.length - '.html'.length)} />`;

@@ -2,12 +2,12 @@ let doneDiscard = false;
 
 function showDiscardDialog(message, params) { // params.allowWaterSilo: boolean to let Water Silo be discarded or not
   doneDiscard = false;
-  ui.cardData.expectedDiscards = message.details.expectedDiscards ?? 1;
-  ui.cardData.myCards = message.details.cardChoices ?? getMyCards();
+  ui.componentData.expectedDiscards = message.details.expectedDiscards ?? 1;
+  ui.componentData.myCards = message.details.cardChoices ?? getMyCards();
 
   // Filter out the Water Silo as an option if requested
   if (!params || !params.allowWaterSilo) {
-    ui.cardData.myCards = ui.cardData.myCards.filter((card) => !card.isWaterSilo);
+    ui.componentData.myCards = ui.componentData.myCards.filter((card) => !card.isWaterSilo);
   }
 
   document.getElementById('discardDialog')?.showModal();
@@ -18,7 +18,7 @@ function hideDiscardDialog() {
 }
 
 function doneChooseDiscards(selectedDiscards) {
-  if (selectedDiscards?.length === ui.cardData.expectedDiscards) {
+  if (selectedDiscards?.length === ui.componentData.expectedDiscards) {
     selectedDiscards.forEach((card) => {
       sendC('discardCard', { card: card });
     });
@@ -40,7 +40,7 @@ function chooseDiscardCard(card, selectedDiscards) {
   }
 
   // If we only had a single select just auto-submit it
-  if (ui.cardData.expectedDiscards === 1 && selectedDiscards?.length === 1) {
+  if (ui.componentData.expectedDiscards === 1 && selectedDiscards?.length === 1) {
     doneChooseDiscards();
   }
 }

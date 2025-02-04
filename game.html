@@ -89,7 +89,7 @@
           </template>
           <template x-if="inGame">
             <!-- TODO Need to disable various UI elements when it's not our turn, such as drawing or playing a card -->
-            <!-- TODO Menu UI is an overlapping ugly thing due to <template> not allowing more than a single child -->
+            <!-- TODO Menu UI code is an overlapping ugly thing due to <template> not allowing more than a single child -->
             <li class="menu-right">
               <template x-if="turn.currentPlayer">
                 <div>
@@ -126,8 +126,7 @@
           <span x-text="targetMode.help"></span>
           <br />
           <template x-if="!targetMode.hideCancel">
-            <!-- TODO Add Escape key support to cancel targetMode -->
-            <button @click="action.cancelTarget()" type="reset">Cancel</button>
+            <button @click="action.cancelTarget()" @keyup.window.escape="$el.click()" type="reset">Cancel</button>
           </template>
         </div>
       </template>
@@ -258,7 +257,7 @@
               >
                 <template x-if="slot.content">
                   <span>
-                    <template x-if="isMySlot && slot.content.unReady">
+                    <template x-if="slot.content.unReady">
                       <span>
                         <template
                           x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"
@@ -311,12 +310,25 @@
                     <img :src="`images/event-${index}.png`" :alt="`Event ${index}`" />
                   </div>
                   <template x-if="event">
-                    <img
-                      draggable="false"
-                      :alt="event.img"
-                      :src="fullCardPath(event)"
-                      :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' }`"
-                    />
+                    <span>
+                      <template x-if="event.unReady">
+                        <span>
+                          <template x-for="(water, index) in (event.cost === 0 ? 1 : (event.cost ?? 1))">
+                            <img
+                              :src="`images/${(event.cost === 0 || !event.cost) ? 'water_back' : 'water'}.png`"
+                              class="water-token-overlay"
+                              :style="`top: ${index*10}px; right: ${index*10}px;`"
+                            />
+                          </template>
+                        </span>
+                      </template>
+                      <img
+                        draggable="false"
+                        :alt="event.img"
+                        :src="fullCardPath(event)"
+                        :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' } ${event.unReady ? ' unready-card' : ''}`"
+                      />
+                    </span>
                   </template>
                 </div>
               </template>

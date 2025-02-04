@@ -13,16 +13,16 @@ globalThis.SLOT_NUM_COLS = 3;
 globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 
-globalThis.DEBUG_AUTO_OPPONENT = false; // Debugging flag to automatically join the game as the opponent when someone starts a game
+globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
 globalThis.DEBUG_AUTO_OPPONENT_DRAW = 6; // Debugging flag for the number of cards the auto-opponent should draw on their first turn, regardless of camps
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = DEBUG_AUTO_OPPONENT ? 30 : 15; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 
 const utils = {
-  // TODO Can we leverage the 'universal' concept for trait flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
+  // TODO Can we leverage the 'universal' concept for Trait (always on) flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
   universal: {
-    // TTODO Show universal effects somewhere on the UI - such as High Ground being in effect
+    // TODO Show universal effects somewhere on the UI - such as High Ground being in effect
     highGround: false, // Whether High Ground was played this turn or not
   },
 
@@ -99,7 +99,6 @@ const utils = {
    * Determine targets for the basic effects that require a target: gainPunk, restoreCard, injurePerson, damageCard
    */
   determineGenericTargets(message, effectName) {
-    // TODO Bug with massive draw - sometimes when you do a junk effect a few cards in the hand are valid? Clicking them then a valid target on the board makes those cards disabled too? Really weird state
     if (!message) {
       return [];
     }
@@ -351,6 +350,11 @@ const utils = {
         delete slot.content.unReady;
       }
     });
+    [...gs.player1.events, ...gs.player2.events].forEach((event) => {
+      if (event) {
+        delete event.unReady;
+      }
+    });
   },
 
   shuffleDeck(array) {
@@ -400,6 +404,32 @@ const utils = {
     }
 
     return toReturn;
+  },
+
+  returnCardToHand(playerId, cardId) {
+    if (!playerId || !cardId) {
+      return false;
+    }
+
+    const foundCard = utils.findCardInGame({ id: cardId });
+    if (!foundCard?.cardObj) {
+      return false;
+    }
+
+    // If we're a Punk convert to the actual card (was hidden information before)
+    if (foundCard.cardObj.isPunk) {
+      foundCard.cardObj = utils.convertPunkToCard(foundCard.cardObj.id);
+    }
+
+    const playerData = utils.getPlayerDataById(playerId);
+    if (playerData) {
+      delete foundCard.cardObj.damage; // Clear any damage when going into the hand
+
+      playerData.cards.push(foundCard.cardObj);
+      if (foundCard.slotIndex !== -1) {
+        playerData.slots[foundCard.slotIndex].content = null;
+      }
+    }
   },
 
   checkSelectedTargets(message) {

@@ -13,11 +13,11 @@ function chooseScientistCard(card) {
   doneScientist = true;
   hideScientistDialog();
 
-  const chosenCardIndex = ui.cardData.scientistChoices.findIndex((choice) => choice === card);
+  const chosenCardIndex = ui.componentData.scientistChoices.findIndex((choice) => choice === card);
   abilities.doneScientist({
     details: {
       chosenCardIndex: chosenCardIndex,
-      cardOptions: ui.cardData.scientistChoices,
+      cardOptions: ui.componentData.scientistChoices,
     },
   });
 }

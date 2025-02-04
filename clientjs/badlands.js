@@ -24,8 +24,9 @@ globalThis.ui = { // Local state
     validTargets: [],
   },
   currentTargetIds: [],
-  cardData: {
+  componentData: {
     scientistChoices: [],
+    mutantCardImg: null,
     mutantChoice: null, // See MUTANT_CHOICES for options
     abilityCard: null, // card obj for multiple choice abilities
     expectedDiscards: 1,
@@ -68,6 +69,8 @@ function alpineInit() {
   gs = Alpine.reactive(gs);
   gs.bodyReady = true;
 
+  preloadImages();
+
   try {
     if (localStorage.getItem(LOCAL_STORAGE.cardScale)) {
       ui.cardScale = localStorage.getItem(LOCAL_STORAGE.cardScale);
@@ -97,6 +100,10 @@ function alpineInit() {
   Alpine.effect(() => {
     localStorage.setItem(LOCAL_STORAGE.hoverScale, ui.hoverScale);
   });
+}
+
+function preloadImages() {
+  new Image().src = getCampImage({ isDestroyed: true });
 }
 
 function repositionStart(event) {
@@ -178,7 +185,6 @@ function getMyCamps() {
 }
 
 function getCampImage(camp) {
-  // TODO Preload the DESTROYED image so it doesn't flicker when first being shown. Argument could be made to preload every card image in the background?
   return fullCardPath(camp.isDestroyed ? { img: 'DESTROYED.png', drawCount: 0 } : camp);
 }
 
@@ -256,8 +262,17 @@ function setupHotkeys() {
       if (key === 'f') flipTray();
       else if (key === 't') focusChatIn();
       else if (key === 'd') userDrawCard();
-      else if (key === 'w') userTakeWaterSilo(); // TODO Have this as a toggle so 'W' will junk the Water Silo if we already have it
-      else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
+      else if (key === 'w') {
+        // Junk our Water Silo if we have it in hand, otherwise take it
+        const hasWaterSilo = getMyCards()?.find((card) => card.isWaterSilo);
+        if (hasWaterSilo) {
+          action.junkCard({
+            card: hasWaterSilo,
+          });
+        } else {
+          userTakeWaterSilo();
+        }
+      } else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
       else if (key === 'e') userEndTurn();
     }
   });
@@ -334,8 +349,6 @@ function getCheapestAbility(card) {
 }
 
 function dragOverSlot(slot, ele) {
-  // TODO Could determine if we have enough water to play the card and reject based on that (can't just disallow drag as we can still junk the card for no water)
-
   if (utils.cardIsEvent(ui.draggedCard)) {
     return false;
   }
@@ -382,7 +395,6 @@ function dropCardInGame(target, ele) {
     playMessage['slot'] = target;
   }
 
-  // TTODO Add water usage tokens onto Events that were played this turn
   action.playCard(playMessage);
 }
 

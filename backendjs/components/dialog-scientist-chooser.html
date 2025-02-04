@@ -11,7 +11,7 @@
     then discard all of them
   </p>
   <div class="center">
-    <template x-for="card in cardData.scientistChoices">
+    <template x-for="card in componentData.scientistChoices">
       <div @click="chooseScientistCard(card)" class="three-card-choice-wrap">
         <img
           :alt="card.img"

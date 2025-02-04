@@ -3,19 +3,19 @@
   class="three-card-dialog"
 >
   <header>
-    <h2><span x-text="utils.cardImgToName(cardData.abilityCard?.img)"></span> - Choose the ability to use</h2>
+    <h2><span x-text="utils.cardImgToName(componentData.abilityCard?.img)"></span> - Choose the ability to use</h2>
   </header>
-  <template x-if="cardData.abilityCard">
+  <template x-if="componentData.abilityCard">
     <div class="center" @keyup.window="handleKeyup($event)">
-      <template x-if="cardData.abilityCard?.img">
+      <template x-if="componentData.abilityCard?.img">
         <img
-          :alt="cardData.abilityCard.img"
-          :src="fullCardPath(cardData.abilityCard)"
+          :alt="componentData.abilityCard.img"
+          :src="fullCardPath(componentData.abilityCard)"
           draggable="false"
         />
       </template>
       <br />
-      <template x-for="(ability, index) in cardData.abilityCard.abilities">
+      <template x-for="(ability, index) in componentData.abilityCard.abilities">
         <button @click="chooseAbilityOnCard(index)" style="margin-right: 20px">
           <template x-for="i in ability.cost"><div class="inline">💧</div></template>
           Ability <u><span x-text="index+1"></span></u>

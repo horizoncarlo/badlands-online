@@ -95,7 +95,7 @@ menu {
   pointer-events: none; /* Pass events to the card underneath */
   position: absolute;
   width: 100%;
-  text-align: right;
+  text-align: left;
   z-index: 2;
 }
 .event-number img {
@@ -132,7 +132,7 @@ menu {
   transform: rotate(180deg);
   padding-top: 10px; /* With the rotation this is actually...bottom */
 
-  /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent color colors:
+  /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent card colors:
   filter: saturate(20%);
   filter: invert(1);
   */

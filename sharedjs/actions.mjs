@@ -14,8 +14,8 @@ const rawAction = {
     if (onClient) {
       sendC('joinGame', message);
     } else {
-      /* TODO TEMPORARY For now it's annoying to check if a player already joined for our playerNum, as refreshing our page currently would trigger this
-                        Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
+      /* TODO DEBUG For now it's annoying to check if a player already joined for our playerNum, as refreshing our page currently would trigger this
+                    Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
       if (!DEBUG_TESTING_PLAYERS) {
         const desiredPlayer = message.details.player;
         if (gs[desiredPlayer] && (!gs[desiredPlayer].playerId || gs[desiredPlayer].playerId === message.playerId)) {
@@ -199,9 +199,10 @@ const rawAction = {
 
       // Now we split our behaviour, but keep this a long winded function instead of breaking it up
       // Either we're an event and we need to manage our queue, or we're into a slot and need to adjust the board
+      const playerNum = utils.getPlayerNumById(message.playerId);
       if (utils.cardIsEvent(message.details.card)) {
         let targetSpace = message.details.card.startSpace;
-        const eventQueue = gs[utils.getPlayerNumById(message.playerId)].events;
+        const eventQueue = gs[playerNum].events;
 
         // If our event is space 0 we just do the effect immediately
         if (targetSpace === 0) {
@@ -222,11 +223,15 @@ const rawAction = {
           return;
         }
 
+        message.details.card.unReady = true;
         eventQueue.splice(targetSpace, 1, message.details.card);
-        action.sync(); // TODO Could send a more targetted message to JUST update the event queue (like the 'slot' send below), but meh we've been pretty lax with the syncing cause it's so fast
+        sendS('events', {
+          playerNum: playerNum,
+          events: eventQueue,
+        });
       } else {
         // Determine if our column is full or other validity scenarios
-        const playerSlots = gs[utils.getPlayerNumById(message.playerId)].slots;
+        const playerSlots = gs[playerNum].slots;
         let targetSlot = playerSlots[message.details.slot.index];
         if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
           action.sendError('Invalid card position', message.playerId);
@@ -242,7 +247,7 @@ const rawAction = {
 
             // Send an extra slot message to notify a card was pushed
             sendS('slot', {
-              playerNum: utils.getPlayerNumById(message.playerId),
+              playerNum: playerNum,
               index: slotAbove.index,
               card: slotAbove.content,
             });
@@ -272,7 +277,7 @@ const rawAction = {
 
         targetSlot.content = message.details.card;
         sendS('slot', {
-          playerNum: utils.getPlayerNumById(message.playerId),
+          playerNum: playerNum,
           index: targetSlot.index,
           card: message.details.card,
         });
@@ -479,7 +484,6 @@ const rawAction = {
       sendC('junkCard', message);
     } else {
       try {
-        // TODO Check validity of junkEffect before processing, current options are: raid, drawCard, restoreCard, gainWater, damageCard, injurePerson, gainPunk - if only there was some...kind...of...typing system
         const returnStatus = utils.fireAbilityOrJunk(message, message?.details?.card?.junkEffect);
 
         // If we aren't targetting, we can just remove the card that initiated the junk effect now
@@ -768,7 +772,7 @@ const rawAction = {
       if (targets?.length) {
         try {
           targets.forEach((targetId) => {
-            const { cardObj } = utils.findCardInGame({ id: +targetId }); // TODO Not in love with these bastardized objects instead of a pure `card`
+            const { cardObj } = utils.findCardInGame({ id: targetId });
             if (cardObj && typeof cardObj.damage === 'number') {
               // Slot and camp are handled similar, except we technically delete a non-existent flag on a slot (shrug)
               delete cardObj.isDestroyed;
@@ -830,8 +834,8 @@ const rawAction = {
       playerData.camps = message.details.camps;
       playerData.doneCamps = true;
 
-      let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0); // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
-      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS > 0 ? DEBUG_DRAW_SO_MANY_CARDS : totalDrawCount;
+      let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
+      totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS > 0 ? DEBUG_DRAW_SO_MANY_CARDS : totalDrawCount; // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
 
       if (DEBUG_AUTO_OPPONENT && message.details.debugDrawAutoOpponent) {
         totalDrawCount = DEBUG_AUTO_OPPONENT_DRAW;
@@ -967,8 +971,7 @@ const rawAction = {
           if (pendingTargetActionClone.details?.card && returnStatus !== false) {
             if (utils.cardIsEvent(pendingTargetActionClone.details?.card)) {
               // No extra handling needed for a triggered event
-            } // TODO Probably clean up this flag reliance?
-            // If we don't have a chosenAbilityIndex that means we junked and should discard
+            } // If we don't have a chosenAbilityIndex that means we junked and should discard
             else if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
               action.discardCard(pendingTargetActionClone);
             } // Otherwise reduce the water cost of a used ability from a played card

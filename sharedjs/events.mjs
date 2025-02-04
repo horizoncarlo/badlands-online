@@ -83,7 +83,6 @@ const events = {
           });
         });
       } else {
-        // TODO Technically could do an auto-select here if we ONLY have a single filled slot, but it's a bit of a hassle to direct call doneTargets
         message.validTargets = utils.determineOwnSlotTargets(message);
         if (message.validTargets?.length) {
           action.targetMode(message, {
@@ -93,7 +92,7 @@ const events = {
           });
         } else {
           action.doneTargets(); // This is to fire off the matching event to contine our codeQueue
-          action.sendError('Famine does nothing to player'); // TODO Integrate player names?
+          action.sendError('Famine does nothing to player'); // TODO Integrate player names
         }
       }
     }
@@ -187,54 +186,7 @@ const events = {
 
   // destroy all enemies in one column
   napalm(message) {
-    if (!onClient) {
-      // TODO Fairly similar to Magnus Karv targetting and usage, but juuuuuust different enough - could revisit combining with a flag?
-      const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-      const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
-      const targets = utils.checkSelectedTargets(message);
-      if (targets?.length) {
-        // Get the column we've chosen to damage
-        const columnCampTargetIndex = opponentCamps.findIndex((camp) => camp.id === +targets[0]);
-        if (columnCampTargetIndex !== -1) {
-          // Destroy everyone in the column
-          const slots = utils.getSlotsInColumn(columnCampTargetIndex, opponentPlayerNum);
-          if (slots?.length) {
-            slots.forEach((slot) => {
-              if (slot.content !== null) {
-                action.destroyCard({
-                  ...message,
-                  details: {
-                    noSlideDown: true,
-                    card: { id: String(slot.content.id) },
-                  },
-                });
-              }
-            });
-          }
-        }
-      } else {
-        // For simplicity just choose columns that are not empty then use the camp as the target
-        message.validTargets = [];
-
-        if (opponentCamps?.length) {
-          for (let i = 0; i < opponentCamps.length; i++) {
-            if (!utils.isColumnEmpty(i, opponentPlayerNum)) {
-              message.validTargets.push(String(opponentCamps[i].id));
-            }
-          }
-        }
-
-        if (message.validTargets?.length) {
-          action.targetMode(message, {
-            help: 'Select an entire column to Napalm and destroy all enemy people',
-            cursor: 'destroyCard',
-            colorType: 'danger',
-          });
-        } else {
-          throw new Error(MSG_INVALID_TARGETS);
-        }
-      }
-    }
+    abilities.blowUpColumn(message, { isDamageAbility: false });
   },
 
   // injurePerson ALL people
@@ -259,26 +211,17 @@ const events = {
 
   // return all people (including punks) to their owners' hands
   truce(message) {
-    function returnCardsToHand(playerId) {
+    function performTruceForPlayer(playerId) {
       const playerNum = utils.getPlayerNumById(playerId);
       gs[playerNum].slots.forEach((slot) => {
         if (slot.content) {
-          const foundCard = utils.findCardInGame({ id: slot.content.id });
-          if (foundCard) {
-            // If we're a Punk convert to the actual card (is hidden information before)
-            if (foundCard.cardObj.isPunk) {
-              foundCard.cardObj = utils.convertPunkToCard(foundCard.cardObj.id);
-            }
-
-            gs[playerNum].cards.push(foundCard.cardObj);
-            gs[playerNum].slots[foundCard.slotIndex].content = null;
-          }
+          utils.returnCardToHand(playerId, slot.content.id);
         }
       });
     }
 
-    returnCardsToHand(message.playerId);
-    returnCardsToHand(utils.getOppositePlayerId(message.playerId));
+    performTruceForPlayer(message.playerId);
+    performTruceForPlayer(utils.getOppositePlayerId(message.playerId));
 
     action.sync();
   },

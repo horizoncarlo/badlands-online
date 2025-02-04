@@ -5,7 +5,11 @@ const MUTANT_CHOICES = {
 };
 let doneMutant = false;
 
-function showMutantDialog() {
+function showMutantDialog(img) {
+  // Dynamically set the image instead of hardcoded in the HTML as we don't want to needlessly load beforehand
+  if (!ui.componentData.mutantCardImage && img) {
+    ui.componentData.mutantCardImage = img;
+  }
   doneMutant = false;
   document.getElementById('mutantChooserDialog')?.showModal();
 }
@@ -20,7 +24,7 @@ function chooseMutantAbility() {
 
   abilities.doneMutant({
     details: {
-      chosenAbilities: ui.cardData.mutantChoice,
+      chosenAbilities: ui.componentData.mutantChoice,
     },
   });
 }
