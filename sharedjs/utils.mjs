@@ -31,7 +31,7 @@ const utils = {
   getGameIdByPlayerId(playerId) {
     for (const loopLobby of utils.lobbies.values()) {
       if (loopLobby.started) {
-        for (const player of lobby.players) {
+        for (const player of loopLobby.players) {
           if (player.playerId === playerId) {
             return loopLobby.gameId;
           }
