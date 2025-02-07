@@ -217,6 +217,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
+        // TTODO Abandon any other lobby we're in
+        // TTODO Clean up empty games (that no one is trying to rejoin) automatically after a period
         const lobbyToJoin = utils.lobbies.get(message.details.gameId);
         // TTODO Determine if we can join a lobby - has a slot, not already in, and no one is waiting to rejoin
         if (lobbyToJoin.players.length >= 2 || lobbyToJoin.players.find((player) => player.playerId === message.playerId)) {
