@@ -15,10 +15,12 @@ type WebSocketDetails = {
 type PlayerObj = {
   playerId: string;
   playerName: string;
+  ready?: boolean;
 };
 
 type GameLobby = {
   gameId: string;
+  started?: boolean;
   title: string;
   password?: string;
   observers: {
@@ -46,7 +48,6 @@ const lobbySocketId = 'lobby';
 const socketMap = new Map<string, WebSocketDetails[]>(); // Track which actual socket is in what channel (the string identifier), such as lobby or a gameId
 const htmlComponentMap = new Map<string, string>();
 const jsComponentList = new Array<string>();
-const lobbies = new Map<string, GameLobby>();
 const players = new Map<string, string>(); // key is playerId, value is name
 
 const handler = (req: Request) => {
@@ -64,15 +65,22 @@ const handler = (req: Request) => {
     }
 
     const { socket, response } = Deno.upgradeWebSocket(req, { idleTimeout: 60 });
-    if (!socketMap.get(lobbySocketId)) {
+    if (!socketMap.has(lobbySocketId)) {
       socketMap.set(lobbySocketId, []);
     }
 
     socket.addEventListener('open', () => {
-      // TODO When someone creates a game we add that gameId socket to the list?
       const newPlayerId = url.searchParams.get('playerId') ?? DEFAULT_PLAYER_ID;
       players.set(newPlayerId, DEFAULT_PLAYER_NAME);
-      socketMap.set(lobbySocketId, [...socketMap.get(lobbySocketId), {
+
+      // See if we're in a game
+      const socketId = utils.getGameIdByPlayerId(newPlayerId) ?? lobbySocketId;
+
+      if (!socketMap.has(socketId)) {
+        socketMap.set(socketId, []);
+      }
+
+      socketMap.set(socketId, [...socketMap.get(socketId), {
         playerId: newPlayerId,
         socket: socket,
       }]);
@@ -133,7 +141,7 @@ const handler = (req: Request) => {
 };
 
 // TODO Do a set type of...well...type, such as 'playCard' | 'drawCard' | etc.
-const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
+const sendS = (type: string, messageForGs: any, messageDetails?: any, optionalGroup?: string) => {
   if (!type) {
     return;
   }
@@ -143,11 +151,13 @@ const sendS = (type: string, messageDetails?: any, optionalGroup?: string) => {
     details: messageDetails ?? {},
   };
 
+  const socketId = messageForGs ? utils.getGameIdByPlayerId(messageForGs.playerId) ?? lobbySocketId : lobbySocketId;
+
   if (type !== 'sync' && type !== 'ping' && type !== 'pong') {
-    console.log('SENT:', messageObj);
+    console.log(`SENT to ${socketId}:`, messageObj);
   }
 
-  socketMap.get(lobbySocketId).forEach((socketDetails: WebSocketDetails) => {
+  socketMap.get(socketId)?.forEach((socketDetails: WebSocketDetails) => {
     if (!optionalGroup || (optionalGroup && optionalGroup === socketDetails.playerId)) {
       if (socketDetails && socketDetails.socket && socketDetails.socket.readyState === WebSocket.OPEN) {
         socketDetails.socket.send(JSON.stringify(messageObj));
@@ -163,16 +173,18 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
   // TODO Be consistent between this and the client-side receive message and just use switch statements in both
   if (message.type === 'ping') {
-    sendS('pong', null, message.playerId);
+    sendS('pong', message, null, message.playerId);
   } else if (message.type === 'unsubscribe') {
     const playerId = message.playerId;
+    const gameId = utils.getGameIdByPlayerId(message.playerId) ?? lobbySocketId;
+
     if (playerId) {
-      const foundIndex = socketMap.get(lobbySocketId).findIndex((socketDetails: WebSocketDetails) =>
+      const foundIndex = socketMap.get(gameId).findIndex((socketDetails: WebSocketDetails) =>
         playerId === socketDetails.playerId
       );
       if (foundIndex !== -1) {
-        socketMap.get(lobbySocketId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
-        socketMap.get(lobbySocketId).splice(foundIndex, 1);
+        socketMap.get(gameId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
+        socketMap.get(gameId).splice(foundIndex, 1);
       }
     }
   } else if (message.type === 'lobby') {
@@ -181,20 +193,21 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       return;
     }
 
-    console.log('RECEIVE LOBBY', message);
+    console.log('RECEIVE (Lobby):', message);
 
     if (message.details.subtype === 'setName') {
-      players.set(message.details.playerId, message.details.playerName);
+      players.set(message.playerId, message.details.playerName);
     } else if (message.details.subtype === 'getLobbyList') {
-      sendS('lobby', {
+      // TODO Probably wrap the lobby messages in a helper function, including sendC
+      sendS('lobby', message, {
         subtype: 'giveLobbyList',
         lobbies: convertLobbiesForClient(),
       }, message.playerId);
 
       // Determine if we are already in a lobby and rejoin it
-      lobbies.forEach((lobby: GameLobby) => {
+      utils.lobbies.forEach((lobby: GameLobby) => {
         if (lobby.players.find((player: PlayerObj) => player.playerId === message.playerId)) {
-          sendS('lobby', {
+          sendS('lobby', message, {
             subtype: 'joinedLobby',
             gameId: lobby.gameId,
           }, message.playerId);
@@ -202,12 +215,12 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       });
     } else if (message.details.subtype === 'joinLobby') {
       if (
-        message.playerId && message.details.gameId && lobbies.get(message.details.gameId)
+        message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
-        const lobbyToJoin = lobbies.get(message.details.gameId);
-        // TTODO Determine if we can join a lobby - has a slot, and no one is waiting to rejoin
-        if (lobbyToJoin.players.length >= 2) {
-          // TTODO Send error if the lobby is full?
+        const lobbyToJoin = utils.lobbies.get(message.details.gameId);
+        // TTODO Determine if we can join a lobby - has a slot, not already in, and no one is waiting to rejoin
+        if (lobbyToJoin.players.length >= 2 || lobbyToJoin.players.find((player) => player.playerId === message.playerId)) {
+          // Ignore any full or existing error
         } else {
           lobbyToJoin.players.push({
             playerId: message.playerId,
@@ -215,17 +228,73 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           });
 
           // Refresh the lobby list of all viewing parties
-          sendS('lobby', {
+          sendS('lobby', message, {
             subtype: 'giveLobbyList',
             lobbies: convertLobbiesForClient(),
           });
 
-          sendS('lobby', {
+          sendS('lobby', message, {
             subtype: 'joinedLobby',
             gameId: lobbyToJoin.gameId,
           }, message.playerId);
         }
       }
+    } else if (message.details.subtype === 'markReady') {
+      const lobbyObj = utils.lobbies.get(message.details.gameId);
+      const foundPlayer = lobbyObj?.players.find((player) => player.playerId === message.playerId);
+      if (foundPlayer && lobbyObj) {
+        foundPlayer.ready = message.details.ready;
+
+        // If both players are ready start the game
+        if (foundPlayer.ready && lobbyObj.players.length >= 2) {
+          const opponent = lobbyObj.players.find((player) => player.playerId !== message.playerId);
+          if (opponent?.ready) {
+            // Determine the first player
+            // TTODO Better handling of first player, especially the 1 Water
+            const playerRoll = utils.randomRange(0, 1);
+            if (playerRoll === 0) {
+              lobbyObj.gs.player1.playerId = foundPlayer.playerId;
+              lobbyObj.gs.player2.playerId = opponent.playerId;
+            } else {
+              lobbyObj.gs.player2.playerId = foundPlayer.playerId;
+              lobbyObj.gs.player1.playerId = opponent.playerId;
+            }
+
+            sendS('lobby', message, {
+              subtype: 'gotoGame',
+              isFirst: playerRoll === 0,
+            }, message.playerId);
+            sendS('lobby', message, {
+              subtype: 'gotoGame',
+              isFirst: playerRoll === 1,
+            }, opponent.playerId);
+
+            // Game is set to start
+            lobbyObj.started = true;
+          }
+        }
+      }
+    } else if (message.details.subtype === 'gamePageLoaded') {
+      const gameObj = utils.lobbies.get(utils.getGameIdByPlayerId(message.playerId));
+
+      // If we don't have a game setup, go back to the lobby
+      if (!gameObj) {
+        sendS('lobby', message, {
+          subtype: 'gotoLobby',
+        }, message.playerId);
+      }
+
+      let playerNum = 'player1';
+      if (gameObj.gs.player2.playerId === message.playerId) {
+        playerNum = 'player2';
+      }
+
+      action.joinGame({
+        playerId: message.playerId,
+        details: {
+          player: playerNum,
+        },
+      });
     } else {
       console.error('Received lobby message but unknown subtype=' + message.details.subtype);
     }
@@ -254,12 +323,12 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
 const createGame = (title: string, password?: string) => {
   const newGameId = uuidv4();
-
   const newGamestate = structuredClone(gs);
+  newGamestate.gameId = newGameId;
   newGamestate.deck = createNewDeck();
   newGamestate.campDeck = createCampDeck();
 
-  lobbies.set(newGameId, {
+  utils.lobbies.set(newGameId, {
     gameId: newGameId,
     title: title,
     password: password,
@@ -276,8 +345,8 @@ const createGame = (title: string, password?: string) => {
 // Convert our map of lobbies to an array of just public information for the client to display
 function convertLobbiesForClient() {
   const toReturn = [];
-  if (lobbies?.size) {
-    lobbies.forEach((lobby: GameLobby, key: string) => {
+  if (utils.lobbies?.size) {
+    utils.lobbies.forEach((lobby: GameLobby, key: string) => {
       toReturn.push({
         gameId: key,
         title: lobby.title,

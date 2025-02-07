@@ -24,13 +24,13 @@
               x-init="$el.focus()"
               type="password"
               placeholder="Lobby requires a password"
-              x-model="lobby.enteredPassword"
+              x-model="enteredPassword"
               @keyup.enter="joinLobby(currentLobby)"
             />
           </template>
           <button
             @click="joinLobby(currentLobby)"
-            :disabled="currentLobby.players.length === 2"
+            :disabled="currentLobby.players.length >= 2"
           >
             Join
           </button>
@@ -44,6 +44,19 @@
         You are in a game lobby for <span x-text="getJoinedLobby().gameId"></span>
         <br />
         Your opponent is <span x-text="getOpponentName()"></span>
+        <template x-if="!readying">
+          <label style="font-size: 48px">
+            <input type="checkbox" @click="markReady($el)">
+            I'm Ready
+          </label>
+        </template>
+        <template x-if="readying">
+          <div>
+            <span x-text="`You will be going ${isFirst ? 'FIRST' : 'SECOND'}`"></span>
+            <br />
+            <span x-text="`Game starting in ${countdownSeconds}...`"></span>
+          </div>
+        </template>
       </div>
     </template>
 

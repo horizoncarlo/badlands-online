@@ -56,6 +56,10 @@ function initGame(status) {
     alpineInit();
     applyChatMax();
     setupHotkeys();
+
+    sendC('lobby', {
+      subtype: 'gamePageLoaded',
+    });
   }
 }
 

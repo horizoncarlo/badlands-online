@@ -1,5 +1,5 @@
 import { action } from './actions.mjs';
-import { gs } from './gamestate.mjs';
+import { getGS } from './gamestate.mjs';
 import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
@@ -93,7 +93,7 @@ const abilities = {
   exterminator(message) {
     if (!onClient) {
       const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-      const damagedSlots = gs[opponentNum].slots.filter((slot) =>
+      const damagedSlots = getGS(message)[opponentNum].slots.filter((slot) =>
         slot.content && typeof slot.content.damage === 'number' && slot.content.damage > 0
       );
 
@@ -151,21 +151,21 @@ const abilities = {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
         targets.forEach((targetId) => {
-          const target = utils.findCardInGame({ id: targetId });
+          const target = utils.findCardInGame(message, { id: targetId });
           if (target) {
             /* TODO Mimic issues (global "processingMimic=boolean" flag to handle some of this? Ugly though...):
             Mimic marks the used target as unReady instead of herself
             Mutant self damage hits the target Mutant (even if it's the opponent) instead of Mimic
             */
             // Act as if the user directly used this card
-            sendS('useCard', {
+            sendS('useCard', message, {
               card: target.cardObj,
             });
           }
         });
       } else {
         // Mimic can target ANY person that is undamaged and ready (and obviously not themselves)
-        const validTargets = [...gs.player1.slots, ...gs.player2.slots]
+        const validTargets = [...getGS(message).player1.slots, ...getGS(message).player2.slots]
           .filter((slot) =>
             slot.content && slot.content.id !== message.details.card.id && !slot.content.unReady &&
             (!slot.content.damage || slot.content.damage <= 0)
@@ -190,9 +190,9 @@ const abilities = {
   mutant(message) {
     if (!onClient) {
       message.details.effectName = message.type;
-      gs.pendingTargetAction = structuredClone(message);
+      getGS(message).pendingTargetAction = structuredClone(message);
 
-      sendS('useAbility', message.details, message.playerId);
+      sendS('useAbility', message, message.details, message.playerId);
     } else {
       showMutantDialog(message.details?.card?.img);
     }
@@ -202,14 +202,14 @@ const abilities = {
     if (!onClient) {
       // Check if we have a matching pending action and we're not just getting an invalid message
       if (
-        !gs.pendingTargetAction?.type ||
-        gs.pendingTargetAction.type !== 'mutant'
+        !getGS(message).pendingTargetAction?.type ||
+        getGS(message).pendingTargetAction.type !== 'mutant'
       ) {
         return;
       }
 
-      const mutantMessage = structuredClone(gs.pendingTargetAction);
-      gs.pendingTargetAction = null;
+      const mutantMessage = structuredClone(getGS(message).pendingTargetAction);
+      getGS(message).pendingTargetAction = null;
 
       const choice = message.details.chosenAbilities;
       if (choice === 'Both' || choice === 'Damage') {
@@ -269,7 +269,7 @@ const abilities = {
         targets.forEach((targetId) => {
           utils.returnCardToHand(message.playerId, targetId);
         });
-        action.sync();
+        action.sync(null, { gsMessage: message });
       } else {
         const validTargets = utils.determineOwnSlotTargets(message);
         if (validTargets?.length) {
@@ -290,7 +290,7 @@ const abilities = {
     if (!onClient) {
       const cardOptions = [];
       for (let i = 0; i < 3; i++) {
-        const newCard = utils.drawFromDeck();
+        const newCard = utils.drawFromDeck(message);
         if (newCard) {
           cardOptions.push(newCard);
         }
@@ -306,16 +306,16 @@ const abilities = {
       action.reduceWater(message, message.details.card.abilities[0].cost);
 
       // Discard the selections right away
-      cardOptions.forEach((card) => gs.discard.push(card));
+      cardOptions.forEach((card) => getGS(message).discard.push(card));
 
       message.details = {
         effectName: message.type,
         cardOptions: cardOptions,
       };
 
-      gs.pendingTargetAction = structuredClone(message);
+      getGS(message).pendingTargetAction = structuredClone(message);
 
-      sendS('useAbility', message.details, message.playerId);
+      sendS('useAbility', message, message.details, message.playerId);
     } else {
       ui.componentData.scientistChoices = message.details.cardOptions;
       showScientistDialog();
@@ -327,10 +327,10 @@ const abilities = {
       // If our pending action matches the incoming scientist request we're valid
       if (
         typeof message.details.chosenCardIndex === 'number' &&
-        JSON.stringify(gs.pendingTargetAction?.details?.cardOptions) ===
+        JSON.stringify(getGS(message).pendingTargetAction?.details?.cardOptions) ===
           JSON.stringify(message.details.cardOptions)
       ) {
-        gs.pendingTargetAction = null;
+        getGS(message).pendingTargetAction = null;
 
         // Do the junk effect
         const chosenCard = message.details.cardOptions[message.details.chosenCardIndex];
@@ -341,7 +341,7 @@ const abilities = {
           action.sendError(`Drastic misuse of scientific resources (${chosenCard.junkEffect})`, message.playerId);
         }
 
-        action.sync();
+        action.sync(null, { gsMessage: message });
       }
     } else {
       sendC('doneScientist', message.details);
@@ -354,8 +354,10 @@ const abilities = {
       if (_needTargets(message)) {
         const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         message.validTargets = [
-          ...gs[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) => String(slot.content.id)),
-          ...gs[opponentNum].camps.map((camp) => String(camp.id)),
+          ...getGS(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
+            String(slot.content.id)
+          ),
+          ...getGS(message)[opponentNum].camps.map((camp) => String(camp.id)),
         ];
 
         action.targetMode(message, {
@@ -399,13 +401,13 @@ const abilities = {
     if (!onClient) {
       // TODO Do a proxy/raw style for abilities and store a bunch of local convenience variables from our utility functions, like playerNum, opponentNum, etc. so we don't have to do long chains like the next line in each function?
       const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-      const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum))?.camps;
+      const opponentCamps = utils.getPlayerDataById(utils.getPlayerIdByNum(opponentPlayerNum, message.playerId))?.camps;
       const targets = utils.checkSelectedTargets(message);
 
       if (targets?.length) {
         const columnCampTargetIndex = opponentCamps.findIndex((camp) => camp.id === +targets[0]);
         if (columnCampTargetIndex !== -1) {
-          const slots = utils.getSlotsInColumn(columnCampTargetIndex, opponentPlayerNum);
+          const slots = utils.getSlotsInColumn(message, columnCampTargetIndex, opponentPlayerNum);
           if (slots?.length) {
             slots.forEach((slot) => {
               if (slot.content !== null) {
@@ -426,8 +428,9 @@ const abilities = {
         if (opponentCamps?.length) {
           for (let i = 0; i < opponentCamps.length; i++) {
             if (
-              params?.isDamageAbility && (!opponentCamps[i].isDestroyed || !utils.isColumnEmpty(i, opponentPlayerNum)) ||
-              !params?.isDamageAbility && !utils.isColumnEmpty(i, opponentPlayerNum)
+              params?.isDamageAbility &&
+                (!opponentCamps[i].isDestroyed || !utils.isColumnEmpty(message, i, opponentPlayerNum)) ||
+              !params?.isDamageAbility && !utils.isColumnEmpty(message, i, opponentPlayerNum)
             ) {
               message.validTargets.push(String(opponentCamps[i].id));
             }
@@ -487,8 +490,8 @@ const abilities = {
       action.sync(message.playerId);
 
       const abilityMessage = { ...message.details, effectName: 'zetoKhan', expectedDiscards: 3 };
-      gs.pendingTargetAction = structuredClone(abilityMessage);
-      sendS('useAbility', abilityMessage, message.playerId);
+      getGS(message).pendingTargetAction = structuredClone(abilityMessage);
+      sendS('useAbility', message, abilityMessage, message.playerId);
     } else {
       showDiscardDialog(message, { allowWaterSilo: false });
     }

@@ -1,6 +1,6 @@
 import { abilities } from './abilities.mjs';
 import { events } from './events.mjs';
-import { gs } from './gamestate.mjs';
+import { getGS, gs } from './gamestate.mjs';
 import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
@@ -18,16 +18,19 @@ const rawAction = {
                     Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
       if (!DEBUG_TESTING_PLAYERS) {
         const desiredPlayer = message.details.player;
-        if (gs[desiredPlayer] && (!gs[desiredPlayer].playerId || gs[desiredPlayer].playerId === message.playerId)) {
-          gs[desiredPlayer].playerId = message.playerId;
+        if (
+          getGS(message)[desiredPlayer] &&
+          (!getGS(message)[desiredPlayer].playerId || getGS(message)[desiredPlayer].playerId === message.playerId)
+        ) {
+          getGS(message)[desiredPlayer].playerId = message.playerId;
         } else {
           return action.sendError('Invalid join request or someone already playing', message.playerId);
         }
       }
 
-      gs[message.details.player].playerId = message.playerId;
+      getGS(message)[message.details.player].playerId = message.playerId;
 
-      sendS('setPlayer', message.details, message.playerId);
+      sendS('setPlayer', message, message.details, message.playerId);
 
       // Draw our initial set of camps to choose from
       action.sync(message.playerId, { includeChat: true });
@@ -48,7 +51,7 @@ const rawAction = {
           utils.sleep(500);
 
           // Autochoose our camps too
-          const campOptions = gs.campDeck.splice(0, 3);
+          const campOptions = getGS(message).campDeck.splice(0, 3);
           utils.getPlayerDataById(autoPlayerId).camps = campOptions;
           action.doneCamps({
             type: 'doneCamps',
@@ -102,20 +105,20 @@ const rawAction = {
     } else {
       // Don't allow starting the game until an opponent is present
       if (!DEBUG_TESTING_PLAYERS) {
-        if (!gs.player1.playerId || !gs.player2.playerId) {
+        if (!getGS(message).player1.playerId || !getGS(message).player2.playerId) {
           action.sendError('Cannot start the turn, no opponent yet', message.playerId);
           return;
         }
       }
 
       const nextPlayerNum = utils.getPlayerNumById(message.playerId);
-      gs[nextPlayerNum].waterCount = TURN_WATER_COUNT;
-      gs.turn[nextPlayerNum].turnCount++;
-      gs.turn.currentPlayer = nextPlayerNum;
+      getGS(message)[nextPlayerNum].waterCount = TURN_WATER_COUNT;
+      getGS(message).turn[nextPlayerNum].turnCount++;
+      getGS(message).turn.currentPlayer = nextPlayerNum;
 
       // Reset ready state of cards, then apply for our damaged cards
-      utils.markAllSlotsReady();
-      gs[nextPlayerNum].slots.forEach((slot) => {
+      utils.markAllSlotsReady(message);
+      getGS(message)[nextPlayerNum].slots.forEach((slot) => {
         if (slot.content) {
           if (slot.content.damage > 0) {
             slot.content.unReady = true;
@@ -126,7 +129,7 @@ const rawAction = {
       });
 
       // Handle Event queue moving forward on start of turn, plus triggering any effects
-      const eventQueue = gs[nextPlayerNum].events;
+      const eventQueue = getGS(message)[nextPlayerNum].events;
       for (let i = 0; i < eventQueue.length; i++) {
         eventQueue[i] = eventQueue[i + 1];
       }
@@ -143,7 +146,7 @@ const rawAction = {
       }
 
       action.drawCard(message, { fromServerRequest: true });
-      action.sync();
+      action.sync(null, { gsMessage: message });
     }
   },
 
@@ -152,18 +155,18 @@ const rawAction = {
       sendC('endTurn');
     } else {
       utils.clearUniversal();
-      utils.markAllSlotsReady();
+      utils.markAllSlotsReady(message);
 
       const currentPlayerNum = utils.getPlayerNumById(message.playerId);
       const nextPlayerNum = utils.getOppositePlayerNum(currentPlayerNum);
-      const nextPlayerId = utils.getPlayerIdByNum(nextPlayerNum);
+      const nextPlayerId = utils.getPlayerIdByNum(nextPlayerNum, message.playerId);
 
       if (nextPlayerId) {
-        gs.turn.currentPlayer = nextPlayerNum;
+        getGS(message).turn.currentPlayer = nextPlayerNum;
         action.startTurn({
           playerId: nextPlayerId,
         });
-        action.sync(); // For applying the reset of slot ready state
+        action.sync(null, { gsMessage: message }); // For applying the reset of slot ready state
       } else {
         action.sendError('No opponent yet', message.playerId);
         return;
@@ -176,8 +179,8 @@ const rawAction = {
       sendC('undo');
     } else {
       if (undoStack.length > 0) {
-        Object.assign(gs, undoStack.pop());
-        action.sync();
+        Object.assign(getGS(message), undoStack.pop());
+        action.sync(null, { gsMessage: message });
       }
     }
   },
@@ -202,7 +205,7 @@ const rawAction = {
       const playerNum = utils.getPlayerNumById(message.playerId);
       if (utils.cardIsEvent(message.details.card)) {
         let targetSpace = message.details.card.startSpace;
-        const eventQueue = gs[playerNum].events;
+        const eventQueue = getGS(message)[playerNum].events;
 
         // If our event is space 0 we just do the effect immediately
         if (targetSpace === 0) {
@@ -225,13 +228,13 @@ const rawAction = {
 
         message.details.card.unReady = true;
         eventQueue.splice(targetSpace, 1, message.details.card);
-        sendS('events', {
+        sendS('events', message, {
           playerNum: playerNum,
           events: eventQueue,
         });
       } else {
         // Determine if our column is full or other validity scenarios
-        const playerSlots = gs[playerNum].slots;
+        const playerSlots = getGS(message)[playerNum].slots;
         let targetSlot = playerSlots[message.details.slot.index];
         if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
           action.sendError('Invalid card position', message.playerId);
@@ -246,7 +249,7 @@ const rawAction = {
             targetSlot.content = null;
 
             // Send an extra slot message to notify a card was pushed
-            sendS('slot', {
+            sendS('slot', message, {
               playerNum: playerNum,
               index: slotAbove.index,
               card: slotAbove.content,
@@ -276,7 +279,7 @@ const rawAction = {
         }
 
         targetSlot.content = message.details.card;
-        sendS('slot', {
+        sendS('slot', message, {
           playerNum: playerNum,
           index: targetSlot.index,
           card: message.details.card,
@@ -335,7 +338,7 @@ const rawAction = {
         );
 
         // If we aren't targetting, we can just mark the card not ready when it initiated the effect
-        if (!gs.pendingTargetAction && returnStatus !== false) {
+        if (!getGS(message).pendingTargetAction && returnStatus !== false) {
           action.reduceWater(message, abilityObj.cost);
         } else {
           action.sync(message.playerId);
@@ -376,12 +379,12 @@ const rawAction = {
 
         playerData.cards.splice(foundIndex, 1);
         playerData.hasWaterSilo = false;
-        action.sync();
+        action.sync(null, { gsMessage: message });
       }
 
       playerData.waterCount += 1;
 
-      sendS('gainWater', message.playerId);
+      sendS('gainWater', message, message.playerId);
     }
   },
 
@@ -391,11 +394,11 @@ const rawAction = {
 
       // Manage our ready state, specifically around cost
       if (!params?.ignoreUnready && message.details.card) {
-        const card = utils.findCardInGame(message.details.card);
+        const card = utils.findCardInGame(message, message.details.card);
         if (card?.cardObj && !utils.cardIsEvent(card?.cardObj)) {
           card.cardObj.unReady = true;
           card.cardObj.unReadyCost = waterCost;
-          action.sync(); // Needed for the unReady to apply
+          action.sync(null, { gsMessage: message }); // Needed for the unReady to apply
         }
       }
 
@@ -403,7 +406,7 @@ const rawAction = {
       if (waterCost > 0) {
         utils.getPlayerDataById(message.playerId).waterCount -= waterCost;
 
-        sendS('reduceWater', {
+        sendS('reduceWater', message, {
           cost: waterCost,
         }, message.playerId);
       }
@@ -427,7 +430,7 @@ const rawAction = {
       const cards = utils.getPlayerDataById(message.playerId).cards;
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
       if (foundIndex !== -1) {
-        gs.discard.push(cards.splice(foundIndex, 1)[0]);
+        getGS(message).discard.push(cards.splice(foundIndex, 1)[0]);
 
         // Sync on a timer, so that if we have multiple requests in a row we just sync once
         if (discardCardTimer) {
@@ -457,7 +460,7 @@ const rawAction = {
         action.reduceWater(message, 2, { ignoreUnready: true });
       }
 
-      const newCard = utils.drawFromDeck();
+      const newCard = utils.drawFromDeck(message);
       if (newCard) {
         // TODO Sort hand to have Water Silo at the front, then people, then events (and eventually a setting to toggle this option off)
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
@@ -465,13 +468,13 @@ const rawAction = {
         const newMessage = {
           ...message.details,
           card: newCard,
-          deckCount: gs.deck.length,
+          deckCount: getGS(message).deck.length,
         };
         if (message.details?.fromWater || params?.fromServerRequest) {
           newMessage.showAnimation = true; // TODO Clean this flag up after use otherwise it'll be attached to the message / gamestate forever
         }
 
-        sendS('addCard', newMessage, message.playerId);
+        sendS('addCard', message, newMessage, message.playerId);
       } else {
         action.sendError('No cards left to draw', message.playerId);
         return false;
@@ -488,7 +491,7 @@ const rawAction = {
 
         // If we aren't targetting, we can just remove the card that initiated the junk effect now
         // Assuming of course our action was valid
-        if (!gs.pendingTargetAction && returnStatus !== false) {
+        if (!getGS(message).pendingTargetAction && returnStatus !== false) {
           // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
           action.discardCard(message);
         } else {
@@ -529,17 +532,17 @@ const rawAction = {
       const targets = utils.checkSelectedTargets(message);
 
       if (targets?.length) {
-        let newPunk = utils.drawFromDeck();
+        let newPunk = utils.drawFromDeck(message);
         if (!newPunk) {
           action.sendError('No cards left to draw', message.playerId);
           return false;
         }
 
-        newPunk = utils.convertCardToPunk(newPunk);
+        newPunk = utils.convertCardToPunk(message, newPunk);
 
         // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards OR replace entirely
         const targetId = targets[0];
-        const playerSlots = gs[utils.getPlayerNumById(message.playerId)].slots;
+        const playerSlots = getGS(message)[utils.getPlayerNumById(message.playerId)].slots;
         if (targetId.startsWith(SLOT_ID_PREFIX)) {
           const targetSlotIndex = parseInt(targetId.substring(SLOT_ID_PREFIX.length));
 
@@ -547,15 +550,15 @@ const rawAction = {
             const slotBelow = playerSlots[utils.indexBelow(targetSlotIndex)];
             if (!slotBelow.content) {
               slotBelow.content = newPunk;
-              action.sync();
+              action.sync(null, { gsMessage: message });
               return;
             }
           }
 
           playerSlots[targetSlotIndex].content = newPunk;
-          action.sync();
+          action.sync(null, { gsMessage: message });
         } else {
-          const inTargetSlot = utils.findCardInGame({ id: targetId });
+          const inTargetSlot = utils.findCardInGame(message, { id: targetId });
 
           // If all our slots are full replace the card in our slot
           // Obviously if that is also a Punk we return it to the deck properly
@@ -576,7 +579,7 @@ const rawAction = {
 
           // And add the new punk
           playerSlots[inTargetSlot.slotIndex].content = newPunk;
-          action.sync();
+          action.sync(null, { gsMessage: message });
         }
       } else {
         action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'variant', hideCancel: true });
@@ -612,7 +615,7 @@ const rawAction = {
             }));
           playerEvents[0] = undefined;
         } else {
-          action.sync();
+          action.sync(null, { gsMessage: message });
         }
       } else {
         action.playCard({
@@ -635,8 +638,8 @@ const rawAction = {
         });
       } else {
         const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-        const opponentPlayerId = utils.getPlayerIdByNum(opponentPlayerNum);
-        const opponentCamps = gs[opponentPlayerNum]?.camps;
+        const opponentPlayerId = utils.getPlayerIdByNum(opponentPlayerNum, message.playerId);
+        const opponentCamps = getGS(message)[opponentPlayerNum]?.camps;
 
         // We use a queue here even though it's a single action specifically to skip preprocessing so we can do the out of turn opponent choice
         message.validTargets = opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id));
@@ -693,7 +696,7 @@ const rawAction = {
   // Directly damage the passed message.details.card (normally meant to be called through damageCard for targetting first)
   doDamageCard(message) {
     if (!onClient) {
-      const { cardObj } = utils.findCardInGame(message.details.card);
+      const { cardObj } = utils.findCardInGame(message, message.details.card);
       if (cardObj) {
         cardObj.damage = (cardObj.damage ?? 0) + (message.details.amount ?? 1);
 
@@ -703,7 +706,7 @@ const rawAction = {
         ) {
           action.destroyCard(message);
         } else {
-          action.sync();
+          action.sync(null, { gsMessage: message });
         }
       }
 
@@ -713,12 +716,12 @@ const rawAction = {
 
   destroyCard(message) {
     if (!onClient) {
-      const foundRes = utils.findCardInGame(message.details.card);
+      const foundRes = utils.findCardInGame(message, message.details.card);
       if (foundRes) {
         // TODO Play a destroy animation so the card being removed from the board is less abrupt
         if (typeof foundRes.slotIndex === 'number') {
           // Destroy our card
-          const playerSlots = gs[foundRes.playerNum].slots;
+          const playerSlots = getGS(message)[foundRes.playerNum].slots;
           playerSlots[foundRes.slotIndex].content = null;
 
           // Check if we have a card above of our destroyed card, if we do, slide it down towards the camp
@@ -747,7 +750,7 @@ const rawAction = {
           });
         }
 
-        action.sync();
+        action.sync(null, { gsMessage: message });
       } else {
         action.sendError('Invalid target to destroy', message.playerId);
       }
@@ -758,9 +761,9 @@ const rawAction = {
     if (!onClient) {
       const cardObj = message.details.card;
       if (cardObj?.isPunk) {
-        const matchingPunkIndex = gs.punks.findIndex((punk) => cardObj.id === punk.id);
+        const matchingPunkIndex = getGS(message).punks.findIndex((punk) => cardObj.id === punk.id);
         if (matchingPunkIndex !== -1) {
-          gs.deck.unshift(gs.punks.splice(matchingPunkIndex, 1)[0]);
+          getGS(message).deck.unshift(getGS(message).punks.splice(matchingPunkIndex, 1)[0]);
         }
       }
     }
@@ -772,14 +775,14 @@ const rawAction = {
       if (targets?.length) {
         try {
           targets.forEach((targetId) => {
-            const { cardObj } = utils.findCardInGame({ id: targetId });
+            const { cardObj } = utils.findCardInGame(message, { id: targetId });
             if (cardObj && typeof cardObj.damage === 'number') {
               // Slot and camp are handled similar, except we technically delete a non-existent flag on a slot (shrug)
               delete cardObj.isDestroyed;
               cardObj.damage = Math.min(0, cardObj.damage - 1);
               cardObj.unReady = true; // Mark card unReady after a restore
 
-              action.sync(); // TODO Not ideal - restoreCard sync needed for Mutant because it directly calls fireAbilityOrJunk, whereas other approaches (like junkCard) naturally sync afterwards
+              action.sync(null, { gsMessage: message }); // TODO Not ideal - restoreCard sync needed for Mutant because it directly calls fireAbilityOrJunk, whereas other approaches (like junkCard) naturally sync afterwards
             } else {
               action.sendError('No damage to Restore', message.playerId);
               throw new Error(); // Ditch if we didn't restore (would be an invalid target)
@@ -799,14 +802,15 @@ const rawAction = {
 
   promptCamps(message) {
     if (!onClient) {
-      let campOptions = utils.getPlayerDataById(message.playerId).camps;
+      const playerData = utils.getPlayerDataById(message.playerId);
+      let campOptions = playerData.camps;
       if (!campOptions || campOptions.length === 0) {
-        campOptions = gs.campDeck.splice(0, 6);
-        utils.getPlayerDataById(message.playerId).camps = campOptions;
+        campOptions = getGS(message).campDeck.splice(0, 6);
+        playerData.camps = campOptions;
       }
 
       if (campOptions.length !== CORRECT_CAMP_NUM) {
-        sendS('promptCamps', {
+        sendS('promptCamps', message, {
           camps: campOptions,
         }, message.playerId);
       } else {
@@ -850,7 +854,7 @@ const rawAction = {
         }, { fromServerRequest: true });
       }
 
-      action.sync();
+      action.sync(null, { gsMessage: message });
     }
   },
 
@@ -864,15 +868,15 @@ const rawAction = {
         console.error(`Send Error (to ${playerId}):`, text);
         sendErrorChat(text, playerId);
       } else {
-        sendErrorChat(text, gs.player1.playerId);
-        sendErrorChat(text, gs.player2.playerId);
+        sendErrorChat(text, getGS(message).player1.playerId);
+        sendErrorChat(text, getGS(message).player2.playerId);
       }
     } else {
       console.error(text);
     }
   },
 
-  dumpDebug() {
+  dumpDebug(message) {
     const now = new Date().toLocaleTimeString();
     if (onClient) {
       console.log(now + ': DUMP: Client UI', ui);
@@ -881,7 +885,7 @@ const rawAction = {
       console.table(gs);
       sendC('dumpDebug');
     } else {
-      console.log(now + ': DUMP: Gamestate', gs);
+      console.log(now + ': DUMP: Gamestate', getGS(message));
       console.log(now + ': DUMP done');
     }
   },
@@ -902,18 +906,18 @@ const rawAction = {
 
       if (text) {
         if (!params?.playerId) {
-          gs.chat.push(text);
+          getGS(message).chat.push(text);
         }
 
-        sendS('chat', { text: text }, params?.playerId ?? null);
+        sendS('chat', message, { text: text }, params?.playerId ?? null);
       }
     }
   },
 
   targetMode(message, params) { // message has playerId, type. params has help, colorType, cursor (optional), expectedTargetCount (optional, default 1)
     if (!onClient) {
-      gs.pendingTargetAction = structuredClone(message);
-      gs.pendingTargetCancellable = !params.hideCancel;
+      getGS(message).pendingTargetAction = structuredClone(message);
+      getGS(message).pendingTargetCancellable = !params.hideCancel;
       const toSend = {
         playerId: message.playerId,
         type: message.type,
@@ -925,7 +929,7 @@ const rawAction = {
         hideCancel: params.hideCancel ?? false,
       };
 
-      sendS('targetMode', toSend, message.playerId);
+      sendS('targetMode', message, toSend, message.playerId);
     }
   },
 
@@ -933,15 +937,15 @@ const rawAction = {
     if (onClient) {
       sendC('cancelTarget', message);
     } else {
-      if (gs.pendingTargetAction) {
+      if (getGS(message).pendingTargetAction) {
         // Protect against malicious attempts to cancel an uncancellable target
-        if (!gs.pendingTargetCancellable) {
+        if (!getGS(message).pendingTargetCancellable) {
           action.sendError('Cannot cancel target mode', message.playerId);
           return;
         }
 
-        gs.pendingTargetAction = null;
-        sendS('cancelTarget', {}, message.playerId);
+        getGS(message).pendingTargetAction = null;
+        sendS('cancelTarget', message, {}, message.playerId);
       } else {
         action.sendError('Not in target mode', message.playerId);
       }
@@ -953,15 +957,16 @@ const rawAction = {
       sendC('doneTargets', message);
     } else if (message?.details?.targets) {
       try {
-        const pendingFunc = events[gs.pendingTargetAction?.type] || abilities[gs.pendingTargetAction?.type] ||
-          action[gs.pendingTargetAction?.type];
+        const pendingFunc = events[getGS(message).pendingTargetAction?.type] ||
+          abilities[getGS(message).pendingTargetAction?.type] ||
+          action[getGS(message).pendingTargetAction?.type];
         if (typeof pendingFunc === 'function') {
-          // Bit of a complicated one, but gs.pendingTargetAction USED to be reset at the bottom of this function
+          // Bit of a complicated one, but getGS(message).pendingTargetAction USED to be reset at the bottom of this function
           // The problem is with the codeQueue there is a chance we trigger a new action code path in the proxy handler
           // Which might want to set the target action - so clearing it at the end here (as we did before)
           //  would interrupt and mess with that ordering
-          const pendingTargetActionClone = structuredClone(gs.pendingTargetAction);
-          gs.pendingTargetAction = null;
+          const pendingTargetActionClone = structuredClone(getGS(message).pendingTargetAction);
+          getGS(message).pendingTargetAction = null;
 
           const returnStatus = pendingFunc({
             ...message,
@@ -982,7 +987,7 @@ const rawAction = {
             }
           }
         } else {
-          console.error('Unknown pendingTargetAction type', gs.pendingTargetAction);
+          console.error('Unknown pendingTargetAction type', getGS(message).pendingTargetAction);
           throw new Error();
         }
       } catch (err) {
@@ -992,7 +997,7 @@ const rawAction = {
     }
   },
 
-  sync(playerIdOrNullForBoth, params) { // params.includeChat (default false)
+  sync(playerIdOrNullForBoth, params) { // params.includeChat (default false), params.gsMessage for getGS
     /* Dev notes: when to sync vs not
      Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
      But that's also a huge worry about premature optimization given that a realistic game state is still under 5kb
@@ -1006,12 +1011,13 @@ const rawAction = {
     // TODO Need to throttle/batch syncs, for example junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
 
     function internalSync(playerNum) {
-      const currentPlayerId = utils.getPlayerIdByNum(playerNum);
+      const playerId = playerIdOrNullForBoth ?? params?.gsMessage?.playerId;
+      const currentPlayerId = utils.getPlayerIdByNum(playerNum, playerId);
       if (!currentPlayerId) {
         return;
       }
 
-      const updatedGs = structuredClone(gs);
+      const updatedGs = structuredClone(getGS(currentPlayerId));
       const opponentNum = utils.getOppositePlayerNum(playerNum);
 
       updatedGs.deckCount = updatedGs.deck.length;
@@ -1042,7 +1048,7 @@ const rawAction = {
       delete opponentData.playerId;
       updatedGs[opponentNum] = opponentData;
 
-      sendS('sync', {
+      sendS('sync', { playerId: playerId }, {
         gs: updatedGs,
       }, currentPlayerId);
     }
@@ -1108,8 +1114,26 @@ const actionHandler = {
 
       return function (...args) {
         const applyOriginalMethod = (originalMethod, context, args) => {
-          const beforeGS = JSON.parse(JSON.stringify(gs));
-          actionHandler.manageUndo(originalMethod, beforeGS);
+          // There were many unpleasant changes going from a plain `gs` to `getGS`
+          // Which was necessary when adding an actual lobby system for multiplayer, instead of just a single instance shared by all visitors
+          // But yeah one of the uglier ones is figuring out our gamestate from the messages here
+          let gsPlayerId = args[0];
+          if (!gsPlayerId || !gsPlayerId.playerId) {
+            gsPlayerId = args[1];
+
+            // Format that sync uses
+            if (typeof gsPlayerId === 'object' && gsPlayerId['gsMessage']) {
+              gsPlayerId = gsPlayerId.gsMessage;
+            }
+          }
+
+          try {
+            const beforeGS = JSON.parse(JSON.stringify(getGS(gsPlayerId)));
+            actionHandler.manageUndo(originalMethod, beforeGS);
+          } catch (err) {
+            console.error('Failed to store undo state', err);
+          }
+
           const res = originalMethod.apply(context, args);
           codeQueue.step(requestedAction);
           return res;

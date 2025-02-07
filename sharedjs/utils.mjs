@@ -1,7 +1,7 @@
 import { abilities } from './abilities.mjs';
 import { action } from './actions.mjs';
 import { events } from './events.mjs';
-import { gs } from './gamestate.mjs';
+import { getGS } from './gamestate.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
@@ -12,12 +12,13 @@ globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
 globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
+globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
 
-globalThis.DEBUG_AUTO_OPPONENT = true; // Debugging flag to automatically join the game as the opponent when someone starts a game
+globalThis.DEBUG_AUTO_OPPONENT = false; // Debugging flag to automatically join the game as the opponent when someone starts a game
 globalThis.DEBUG_AUTO_OPPONENT_DRAW = 6; // Debugging flag for the number of cards the auto-opponent should draw on their first turn, regardless of camps
-globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = DEBUG_AUTO_OPPONENT ? 30 : 15; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
-globalThis.DEBUG_TESTING_PLAYERS = true; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
+globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // DEBUG_AUTO_OPPONENT ? 30 : 15; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
+globalThis.DEBUG_TESTING_PLAYERS = false; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 
 const utils = {
   // TODO Can we leverage the 'universal' concept for Trait (always on) flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
@@ -25,14 +26,27 @@ const utils = {
     // TODO Show universal effects somewhere on the UI - such as High Ground being in effect
     highGround: false, // Whether High Ground was played this turn or not
   },
+  lobbies: new Map(),
+
+  getGameIdByPlayerId(playerId) {
+    for (const loopLobby of utils.lobbies.values()) {
+      if (loopLobby.started) {
+        for (const player of lobby.players) {
+          if (player.playerId === playerId) {
+            return loopLobby.gameId;
+          }
+        }
+      }
+    }
+  },
 
   clearUniversal() {
     utils.universal.highGround = false;
   },
 
   hasPlayerDataById(playerId) {
-    if (gs && playerId) {
-      return gs.player1.playerId === playerId || gs.player2.playerId === playerId;
+    if (playerId && getGS(playerId)) {
+      return getGS(playerId).player1.playerId === playerId || getGS(playerId).player2.playerId === playerId;
     }
     return false;
   },
@@ -42,7 +56,7 @@ const utils = {
   },
 
   getOppositePlayerId(playerId) {
-    return utils.getPlayerIdByNum(utils.getOppositePlayerNum(utils.getPlayerNumById(playerId))); // lol nice chaining bro
+    return utils.getPlayerIdByNum(utils.getOppositePlayerNum(utils.getPlayerNumById(playerId)), playerId); // lol nice chaining bro
   },
 
   getContentFromSlots(checkSlots, params) { // params.idOnly: boolean
@@ -107,24 +121,24 @@ const utils = {
     const fromPlayerNum = utils.getPlayerNumById(message.playerId);
     if (effectName === 'gainPunk') {
       // TODO Should reshuffle here automatically. As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
-      if (!onClient && gs.deck?.length < 1) {
+      if (!onClient && getGS(message).deck?.length < 1) {
         return [];
       }
 
       // Determine where our Punk can go
       // If ALL our slots are full then we can place anywhere and destroy the occupant
       let filteredSlots = [];
-      if (utils.areAllSlotsFull(gs[fromPlayerNum].slots)) {
-        filteredSlots = gs[fromPlayerNum].slots;
+      if (utils.areAllSlotsFull(getGS(message)[fromPlayerNum].slots)) {
+        filteredSlots = getGS(message)[fromPlayerNum].slots;
       } else {
-        filteredSlots = gs[fromPlayerNum].slots
+        filteredSlots = getGS(message)[fromPlayerNum].slots
           .filter((slot, index) => {
             // if our target is an empty slot we can place
             if (!slot.content) {
               return true;
             } // Determine if we're dropping a Punk on a card that has a slot above, in which case we can push that card up
             else if (utils.isBottomRow(index)) {
-              if (!gs[fromPlayerNum].slots[utils.indexAbove(index)].content) {
+              if (!getGS(message)[fromPlayerNum].slots[utils.indexAbove(index)].content) {
                 return true;
               }
             }
@@ -136,7 +150,7 @@ const utils = {
       });
     } else if (effectName === 'restoreCard') {
       let targets = [
-        ...utils.getContentFromSlots(gs[fromPlayerNum].slots),
+        ...utils.getContentFromSlots(getGS(message)[fromPlayerNum].slots),
         ...utils.getPlayerDataById(message.playerId).camps,
       ];
       // Target must be damaged and cannot be self
@@ -158,7 +172,7 @@ const utils = {
 
   determineOwnSlotTargets(message) {
     const playerNum = utils.getPlayerNumById(message.playerId);
-    return gs[playerNum].slots
+    return getGS(message)[playerNum].slots
       .filter((slot) => {
         if (message.details?.card?.id) {
           return slot.content && slot.content.id !== message.details.card.id;
@@ -207,8 +221,8 @@ const utils = {
     // Get the outermost unprotected opponent card in each column and return their IDs as targets
     const unprotectedCardIds = [];
     const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
-    const opponentSlots = gs[opponentPlayerNum]?.slots;
-    const opponentCamps = gs[opponentPlayerNum]?.camps;
+    const opponentSlots = getGS(message)[opponentPlayerNum]?.slots;
+    const opponentCamps = getGS(message)[opponentPlayerNum]?.camps;
 
     // Special case juuuuuuuust for High Ground event
     if (utils.universal.highGround) {
@@ -228,7 +242,7 @@ const utils = {
         unprotectedCardIds.push(String(opponentSlots[i + SLOT_NUM_COLS].content.id));
       } else if (
         !params?.peopleOnly &&
-        !opponentCamps[i].isDestroyed && utils.isColumnEmpty(i, opponentPlayerNum)
+        !opponentCamps[i].isDestroyed && utils.isColumnEmpty(message, i, opponentPlayerNum)
       ) {
         unprotectedCardIds.push(String(opponentCamps[i].id));
       }
@@ -240,16 +254,16 @@ const utils = {
     return (slots ?? []).every((slot) => slot.content !== null);
   },
 
-  getPlayerIdByNum(playerNum) {
-    if (gs && playerNum) {
-      return gs[playerNum].playerId;
+  getPlayerIdByNum(playerNum, playerIdForGS) {
+    if (playerNum && playerIdForGS && getGS(playerIdForGS)) {
+      return getGS(playerIdForGS)[playerNum].playerId;
     }
   },
 
   getPlayerNumById(playerId) {
-    if (gs && playerId) {
-      if (gs.player1.playerId === playerId) return 'player1';
-      else if (gs.player2.playerId === playerId) return 'player2';
+    if (playerId && getGS(playerId)) {
+      if (getGS(playerId).player1.playerId === playerId) return 'player1';
+      else if (getGS(playerId).player2.playerId === playerId) return 'player2';
     }
   },
 
@@ -258,32 +272,32 @@ const utils = {
   },
 
   getPlayerDataById(playerId) {
-    if (gs && playerId) {
-      if (gs.player1.playerId === playerId) return gs.player1;
-      else if (gs.player2.playerId === playerId) return gs.player2;
+    if (playerId && getGS(playerId)) {
+      if (getGS(playerId).player1.playerId === playerId) return getGS(playerId).player1;
+      else if (getGS(playerId).player2.playerId === playerId) return getGS(playerId).player2;
     }
     return null;
   },
 
   isPlayersTurn(playerId) {
-    return gs.turn.currentPlayer && gs.turn.currentPlayer === utils.getPlayerNumById(playerId);
+    return getGS(playerId).turn.currentPlayer && getGS(playerId).turn.currentPlayer === utils.getPlayerNumById(playerId);
   },
 
   /**
    * Check both player slots and both player camps for the passed card
    */
-  findCardInGame(card) {
-    return utils.findCardInSlots(card) || this.findCardInCamps(card);
+  findCardInGame(message, card) {
+    return utils.findCardInSlots(message, card) || this.findCardInCamps(message, card);
   },
 
-  findCardInCamps(card) {
+  findCardInCamps(message, card) {
     function findCardInPlayerCamps(card, playerNum) {
-      const foundIndex = gs[playerNum].camps.findIndex((loopCamp) => {
+      const foundIndex = getGS(message)[playerNum].camps.findIndex((loopCamp) => {
         return loopCamp?.id === (typeof card.id === 'number' ? card.id : +card.id);
       });
       if (foundIndex !== -1) {
         return {
-          cardObj: gs[playerNum].camps[foundIndex],
+          cardObj: getGS(message)[playerNum].camps[foundIndex],
           playerNum,
         };
       }
@@ -292,14 +306,14 @@ const utils = {
     return findCardInPlayerCamps(card, 'player1') || findCardInPlayerCamps(card, 'player2');
   },
 
-  findCardInSlots(card) {
+  findCardInSlots(message, card) {
     function findCardInPlayerSlots(card, playerNum) {
-      const slotIndex = gs[playerNum].slots.findIndex((loopSlot) => {
+      const slotIndex = getGS(message)[playerNum].slots.findIndex((loopSlot) => {
         return loopSlot?.content?.id === (typeof card.id === 'number' ? card.id : +card.id); // TODO Better consistent number typing throughout the whole app
       });
       if (slotIndex !== -1) {
         return {
-          cardObj: gs[playerNum].slots[slotIndex].content,
+          cardObj: getGS(message)[playerNum].slots[slotIndex].content,
           slotIndex,
           playerNum,
         };
@@ -313,8 +327,8 @@ const utils = {
     return { id: 1, img: `water_silo${DECK_IMAGE_EXTENSION}`, cost: 1, junkEffect: 'gainWater', isWaterSilo: true };
   },
 
-  convertCardToPunk(cardObj) {
-    gs.punks.push(structuredClone(cardObj));
+  convertCardToPunk(message, cardObj) {
+    getGS(message).punks.push(structuredClone(cardObj));
 
     return {
       id: cardObj.id,
@@ -323,11 +337,11 @@ const utils = {
     };
   },
 
-  convertPunkToCard(punkId) {
+  convertPunkToCard(message, punkId) {
     if (!onClient) {
-      const matchingPunkIndex = gs.punks.findIndex((punk) => punkId === punk.id);
+      const matchingPunkIndex = getGS(message).punks.findIndex((punk) => punkId === punk.id);
       if (matchingPunkIndex !== -1) {
-        return gs.punks.splice(matchingPunkIndex, 1)[0];
+        return getGS(message).punks.splice(matchingPunkIndex, 1)[0];
       }
     }
     return null;
@@ -335,7 +349,7 @@ const utils = {
 
   playerHasPunk(playerId) {
     if (playerId && utils.getPlayerNumById(playerId)) {
-      const slots = gs[utils.getPlayerNumById(playerId)].slots;
+      const slots = getGS(playerId)[utils.getPlayerNumById(playerId)].slots;
       if (slots) {
         return slots.some((slot) => slot.content?.isPunk);
       }
@@ -343,14 +357,14 @@ const utils = {
     return false;
   },
 
-  markAllSlotsReady() {
+  markAllSlotsReady(message) {
     // Set all cards to ready state
-    [...gs.player1.slots, ...gs.player2.slots].forEach((slot) => {
+    [...getGS(message).player1.slots, ...getGS(message).player2.slots].forEach((slot) => {
       if (slot.content) {
         delete slot.content.unReady;
       }
     });
-    [...gs.player1.events, ...gs.player2.events].forEach((event) => {
+    [...getGS(message).player1.events, ...getGS(message).player2.events].forEach((event) => {
       if (event) {
         delete event.unReady;
       }
@@ -365,42 +379,43 @@ const utils = {
     return array;
   },
 
-  drawFromDeck() {
+  drawFromDeck(message) {
     if (onClient) {
       return null;
     }
 
     let toReturn = null;
+    const cachedGS = getGS(message);
 
-    if (gs.deck.length >= 1) {
-      toReturn = gs.deck.shift();
+    if (cachedGS.deck.length >= 1) {
+      toReturn = cachedGS.deck.shift();
     }
     // Per the rules if we have an empty deck we reshuffle ONCE. Then if we need to reshuffle again the game is considered a Draw/Tie
-    if (gs.deck.length <= 0) {
-      gs.deckReshuffleCount++;
+    if (cachedGS.deck.length <= 0) {
+      cachedGS.deckReshuffleCount++;
 
-      if (gs.deckReshuffleCount >= 2) {
+      if (cachedGS.deckReshuffleCount >= 2) {
         // TODO Actual handling of the draw/tie from a double reshuffle - very rare, but worth covering
         action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)');
         return null;
       }
       // Can't imagine a legitimate situation where the draw deck has run out and there are no discards
-      if (gs.discard.length <= 0) {
+      if (cachedGS.discard.length <= 0) {
         action.sendError('Game is a tie! (Had to reshuffle the draw deck, but there are no discards)');
         return null;
       }
 
       // TODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
-      const reshuffledDeck = utils.shuffleDeck(gs.discard);
-      gs.deck = reshuffledDeck;
-      gs.deckCount = gs.deck.length;
-      gs.discard = [];
-      gs.discardCount = 0;
+      const reshuffledDeck = utils.shuffleDeck(cachedGS.discard);
+      cachedGS.deck = reshuffledDeck;
+      cachedGS.deckCount = cachedGS.deck.length;
+      cachedGS.discard = [];
+      cachedGS.discardCount = 0;
 
-      action.sync();
+      action.sync(null, { gsMessage: message });
 
       action.sendError('Reshuffled the draw deck');
-      toReturn = gs.deck.shift();
+      toReturn = cachedGS.deck.shift();
     }
 
     return toReturn;
@@ -411,14 +426,14 @@ const utils = {
       return false;
     }
 
-    const foundCard = utils.findCardInGame({ id: cardId });
+    const foundCard = utils.findCardInGame(playerId, { id: cardId });
     if (!foundCard?.cardObj) {
       return false;
     }
 
     // If we're a Punk convert to the actual card (was hidden information before)
     if (foundCard.cardObj.isPunk) {
-      foundCard.cardObj = utils.convertPunkToCard(foundCard.cardObj.id);
+      foundCard.cardObj = utils.convertPunkToCard(playerId, foundCard.cardObj.id);
     }
 
     const playerData = utils.getPlayerDataById(playerId);
@@ -515,8 +530,8 @@ const utils = {
     return index + SLOT_NUM_COLS;
   },
   // Check if a column is empty: columnIndex 0 (slots 0, 3), columnIndex 1 (slots 1, 4), columnIndex 2 (slots 2, 5)
-  isColumnEmpty(columnIndex, playerNum) {
-    const slots = utils.getSlotsInColumn(columnIndex, playerNum);
+  isColumnEmpty(message, columnIndex, playerNum) {
+    const slots = utils.getSlotsInColumn(message, columnIndex, playerNum);
     if (slots?.length) {
       for (let i = 0; i < slots.length; i++) {
         if (slots[i].content !== null) {
@@ -527,7 +542,7 @@ const utils = {
     return true;
   },
   // Given a columnIndex (0-2) get all slots in that column
-  getSlotsInColumn(columnIndex, playerNum) {
+  getSlotsInColumn(message, columnIndex, playerNum) {
     if (columnIndex < 0 || columnIndex > 2) {
       console.error('Invalid column index requested', columnIndex);
       throw new Error('Invalid column index requested - must be between 0-2');
@@ -536,7 +551,7 @@ const utils = {
     const slotsInColumn = [];
     for (let rowIndex = 0; rowIndex < SLOT_NUM_ROWS; rowIndex++) {
       const slotIndex = columnIndex + rowIndex * SLOT_NUM_COLS;
-      slotsInColumn.push(gs[playerNum].slots[slotIndex]);
+      slotsInColumn.push(getGS(message)[playerNum].slots[slotIndex]);
     }
     return slotsInColumn;
   },

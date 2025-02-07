@@ -1,6 +1,6 @@
 import { abilities } from './abilities.mjs';
 import { action } from './actions.mjs';
-import { gs } from './gamestate.mjs';
+import { getGS } from './gamestate.mjs';
 import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
@@ -19,7 +19,9 @@ const events = {
       } else {
         const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         message.validTargets = [
-          ...gs[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) => String(slot.content.id)),
+          ...getGS(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
+            String(slot.content.id)
+          ),
         ];
 
         if (message.validTargets?.length) {
@@ -38,7 +40,7 @@ const events = {
 
   // damage all opponent camps, then drawCard for each destroyed camp they have
   bombardment(message) {
-    const opponentCamps = gs[utils.getOpponentNumById(message.playerId)].camps;
+    const opponentCamps = getGS(message)[utils.getOpponentNumById(message.playerId)].camps;
     opponentCamps.forEach((camp) => {
       action.doDamageCard({ ...message, details: { card: { id: camp.id } } });
     });
@@ -111,10 +113,10 @@ const events = {
         // Repetition is readable!
         const target0SlotIndex = targets[0].startsWith(SLOT_ID_PREFIX)
           ? parseInt(targets[0].substring(SLOT_ID_PREFIX.length))
-          : utils.findCardInGame({ id: targets[0] })?.slotIndex;
+          : utils.findCardInGame(message, { id: targets[0] })?.slotIndex;
         const target1SlotIndex = targets[1].startsWith(SLOT_ID_PREFIX)
           ? parseInt(targets[1].substring(SLOT_ID_PREFIX.length))
-          : utils.findCardInGame({ id: targets[1] })?.slotIndex;
+          : utils.findCardInGame(message, { id: targets[1] })?.slotIndex;
         const target0Content = structuredClone(playerSlots[target0SlotIndex].content);
         const target1Content = structuredClone(playerSlots[target1SlotIndex].content);
 
@@ -134,7 +136,7 @@ const events = {
         settleCards(target0SlotIndex, target1Content);
         settleCards(target1SlotIndex, target0Content);
 
-        action.sync();
+        action.sync(null, { gsMessage: message });
       }
 
       // Keep on slamming targetting requests until the user cancels
@@ -175,10 +177,10 @@ const events = {
 
       // Setup our return message, but only include card choices from the pile we just drew
       const abilityMessage = { ...message.details, effectName: message.details.card.abilityEffect, expectedDiscards: 3 };
-      const playerCards = gs[utils.getPlayerNumById(message.playerId)].cards;
+      const playerCards = getGS(message)[utils.getPlayerNumById(message.playerId)].cards;
       abilityMessage['cardChoices'] = playerCards.slice(playerCards.length - 4);
-      gs.pendingTargetAction = structuredClone(abilityMessage);
-      sendS('useAbility', abilityMessage, message.playerId);
+      getGS(message).pendingTargetAction = structuredClone(abilityMessage);
+      sendS('useAbility', message, abilityMessage, message.playerId);
     } else {
       showDiscardDialog(message, { allowWaterSilo: false });
     }
@@ -192,7 +194,7 @@ const events = {
   // injurePerson ALL people
   radiation(message) {
     if (!onClient) {
-      const giveEmTheFallout = [...gs.player1.slots, ...gs.player2.slots];
+      const giveEmTheFallout = [...getGS(message).player1.slots, ...getGS(message).player2.slots];
       giveEmTheFallout.forEach((slot) => {
         if (slot.content) {
           action.doDamageCard({ ...message, details: { card: { id: +slot.content.id } } });
@@ -213,7 +215,7 @@ const events = {
   truce(message) {
     function performTruceForPlayer(playerId) {
       const playerNum = utils.getPlayerNumById(playerId);
-      gs[playerNum].slots.forEach((slot) => {
+      getGS(message)[playerNum].slots.forEach((slot) => {
         if (slot.content) {
           utils.returnCardToHand(playerId, slot.content.id);
         }
@@ -223,7 +225,7 @@ const events = {
     performTruceForPlayer(message.playerId);
     performTruceForPlayer(utils.getOppositePlayerId(message.playerId));
 
-    action.sync();
+    action.sync(null, { gsMessage: message });
   },
 
   // gain 3 punks (or as many free slots as there are)

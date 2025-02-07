@@ -1,8 +1,11 @@
+import { utils } from './utils.mjs';
+
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
 // Game state - server has the single source of truth copy, and each client has their own in-browser copy that the UI reflects
 // NOTE Any drastic changes here should be double checked in the `action.sync` function to ensure we're not sending huge or private data, and in websocket.js on the client to ensure we handle the receive
 const gs = {
+  gameId: null,
   myPlayerNum: null, // player1 or player2 as a string, only used on client
   opponentPlayerNum: null,
   player1: {
@@ -53,13 +56,27 @@ const gs = {
     */
   ],
   chat: [],
-  // TODO Handle persisting gs.pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
+  // TODO Handle persisting pendingTargetAction between client refreshes - probably when we have a lobby system, but should maintain target after manual page reload. Slicker system probably to send a new "cancelTarget" action right before refresh/unload (if we can reliably get it across)
   pendingTargetAction: null, // Clone of a message that initiated a targetMode
   pendingTargetCancellable: true, // Determine if we allow cancelTarget to the pendingTargetAction
 };
 
+const getGS = (messageOrPlayerId) => {
+  // TTODO Optimize this function now that we unfortunately have to call it all the time for multiple games
+  if (!onClient) {
+    if (typeof messageOrPlayerId === 'object') {
+      messageOrPlayerId = messageOrPlayerId?.playerId;
+    }
+
+    return utils.lobbies.get(utils.getGameIdByPlayerId(messageOrPlayerId))?.gs;
+  } else {
+    return gs;
+  }
+};
+
 if (onClient) {
   window.gs = gs;
+  window.getGS = getGS;
   (document || window).dispatchEvent(new Event('sharedReady'));
 }
-export { gs };
+export { getGS, gs };
