@@ -18,8 +18,24 @@
   <title>Badlands Online</title>
 
   <script>
-    const CLIENT_WEBSOCKET_ADDRESS = '${CLIENT_WEBSOCKET_ADDRESS}';
+    const LOCAL_STORAGE = {
+    playerId: 'playerId',
+    playerName: 'playerName',
+    cardScale: 'cardScale',
+    hoverScale: 'hoverScale',
+    repositionable: 'repositionable',
+  };
+  const CLIENT_WEBSOCKET_ADDRESS = '${CLIENT_WEBSOCKET_ADDRESS}';
   let playerId = '${PLAYER_ID}';
+
+  // Load playerId from local storage if we have one
+  // TODO Eventually this would be part of a login
+  if (localStorage.getItem(LOCAL_STORAGE.playerId)) {
+    playerId = localStorage.getItem(LOCAL_STORAGE.playerId);
+  } else {
+    localStorage.setItem(LOCAL_STORAGE.playerId, playerId);
+  }
+
   <component-js />;
   </script>
 

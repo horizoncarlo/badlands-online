@@ -223,7 +223,9 @@
               >
                 <template x-if="slot.content">
                   <span>
-                    <template x-if="slot.content.unReady && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)">
+                    <template
+                      x-if="slot.content.unReady && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)"
+                    >
                       <span>
                         <template
                           x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"

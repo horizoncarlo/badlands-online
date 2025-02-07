@@ -12,6 +12,24 @@ const receiveClientWebsocketMessage = (message) => {
   console.log('Received client message', JSON.parse(JSON.stringify(message)));
 
   switch (message.type) {
+    case 'lobby': {
+      if (!message.details.subtype) {
+        return;
+      }
+
+      // TTODO Hand the websocket handling off to lobby.js?
+      if (message.details.subtype === 'giveLobbyList') {
+        lobby.lobbies = message.details.lobbies;
+      } else if (message.details.subtype === 'joinedLobby') {
+        if (message.details.gameId) {
+          const toJoin = lobby.lobbies.find((loopLobby) => loopLobby.gameId === message.details.gameId);
+          if (toJoin) {
+            lobby.joinedId = toJoin.gameId;
+          }
+        }
+      }
+      break;
+    }
     case 'sync': {
       // Update all our existing gamestate options, and if a property doesn't exist fallback to our current version
       const updatedGs = message.details.gs;
@@ -155,6 +173,8 @@ const setupWebsocket = () => {
     // Open a Websocket connection to the server
     console.log('Opened Websocket, subscribing ' + playerId);
     reconnectAttempts = 0;
+
+    (document || window).dispatchEvent(new Event('websocketReady'));
   });
 
   socket.addEventListener('close', (event) => {

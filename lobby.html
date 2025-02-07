@@ -1,12 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
   <include-header />
-  <body x-data="gs">
+  <body x-data="lobby">
     <!-- <section
     x-data="ui"
     :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.cursor || targetMode.type}`"
   >
     <header> -->
+
+    Player ID: <span x-text="playerId"></span>
+    <input x-model="playerName" placeholder="Player Name" />
+    <button @click="savePlayerName()">Save</button>
+
+    <br />
+    Lobbies:
+    <ul>
+      <template x-for="currentLobby in lobbies">
+        <li>
+          <span x-text="currentLobby.title"></span>
+          Players: <span x-text="currentLobby.players"></span>
+          <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
+            <input
+              x-init="$el.focus()"
+              type="password"
+              placeholder="Lobby requires a password"
+              x-model="lobby.enteredPassword"
+              @keyup.enter="joinLobby(currentLobby)"
+            />
+          </template>
+          <button
+            @click="joinLobby(currentLobby)"
+            :disabled="currentLobby.players.length === 2"
+          >
+            Join
+          </button>
+        </li>
+      </template>
+    </ul>
+
+    Joined: <span x-text="joinedId"></span>
+    <template x-if="joinedId && getJoinedLobby()">
+      <div class="panel">
+        You are in a game lobby for <span x-text="getJoinedLobby().gameId"></span>
+        <br />
+        Your opponent is <span x-text="getOpponentName()"></span>
+      </div>
+    </template>
 
     <!--
       Lobby system
@@ -32,6 +71,6 @@
       -->
 
     <!-- JS scripts at the bottom like it's 1995 -->
-    <!-- <script src="./clientjs/badlands.js"></script> -->
+    <script src="./clientjs/lobby.js"></script>
   </body>
 </html>

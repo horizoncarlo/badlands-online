@@ -33,30 +33,25 @@ globalThis.ui = { // Local state
     myCards: [],
   },
 };
-const LOCAL_STORAGE = {
-  cardScale: 'cardScale',
-  hoverScale: 'hoverScale',
-  repositionable: 'repositionable',
-};
 
-function init() {
+function init(funcOnReady) {
   let alpineReady = false;
   let sharedReady = false;
 
   // Listen for Alpine to be done setting up
   document.addEventListener('alpine:initialized', () => {
     alpineReady = true;
-    checkInit(alpineReady && sharedReady);
+    funcOnReady(alpineReady && sharedReady);
   });
 
   document.addEventListener('sharedReady', (e) => {
     sharedReady = true;
-    checkInit(alpineReady && sharedReady);
+    funcOnReady(alpineReady && sharedReady);
   });
 }
-init();
+init(initGame);
 
-function checkInit(status) {
+function initGame(status) {
   if (status) {
     alpineInit();
     applyChatMax();
