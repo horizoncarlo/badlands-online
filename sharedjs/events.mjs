@@ -19,7 +19,7 @@ const events = {
       } else {
         const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         message.validTargets = [
-          ...gs(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
+          ...getGS(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
             String(slot.content.id)
           ),
         ];
