@@ -3,11 +3,13 @@
   <include-header />
   <body x-data="lobby">
     Player ID: <span x-text="playerId"></span>
+    <!-- TTODO Changing name after joining a lobby is a bit jank - name doesn't update, you list your old name as your opponent, etc. -->
     <input x-model="playerName" placeholder="Player Name" />
     <button @click="savePlayerName()">Save</button>
 
-    <!-- TTODO Add create lobby functionality to the lobby.html -->
+    <!-- TTODO Add Create Custom Lobby (less verbose name?) functionality that lets all the options be customized -->
     <!-- TTODO Also have a "quick play" option that creates a lobby, gives it a generic title and default options, and joins it. So a single press to be in a lobby -->
+    <!-- TTODO Similarly have a "test game" that joins vs autoplay opponent in a private lobby -->
     <!-- TTODO Lobby chat - should just be a message of type='lobby' and subtype='chat' -->
     <!-- TTODO Clean up baby's first UI, aka our super roughed out testing one -->
 
@@ -62,11 +64,12 @@
       TTODO Lobby system
       - What to do with an idle opponent? Timeout to kick or leave game?
       - Rejoining games on crash? Maybe keep current playerId or hidden key in local storage, then can check if joining a game that had a leaver/crash/timeout?
+        - Honestly don't need to do this extra key and can just use playerId from local storage (already done)
       - Handle page refresh while an action (such as target mode) is in progress
       - Win/loss screen and proper end of game
   
       Implementation details:
-      lobby.html page, server maintains a list (in memory for now, Redis/CouchDB/LowDB eventually) of Games (gameId, title, password, observers, timeLimit) that are rendered into a Lobby List on the page
+      lobby.html page, server maintains a list (in memory for now, Deno KV/Redis/CouchDB/LowDB eventually) of Games (gameId, title, password, observers, timeLimit) that are rendered into a Lobby List on the page
       1. To start auto-add a plain game and focus on getting joining/gamestate/etc. working
       2. Make "create game" UI
       Can click join to hop into a middle step of a waiting lobby, when both ready there launch to game.html

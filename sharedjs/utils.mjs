@@ -21,6 +21,7 @@ globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to auto
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // DEBUG_AUTO_OPPONENT ? 30 : 15; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 
 const utils = {
+  // TODO Probably split up the utils file so it doesn't grow to a crazy size
   lobbies: new Map(), // Global lobby list (used on the server)
 
   getGameIdByPlayerId(playerId) {
