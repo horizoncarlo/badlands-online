@@ -375,6 +375,7 @@ const abilities = {
       const opponentMessage = { ...message };
       opponentMessage.playerId = utils.getOppositePlayerId(message.playerId);
 
+      // TODO BUG with Vanguard, a card your opponent damages out of turn can still use their ability - do we need a general check not just on Ready state but on damage in action.useCard?
       // TODO For Vanguard when the opponent is doing the damage back we should put a blocking dialog to prevent interaction - in general this would be a handy feature (such as during Raid). Could clear on next sync?
       codeQueue.add(
         null,

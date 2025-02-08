@@ -8,6 +8,7 @@ globalThis.lobby = { // Local state
   enteredPassword: '',
 };
 
+// TODO Centralize this function with `init` in game.js
 function init(funcOnReady) {
   let alpineReady = false;
   let sharedReady = false;

@@ -4,7 +4,7 @@ import { createCampDeck, createNewDeck } from './backendjs/deck.ts';
 import { startScraper } from './backendjs/scraper.ts';
 import { abilities } from './sharedjs/abilities.mjs';
 import { action } from './sharedjs/actions.mjs';
-import { gs } from './sharedjs/gamestate.mjs';
+import { createGameState } from './sharedjs/gamestate.mjs';
 import { utils } from './sharedjs/utils.mjs';
 
 type WebSocketDetails = {
@@ -151,7 +151,15 @@ const sendS = (type: string, messageForGs: any, messageDetails?: any, optionalGr
     details: messageDetails ?? {},
   };
 
-  const socketId = messageForGs ? utils.getGameIdByPlayerId(messageForGs.playerId) ?? lobbySocketId : lobbySocketId;
+  let socketId = null;
+
+  // If we're sending a Lobby message only bother with players in that group
+  if (messageObj.type === 'lobby') {
+    socketId = lobbySocketId;
+  } // Otherwise try to determine our socketId from whether we're in a game or not
+  else {
+    socketId = messageForGs ? utils.getGameIdByPlayerId(messageForGs.playerId) ?? lobbySocketId : lobbySocketId;
+  }
 
   if (type !== 'sync' && type !== 'ping' && type !== 'pong') {
     console.log(`SENT to ${socketId}:`, messageObj);
@@ -179,7 +187,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     const gameId = utils.getGameIdByPlayerId(message.playerId) ?? lobbySocketId;
 
     if (playerId) {
-      const foundIndex = socketMap.get(gameId).findIndex((socketDetails: WebSocketDetails) =>
+      const foundIndex = socketMap.get(gameId)?.findIndex((socketDetails: WebSocketDetails) =>
         playerId === socketDetails.playerId
       );
       if (foundIndex !== -1) {
@@ -217,10 +225,12 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
-        // TTODO Abandon any other lobby we're in
+        // TTODO Timing issue in Firefox when joining a lobby and clicking Ready, sometime puts us to the "join as player 1 or 2" screen incorrectly - likely means our joinGame is being fired too early and the client Websocket isn't ready
+        // TTODO Leave any other lobby we're in when joining a new one
         // TTODO Clean up empty games (that no one is trying to rejoin) automatically after a period
         const lobbyToJoin = utils.lobbies.get(message.details.gameId);
         // TTODO Determine if we can join a lobby - has a slot, not already in, and no one is waiting to rejoin
+        // TTODO Add password handling to lobby.html when trying to join
         if (lobbyToJoin.players.length >= 2 || lobbyToJoin.players.find((player) => player.playerId === message.playerId)) {
           // Ignore any full or existing error
         } else {
@@ -252,7 +262,6 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           const opponent = lobbyObj.players.find((player) => player.playerId !== message.playerId);
           if (opponent?.ready) {
             // Determine the first player
-            // TTODO Better handling of first player, especially the 1 Water
             const playerRoll = utils.randomRange(0, 1);
             if (playerRoll === 0) {
               lobbyObj.gs.player1.playerId = foundPlayer.playerId;
@@ -284,6 +293,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         sendS('lobby', message, {
           subtype: 'gotoLobby',
         }, message.playerId);
+        return;
       }
 
       let playerNum = 'player1';
@@ -325,7 +335,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
 const createGame = (title: string, password?: string) => {
   const newGameId = uuidv4();
-  const newGamestate = structuredClone(gs);
+  const newGamestate = createGameState(newGameId);
   newGamestate.gameId = newGameId;
   newGamestate.deck = createNewDeck();
   newGamestate.campDeck = createCampDeck();
@@ -341,6 +351,7 @@ const createGame = (title: string, password?: string) => {
     timeLimit: 0,
     players: [],
     gs: newGamestate,
+    undoStack: [], // Stack (LIFO) of gs we can undo back to
   });
 };
 
@@ -378,7 +389,8 @@ function setupComponents() {
 }
 setupComponents();
 
-// TTODO Some default lobbies to populate the list
+// TTODO Add create lobby functionality to the lobby.html
+// TODO TEMPORARY Some default lobbies to populate the list
 createGame('Test Game 1');
 createGame('Private Game', 'test');
 

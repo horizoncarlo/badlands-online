@@ -5,6 +5,11 @@
     <section
       x-data="ui"
       :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.cursor || targetMode.type}`"
+      style="display: none"
+      x-show.important="bodyReady"
+      x-transition.opacity
+      x-transition.duration.750ms
+      x-init="Alpine.nextTick(() => { bodyReady = true })"
     >
       <header>
         <menu :class="targetMode.enabled ? 'invalid-target' : ''">
@@ -43,11 +48,12 @@
               <li @click="userUndo()"><u>U</u>ndo</li>
             </template>
           </template>
-          <template x-if="inGame">
+          <!-- TTODO Remove Start Turn as an option from the UI and let the server handle it. This ALSO includes ensuring any maliciously sent messages to jump turns are ignored -->
+          <!-- <template x-if="inGame">
             <template x-if="!turn.currentPlayer || myPlayerNum !== turn.currentPlayer">
               <li @click="action.startTurn()" class="success">Start Turn</li>
             </template>
-          </template>
+          </template> -->
           <template x-if="inGame">
             <template x-if="myPlayerNum === turn.currentPlayer">
               <li @click="userEndTurn()" class="attention"><u>E</u>nd Turn</li>
@@ -77,6 +83,7 @@
 
       <template x-if="!inGame">
         <div>
+          <!-- TTODO Remove the manual joining of a game, and also block the messages from the client -->
           <h1>To start the game join as a player</h1>
           <button @click="action.joinGame({player: 'player1'})" class="success" @keyup.window.1="$el.click()">
             Be Player <u>1</u>
@@ -97,7 +104,7 @@
         </div>
       </template>
 
-      <!-- TODO Realistically we wouldn't even GET to this page without being a game (after joining from a lobby), so all these inGame checks will become needless-->
+      <!-- TTODO Better handling of inGame checks - realistically we wouldn't even GET to this page without being a game (after joining from a lobby), so all these inGame checks will become needless-->
       <template x-if="inGame">
         <div
           id="drawCard"
@@ -403,6 +410,6 @@
     </section>
 
     <!-- JS scripts at the bottom like it's 1995 -->
-    <script src="./clientjs/badlands.js"></script>
+    <script src="./clientjs/game.js"></script>
   </body>
 </html>

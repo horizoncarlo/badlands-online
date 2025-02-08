@@ -7,6 +7,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future, TODO this is only consistently used on the deck generation, not throughout the app
 globalThis.CORRECT_CAMP_NUM = 3;
+globalThis.FIRST_TURN_WATER_COUNT = 1;
 globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
@@ -21,12 +22,7 @@ globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // DEBUG_AUTO_OPPONENT ? 30 : 15; // De
 globalThis.DEBUG_TESTING_PLAYERS = false; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 
 const utils = {
-  // TODO Can we leverage the 'universal' concept for Trait (always on) flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
-  universal: {
-    // TODO Show universal effects somewhere on the UI - such as High Ground being in effect
-    highGround: false, // Whether High Ground was played this turn or not
-  },
-  lobbies: new Map(),
+  lobbies: new Map(), // Global lobby list (used on the server)
 
   getGameIdByPlayerId(playerId) {
     for (const loopLobby of utils.lobbies.values()) {
@@ -40,8 +36,16 @@ const utils = {
     }
   },
 
-  clearUniversal() {
-    utils.universal.highGround = false;
+  getLobbyByPlayerId(messageOrPlayerId) {
+    if (typeof messageOrPlayerId === 'object') {
+      messageOrPlayerId = messageOrPlayerId?.playerId;
+    }
+
+    return utils.lobbies?.get(utils.getGameIdByPlayerId(messageOrPlayerId));
+  },
+
+  clearUniversal(message) {
+    getGS(message).universal.highGround = false;
   },
 
   hasPlayerDataById(playerId) {
@@ -225,7 +229,7 @@ const utils = {
     const opponentCamps = getGS(message)[opponentPlayerNum]?.camps;
 
     // Special case juuuuuuuust for High Ground event
-    if (utils.universal.highGround) {
+    if (getGS(message).universal.highGround) {
       if (!params?.campsOnly) {
         unprotectedCardIds.push(...opponentSlots.filter((slot) => slot.content).map((slot) => String(slot.content.id)));
       }
@@ -345,6 +349,10 @@ const utils = {
       }
     }
     return null;
+  },
+
+  getRaidersEvent() {
+    return { isRaid: true, img: 'raiders.png', cost: 0, startSpace: 2, abilityEffect: 'doRaid' };
   },
 
   playerHasPunk(playerId) {

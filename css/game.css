@@ -67,7 +67,7 @@
 
 .opponent-slots,
 .opponent-camps {
-  /* TODO Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in badlands.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
+  /* TODO Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in game.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
   transform: rotate(180deg);
   padding-top: 10px; /* With the rotation this is actually...bottom */
 

@@ -35,7 +35,7 @@ const receiveClientWebsocketMessage = (message) => {
           lobby.countdownSeconds = Math.max(0, lobby.countdownSeconds - 1);
         }, 999);
         setTimeout(() => {
-          window.location.href = `game.html?playerId=${playerId}`;
+          window.location.href = `game.html`;
         }, lobby.countdownSeconds * 1000);
       } else if (message.details.subtype === 'gotoLobby') {
         window.location.href = 'lobby.html';

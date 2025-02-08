@@ -1,13 +1,9 @@
 import { abilities } from './abilities.mjs';
 import { events } from './events.mjs';
-import { getGS, gs } from './gamestate.mjs';
+import { getGS } from './gamestate.mjs';
 import { codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
-
-const raidersEvent = { isRaid: true, img: 'raiders.png', cost: 0, startSpace: 2, abilityEffect: 'doRaid' };
-const undoStack = []; // Stack (LIFO) of gs we can undo back to
-let discardCardTimer;
 
 const rawAction = {
   joinGame(message) {
@@ -66,7 +62,6 @@ const rawAction = {
 
           // Autostart the opponent turn
           action.startTurn({
-            type: 'startTurn',
             playerId: autoPlayerId,
           });
 
@@ -99,7 +94,7 @@ const rawAction = {
     }
   },
 
-  startTurn(message) {
+  startTurn(message, params) { // params.isFirstTurn: boolean true if this is the first turn (change Water count)
     if (onClient) {
       sendC('startTurn');
     } else {
@@ -112,7 +107,7 @@ const rawAction = {
       }
 
       const nextPlayerNum = utils.getPlayerNumById(message.playerId);
-      getGS(message)[nextPlayerNum].waterCount = TURN_WATER_COUNT;
+      getGS(message)[nextPlayerNum].waterCount = params?.isFirstTurn ? FIRST_TURN_WATER_COUNT : TURN_WATER_COUNT;
       getGS(message).turn[nextPlayerNum].turnCount++;
       getGS(message).turn.currentPlayer = nextPlayerNum;
 
@@ -154,7 +149,7 @@ const rawAction = {
     if (onClient) {
       sendC('endTurn');
     } else {
-      utils.clearUniversal();
+      utils.clearUniversal(message);
       utils.markAllSlotsReady(message);
 
       const currentPlayerNum = utils.getPlayerNumById(message.playerId);
@@ -178,6 +173,7 @@ const rawAction = {
     if (onClient) {
       sendC('undo');
     } else {
+      const undoStack = utils.getLobbyByPlayerId(message)?.undoStack;
       if (undoStack.length > 0) {
         Object.assign(getGS(message), undoStack.pop());
         action.sync(null, { gsMessage: message });
@@ -292,6 +288,7 @@ const rawAction = {
   },
 
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
+    // TTODO Check if we're ready and undamaged before doing a useCard (on both client and server)
     if (onClient) {
       if (message.details.card.abilities?.length) {
         if (typeof userAbilityIndex !== 'number' && message.details.card.abilities?.length > 1) {
@@ -433,10 +430,10 @@ const rawAction = {
         getGS(message).discard.push(cards.splice(foundIndex, 1)[0]);
 
         // Sync on a timer, so that if we have multiple requests in a row we just sync once
-        if (discardCardTimer) {
-          clearTimeout(discardCardTimer);
+        if (getGS(message).discardCardTimer) {
+          clearTimeout(getGS(message).discardCardTimer);
         }
-        discardCardTimer = setTimeout(() => {
+        getGS(message).discardCardTimer = setTimeout(() => {
           action.sync(message.playerId);
         }, 200);
       }
@@ -621,7 +618,7 @@ const rawAction = {
         action.playCard({
           ...message,
           details: {
-            card: raidersEvent,
+            card: utils.getRaidersEvent(),
           },
         });
       }
@@ -855,6 +852,14 @@ const rawAction = {
       }
 
       action.sync(null, { gsMessage: message });
+
+      // Check if BOTH our camp choices are done then the game can begin
+      // We start with player1, and make sure to only give them 1 Water for their first turn
+      if (utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.doneCamps) {
+        action.startTurn({
+          playerId: getGS(message)?.player1.playerId,
+        }, { isFirstTurn: true });
+      }
     }
   },
 
@@ -1031,6 +1036,7 @@ const rawAction = {
       delete updatedGs.campDeck;
       delete updatedGs.deck;
       delete updatedGs.discard;
+      delete updatedGs.discardCardTimer;
       delete updatedGs.punks;
       delete updatedGs.pendingTargetAction;
       delete updatedGs.pendingTargetCancellable;
@@ -1095,13 +1101,16 @@ rawAction.endTurn.clearUndo = true;
 rawAction.drawCard.clearUndo = true;
 
 const actionHandler = {
-  manageUndo(originalMethod, beforeGS) {
+  manageUndo(originalMethod, beforeGS, playerId) {
     if (!onClient) {
-      if (originalMethod?.recordUndo) {
-        undoStack.push(beforeGS);
-      }
-      if (originalMethod?.clearUndo) {
-        undoStack.length = 0;
+      const undoStack = utils.getLobbyByPlayerId(playerId)?.undoStack;
+      if (undoStack) {
+        if (originalMethod?.recordUndo) {
+          undoStack.push(beforeGS);
+        }
+        if (originalMethod?.clearUndo) {
+          undoStack.length = 0;
+        }
       }
     }
   },
@@ -1127,11 +1136,16 @@ const actionHandler = {
             }
           }
 
-          try {
-            const beforeGS = JSON.parse(JSON.stringify(getGS(gsPlayerId)));
-            actionHandler.manageUndo(originalMethod, beforeGS);
-          } catch (err) {
-            console.error('Failed to store undo state', err);
+          if (!onClient) {
+            try {
+              const toClone = getGS(gsPlayerId);
+              if (toClone) {
+                const beforeGS = structuredClone(toClone);
+                actionHandler.manageUndo(originalMethod, beforeGS, gsPlayerId);
+              }
+            } catch (err) {
+              console.warn('Failed to store undo state');
+            }
           }
 
           const res = originalMethod.apply(context, args);

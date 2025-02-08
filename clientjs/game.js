@@ -1,5 +1,6 @@
 globalThis.ui = { // Local state
   inGame: false,
+  bodyReady: false,
   drawAnimationCount: 0,
   draggedCard: false,
   repositionOffsetX: 0,
@@ -37,16 +38,22 @@ globalThis.ui = { // Local state
 function init(funcOnReady) {
   let alpineReady = false;
   let sharedReady = false;
+  let websocketReady = false;
 
   // Listen for Alpine to be done setting up
   document.addEventListener('alpine:initialized', () => {
     alpineReady = true;
-    funcOnReady(alpineReady && sharedReady);
+    funcOnReady(alpineReady && sharedReady && websocketReady);
   });
 
   document.addEventListener('sharedReady', (e) => {
     sharedReady = true;
-    funcOnReady(alpineReady && sharedReady);
+    funcOnReady(alpineReady && sharedReady && websocketReady);
+  });
+
+  document.addEventListener('websocketReady', (e) => {
+    websocketReady = true;
+    funcOnReady(alpineReady && sharedReady && websocketReady);
   });
 }
 init(initGame);

@@ -19,7 +19,7 @@ const events = {
       } else {
         const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
         message.validTargets = [
-          ...getGS(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
+          ...gs(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
             String(slot.content.id)
           ),
         ];
@@ -103,7 +103,7 @@ const events = {
   // rearrange your people, then this turn all opponent cards (including camps) are unprotected
   highGround(message) {
     if (!onClient) {
-      utils.universal.highGround = true;
+      getGS(message).universal.highGround = true;
 
       const playerSlots = utils.getPlayerDataById(message.playerId)?.slots;
       const targets = utils.checkSelectedTargets(message);
