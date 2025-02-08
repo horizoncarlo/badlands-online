@@ -66,6 +66,7 @@ const receiveClientWebsocketMessage = (message) => {
     case 'setPlayer':
       gs.myPlayerNum = message.details.player;
       gs.opponentPlayerNum = utils.getOppositePlayerNum(gs.myPlayerNum);
+      ui.inGame = true;
       break;
     case 'slot':
       gs[message.details.playerNum].slots[message.details.index].content = message.details.card;

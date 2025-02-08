@@ -4,7 +4,7 @@
   <body x-data="gs">
     <section
       x-data="ui"
-      :class="(targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.cursor || targetMode.type}`"
+      :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.cursor || targetMode.type}`"
       style="display: none"
       x-show.important="bodyReady"
       x-transition.opacity
@@ -19,46 +19,60 @@
               <li @click="action.dumpDebug()">Log Gamestate</li>
             </menu>
           </li>
-          <li>
-            Card Scale
-            <menu>
-              <li>
-                <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
-                <span x-text="`Cards: ${cardScale}%`"></span>
+          <template x-if="inGame">
+            <li>
+              Card Scale
+              <menu>
+                <li>
+                  <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
+                  <span x-text="`Cards: ${cardScale}%`"></span>
 
-                <input type="range" min="100" max="400" step="5" x-model="hoverScale" @input="applyHoverScale()" />
-                <span x-text="`Hover: ${hoverScale}%`"></span>
-              </li>
-            </menu>
-          </li>
-          <template x-if="myPlayerNum === turn.currentPlayer">
-            <li @click="userUndo()"><u>U</u>ndo</li>
+                  <input type="range" min="100" max="400" step="5" x-model="hoverScale" @input="applyHoverScale()" />
+                  <span x-text="`Hover: ${hoverScale}%`"></span>
+                </li>
+              </menu>
+            </li>
+          </template>
+          <template x-if="inGame">
+            <template x-if="myPlayerNum === turn.currentPlayer">
+              <li @click="userUndo()"><u>U</u>ndo</li>
+            </template>
           </template>
           <!-- TTODO Have an option to Leave Game - confirm first, then ditch lobby and notify opponent (who can TECHNICALLY stay in the game and hope someone else joins lol) -->
-          <template x-if="myPlayerNum === turn.currentPlayer">
-            <li @click="userEndTurn()" class="attention"><u>E</u>nd Turn</li>
+          <template x-if="inGame">
+            <template x-if="myPlayerNum === turn.currentPlayer">
+              <li @click="userEndTurn()" class="attention"><u>E</u>nd Turn</li>
+            </template>
           </template>
-          <!-- TODO Need to disable various UI elements when it's not our turn, such as drawing or playing a card -->
-          <!-- TODO Menu UI code is an overlapping ugly thing due to <template> not allowing more than a single child -->
-          <li class="menu-right">
-            <template x-if="turn.currentPlayer">
-              <div>
-                <template x-if="myPlayerNum === turn.currentPlayer">
-                  <span x-text="`Your Turn ${turn[myPlayerNum].turnCount}`"></span>
-                </template>
-                <template x-if="myPlayerNum !== turn.currentPlayer">
-                  <span x-text="`Opponent Turn ${turn[utils.getOppositePlayerNum(myPlayerNum)].turnCount}`"></span>
-                </template>
-              </div>
-            </template>
-            <template x-if="!turn.currentPlayer">
-              <span>Waiting for Opponent...</span>
-            </template>
-          </li>
+          <template x-if="inGame">
+            <!-- TODO Need to disable various UI elements when it's not our turn, such as drawing or playing a card -->
+            <!-- TODO Menu UI code is an overlapping ugly thing due to <template> not allowing more than a single child -->
+            <li class="menu-right">
+              <template x-if="turn.currentPlayer">
+                <div>
+                  <template x-if="myPlayerNum === turn.currentPlayer">
+                    <span x-text="`Your Turn ${turn[myPlayerNum].turnCount}`"></span>
+                  </template>
+                  <template x-if="myPlayerNum !== turn.currentPlayer">
+                    <span x-text="`Opponent Turn ${turn[utils.getOppositePlayerNum(myPlayerNum)].turnCount}`"></span>
+                  </template>
+                </div>
+              </template>
+              <template x-if="!turn.currentPlayer">
+                <span>Waiting for Opponent...</span>
+              </template>
+            </li>
+          </template>
         </menu>
       </header>
 
-      <template x-if="targetMode.enabled && targetMode.help">
+      <template x-if="!inGame">
+        <div>
+          <h1>Join a game first from the lobby</h1>
+        </div>
+      </template>
+
+      <template x-if="inGame && targetMode.enabled && targetMode.help">
         <div class="panel target-mode-help">
           <span x-text="targetMode.help"></span>
           <br />
@@ -68,68 +82,70 @@
         </div>
       </template>
 
-      <div
-        id="drawCard"
-        class="repositionable"
-        draggable="true"
-        @dragstart="repositionStart($event)"
-        @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-        x-init="repositionFromStorage($el.id)"
-      >
-        <span x-text="`${deckCount} Cards`" class="deck-card-count panel" title="Number of cards in the deck"></span>
-        <span
-          x-text="`${discardCount} Discard${discardCount > 1 ? 's' : ''}`"
-          class="discard-card-count panel"
-          title="Number of discarded cards"
-        ></span>
+      <template x-if="inGame">
         <div
-          :class="'card-size bright-hover bd-variant' + (targetMode.enabled ? ' invalid-target' : '')"
-          title="Draw a card for 2 Water (hotkey 'D')"
-          @mouseover="showWaterCost(2)"
-          @mouseout="hideWaterCost()"
-          @click="hideWaterCost()"
+          id="drawCard"
+          class="repositionable"
+          draggable="true"
+          @dragstart="repositionStart($event)"
+          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+          x-init="repositionFromStorage($el.id)"
         >
-          <template x-if="deckCount > 0">
-            <img
-              @click="userDrawCard()"
-              :src="fullCardPath('punk')"
-              draggable="false"
-              class="card-size"
-            />
-          </template>
-        </div>
-        <template x-if="!getPlayerData().hasWaterSilo">
+          <span x-text="`${deckCount} Cards`" class="deck-card-count panel" title="Number of cards in the deck"></span>
+          <span
+            x-text="`${discardCount} Discard${discardCount > 1 ? 's' : ''}`"
+            class="discard-card-count panel"
+            title="Number of discarded cards"
+          ></span>
           <div
-            :class="'bright-hover take-water-silo' + (targetMode.enabled ? ' invalid-target' : '')"
-            @mouseover="showWaterCost(1)"
+            :class="'card-size bright-hover bd-variant' + (targetMode.enabled ? ' invalid-target' : '')"
+            title="Draw a card for 2 Water (hotkey 'D')"
+            @mouseover="showWaterCost(2)"
             @mouseout="hideWaterCost()"
             @click="hideWaterCost()"
-            title="Take the Water Silo for 1 Water (hotkey 'W')"
           >
-            <img class="bd-accent" :src="fullCardPath('water_silo')" @click="userTakeWaterSilo()" />
+            <template x-if="deckCount > 0">
+              <img
+                @click="userDrawCard()"
+                :src="fullCardPath('punk')"
+                draggable="false"
+                class="card-size"
+              />
+            </template>
           </div>
-        </template>
-        <template x-if="draggedCard">
-          <div
-            class="junk-pile card-size bd-attention"
-            title="Drag your card here to use the Junk effect"
-            @dragleave="dragLeaveHighlight($el, 'fg-attention')"
-            @dragover.prevent="dragOverHighlight($el, 'fg-attention')"
-            @drop.prevent="dropCardInJunk($el)"
-          >
-            <!-- TODO When hovering the Junk Card slot the trash icon could change to match an icon for draggedCard.junkEffect icon -->
-            Junk Card
-            <div class="icon">🗑</div>
-          </div>
-        </template>
-      </div>
+          <template x-if="!getPlayerData().hasWaterSilo">
+            <div
+              :class="'bright-hover take-water-silo' + (targetMode.enabled ? ' invalid-target' : '')"
+              @mouseover="showWaterCost(1)"
+              @mouseout="hideWaterCost()"
+              @click="hideWaterCost()"
+              title="Take the Water Silo for 1 Water (hotkey 'W')"
+            >
+              <img class="bd-accent" :src="fullCardPath('water_silo')" @click="userTakeWaterSilo()" />
+            </div>
+          </template>
+          <template x-if="draggedCard">
+            <div
+              class="junk-pile card-size bd-attention"
+              title="Drag your card here to use the Junk effect"
+              @dragleave="dragLeaveHighlight($el, 'fg-attention')"
+              @dragover.prevent="dragOverHighlight($el, 'fg-attention')"
+              @drop.prevent="dropCardInJunk($el)"
+            >
+              <!-- TODO When hovering the Junk Card slot the trash icon could change to match an icon for draggedCard.junkEffect icon -->
+              Junk Card
+              <div class="icon">🗑</div>
+            </div>
+          </template>
+        </div>
+      </template>
       <template x-if="drawAnimationCount > 0">
         <template x-for="anim in drawAnimationCount">
           <img :src="fullCardPath('punk')" class="draw-animation card-size" />
         </template>
       </template>
 
-      <template x-if="!targetMode.enabled && turn.currentPlayer && turn.currentPlayer === myPlayerNum">
+      <template x-if="inGame && !targetMode.enabled && turn.currentPlayer && turn.currentPlayer === myPlayerNum">
         <!-- TODO Make this repositionable an Alpine directive? https://alpinejs.dev/advanced/extending#custom-directives -->
         <!-- Note this approach can be used on ANY element to make it repositionable in the page, requirements are id, draggable, @dragstart, @dragend, x-init, class="repositionable" -->
         <div
@@ -153,7 +169,7 @@
         </div>
       </template>
 
-      <template x-if="getOpponentCamps().length">
+      <template x-if="inGame && getOpponentCamps().length">
         <div class="slots opponent-camps">
           <template x-for="camp in getOpponentCamps()">
             <div class="opponent-camp">
@@ -175,80 +191,31 @@
         </div>
       </template>
 
-      <template x-for="(playerSlots, playerNum) in getSlots()">
-        <div
-          x-data="{ isMySlot: playerNum === myPlayerNum }"
-          :class="'slots ' + (isMySlot ? 'my-slots' : 'opponent-slots')"
-        >
-          <template x-for="(slot, index) in playerSlots">
-            <div
-              :id="isMySlot ? `${targetModePrefix}${SLOT_ID_PREFIX}${index}` : `opponent_${SLOT_ID_PREFIX}${index}`"
-              class="bd-default relative"
-              @dragleave="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragLeaveHighlight($el)"
-              @dragover.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragOverSlot(slot, $el)"
-              @drop.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dropCardInGame(slot, $el)"
-            >
-              <template x-if="slot.content">
-                <span>
-                  <template
-                    x-if="slot.content.unReady && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)"
-                  >
-                    <span>
-                      <template
-                        x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"
-                      >
-                        <img
-                          :src="`images/${(slot.content.unReadyCost === 0 || !slot.content.unReadyCost) ? 'water_back' : 'water'}.png`"
-                          class="water-token-overlay"
-                          :style="`top: ${index*10}px; right: ${index*10}px;`"
-                        />
-                      </template>
-                    </span>
-                  </template>
-                  <img
-                    :id="`${targetModePrefix}${slot.content.id}`"
-                    @click="isMySlot && !slot.content.unReady && action.useCard({details: { card: slot.content}})"
-                    @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
-                    @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
-                    draggable="false"
-                    :alt="slot.content.img"
-                    :src="fullCardPath(slot.content)"
-                    :class="`card-size card-anim ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
-                  />
-                </span>
-              </template>
-            </div>
-          </template>
-        </div>
-      </template>
-
-      <template x-for="(playerEvents, playerNum) in getEvents()">
-        <div
-          :id="`${ isMyEvent ? 'myEvents' : 'opponentEvents'}`"
-          draggable="true"
-          @dragstart="repositionStart($event)"
-          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-          @dragleave="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dragLeaveHighlight($el)"
-          @dragover.prevent="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dragOverEvent(event, $el)"
-          @drop.prevent="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dropCardInGame(event, $el)"
-          x-init="repositionFromStorage($el.id)"
-          x-data="{ isMyEvent: playerNum === myPlayerNum }"
-          :class="`repositionable events ${isMyEvent ? 'my-events' : 'opponent-events'}`"
-        >
-          <template x-for="(event, index) in playerEvents">
-            <!-- Ignore displaying the first (0 index) event space, we use this for tracking immediate events and keeping startSpace sane and 1-based, but we don't show it -->
-            <template x-if="index > 0">
-              <div class="bd-default relative">
-                <div class="event-number">
-                  <img :src="`images/event-${index}.png`" :alt="`Event ${index}`" />
-                </div>
-                <template x-if="event">
+      <template x-if="inGame">
+        <template x-for="(playerSlots, playerNum) in getSlots()">
+          <div
+            x-data="{ isMySlot: playerNum === myPlayerNum }"
+            :class="'slots ' + (isMySlot ? 'my-slots' : 'opponent-slots')"
+          >
+            <template x-for="(slot, index) in playerSlots">
+              <div
+                :id="isMySlot ? `${targetModePrefix}${SLOT_ID_PREFIX}${index}` : `opponent_${SLOT_ID_PREFIX}${index}`"
+                class="bd-default relative"
+                @dragleave="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragLeaveHighlight($el)"
+                @dragover.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragOverSlot(slot, $el)"
+                @drop.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dropCardInGame(slot, $el)"
+              >
+                <template x-if="slot.content">
                   <span>
-                    <template x-if="event.unReady">
+                    <template
+                      x-if="slot.content.unReady && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)"
+                    >
                       <span>
-                        <template x-for="(water, index) in (event.cost === 0 ? 1 : (event.cost ?? 1))">
+                        <template
+                          x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"
+                        >
                           <img
-                            :src="`images/${(event.cost === 0 || !event.cost) ? 'water_back' : 'water'}.png`"
+                            :src="`images/${(slot.content.unReadyCost === 0 || !slot.content.unReadyCost) ? 'water_back' : 'water'}.png`"
                             class="water-token-overlay"
                             :style="`top: ${index*10}px; right: ${index*10}px;`"
                           />
@@ -256,92 +223,149 @@
                       </span>
                     </template>
                     <img
+                      :id="`${targetModePrefix}${slot.content.id}`"
+                      @click="isMySlot && !slot.content.unReady && action.useCard({details: { card: slot.content}})"
+                      @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
+                      @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
                       draggable="false"
-                      :alt="event.img"
-                      :src="fullCardPath(event)"
-                      :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' } ${event.unReady ? ' unready-card' : ''}`"
+                      :alt="slot.content.img"
+                      :src="fullCardPath(slot.content)"
+                      :class="`card-size card-anim ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
                     />
                   </span>
                 </template>
               </div>
             </template>
-          </template>
-        </div>
+          </div>
+        </template>
       </template>
 
-      <footer>
-        <button
-          x-ref="flipTray"
-          @click="flipTray()"
-          :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
-          title="Flip tray between your camps and hand"
-        >
-          <u>F</u>lip Tray
-          <div class="icon">🗘</div>
-          <span class="tray-subtext" x-text="trayIsCamps ? 'to Hand' : 'to Camps'"></span>
-        </button>
+      <template x-if="inGame">
+        <template x-for="(playerEvents, playerNum) in getEvents()">
+          <div
+            :id="`${ isMyEvent ? 'myEvents' : 'opponentEvents'}`"
+            draggable="true"
+            @dragstart="repositionStart($event)"
+            @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+            @dragleave="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dragLeaveHighlight($el)"
+            @dragover.prevent="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dragOverEvent(event, $el)"
+            @drop.prevent="(isMyEvent && typeof ui.draggedCard?.startSpace === 'number') && dropCardInGame(event, $el)"
+            x-init="repositionFromStorage($el.id)"
+            x-data="{ isMyEvent: playerNum === myPlayerNum }"
+            :class="`repositionable events ${isMyEvent ? 'my-events' : 'opponent-events'}`"
+          >
+            <template x-for="(event, index) in playerEvents">
+              <!-- Ignore displaying the first (0 index) event space, we use this for tracking immediate events and keeping startSpace sane and 1-based, but we don't show it -->
+              <template x-if="index > 0">
+                <div class="bd-default relative">
+                  <div class="event-number">
+                    <img :src="`images/event-${index}.png`" :alt="`Event ${index}`" />
+                  </div>
+                  <template x-if="event">
+                    <span>
+                      <template x-if="event.unReady">
+                        <span>
+                          <template x-for="(water, index) in (event.cost === 0 ? 1 : (event.cost ?? 1))">
+                            <img
+                              :src="`images/${(event.cost === 0 || !event.cost) ? 'water_back' : 'water'}.png`"
+                              class="water-token-overlay"
+                              :style="`top: ${index*10}px; right: ${index*10}px;`"
+                            />
+                          </template>
+                        </span>
+                      </template>
+                      <img
+                        draggable="false"
+                        :alt="event.img"
+                        :src="fullCardPath(event)"
+                        :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' } ${event.unReady ? ' unready-card' : ''}`"
+                      />
+                    </span>
+                  </template>
+                </div>
+              </template>
+            </template>
+          </div>
+        </template>
+      </template>
 
-        <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
-          <legend><span x-text="getTrayLegend()"></span></legend>
+      <template x-if="inGame">
+        <footer>
+          <button
+            x-ref="flipTray"
+            @click="flipTray()"
+            :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
+            title="Flip tray between your camps and hand"
+          >
+            <u>F</u>lip Tray
+            <div class="icon">🗘</div>
+            <span class="tray-subtext" x-text="trayIsCamps ? 'to Hand' : 'to Camps'"></span>
+          </button>
 
-          <template x-for="camp in getMyCamps()">
-            <div x-show="trayIsCamps">
-              <img
-                :id="`${targetModePrefix}${camp.id}`"
-                draggable="false"
-                :alt="camp.img"
-                :src="getCampImage(camp)"
-                :class="'card-size card-anim ' + (typeof camp.damage === 'number' && camp.damage === 1 ? ' damaged-card' : '')"
-              />
-            </div>
-          </template>
+          <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
+            <legend><span x-text="getTrayLegend()"></span></legend>
 
-          <!-- TODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
-          <template x-for="card in getMyCards()">
-            <div x-show="trayIsCards && myPlayerNum">
-              <img
-                :id="`${targetModePrefix}${card.id}`"
-                :alt="card.img"
-                :src="fullCardPath(card)"
-                :title="'Click and drag to play for ' + card.cost + ' Water'"
-                draggable="true"
-                @dragstart="draggedCard = card"
-                @dragend="draggedCard = null"
-                @mouseover="showWaterCost(card.cost)"
-                @mouseout="hideWaterCost()"
-                @error="$el.classList.add('card-error')"
-                class="card card-size"
-              />
-            </div>
-          </template>
-        </fieldset>
-      </footer>
+            <template x-for="camp in getMyCamps()">
+              <div x-show="trayIsCamps">
+                <img
+                  :id="`${targetModePrefix}${camp.id}`"
+                  draggable="false"
+                  :alt="camp.img"
+                  :src="getCampImage(camp)"
+                  :class="'card-size card-anim ' + (typeof camp.damage === 'number' && camp.damage === 1 ? ' damaged-card' : '')"
+                />
+              </div>
+            </template>
+
+            <!-- TODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
+            <template x-for="card in getMyCards()">
+              <div x-show="trayIsCards && myPlayerNum">
+                <img
+                  :id="`${targetModePrefix}${card.id}`"
+                  :alt="card.img"
+                  :src="fullCardPath(card)"
+                  :title="'Click and drag to play for ' + card.cost + ' Water'"
+                  draggable="true"
+                  @dragstart="draggedCard = card"
+                  @dragend="draggedCard = null"
+                  @mouseover="showWaterCost(card.cost)"
+                  @mouseout="hideWaterCost()"
+                  @error="$el.classList.add('card-error')"
+                  class="card card-size"
+                />
+              </div>
+            </template>
+          </fieldset>
+        </footer>
+      </template>
 
       <!-- TODO Start simple with the chat & log, but go absolutely wild with features later - emojis, quick emotes, press up for last message, new message count in page title, trigger visual effects on opponent's screen, etc. -->
-      <fieldset
-        id="chatLog"
-        class="repositionable chat panel bd-severe"
-        draggable="true"
-        @dragstart="repositionStart($event)"
-        @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-        x-init="repositionFromStorage($el.id)"
-      >
-        <legend class="severe" @click="applyChatMax({alsoUpdate: true})">
-          Log <small>(press <b>T</b> to focus)</small>
-          <div class="inline icon-sm">↨</div>
-        </legend>
-        <template x-if="chat.length === 0">
-          <span>No messages yet...</span>
-        </template>
-        <div x-effect="scrollChatToBottom($el, chat.length, chatMax)" class="chat-wrap">
-          <template x-for="message in chat">
-            <div x-text="message"></div>
+      <template x-if="inGame">
+        <fieldset
+          id="chatLog"
+          class="repositionable chat panel bd-severe"
+          draggable="true"
+          @dragstart="repositionStart($event)"
+          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
+          x-init="repositionFromStorage($el.id)"
+        >
+          <legend class="severe" @click="applyChatMax({alsoUpdate: true})">
+            Log <small>(press <b>T</b> to focus)</small>
+            <div class="inline icon-sm">↨</div>
+          </legend>
+          <template x-if="chat.length === 0">
+            <span>No messages yet...</span>
           </template>
-        </div>
-        <input x-ref="chatIn" x-model="currentChat" @keyup.enter="submitChat($el)" />
-      </fieldset>
+          <div x-effect="scrollChatToBottom($el, chat.length, chatMax)" class="chat-wrap">
+            <template x-for="message in chat">
+              <div x-text="message"></div>
+            </template>
+          </div>
+          <input x-ref="chatIn" x-model="currentChat" @keyup.enter="submitChat($el)" />
+        </fieldset>
+      </template>
 
-      <template x-teleport="body">
+      <template x-if="inGame" x-teleport="body">
         <dialog-camp-prompt />
       </template>
 
