@@ -19,16 +19,6 @@
               <li @click="action.dumpDebug()">Log Gamestate</li>
             </menu>
           </li>
-          <template x-if="!inGame">
-            <li class="success">
-              Join As
-              <menu>
-                <!-- TODO One potential issue with our Alpine.js approach is the mix of heavy lifting here in the UI and heavy lifting in the "backing" plain JS. Like should this action call be wrapped in a function? -->
-                <li @click="action.joinGame({player: 'player1'})">Be Player <u>1</u></li>
-                <li @click="action.joinGame({player: 'player2'})">Be Player <u>2</u></li>
-              </menu>
-            </li>
-          </template>
           <template x-if="inGame">
             <li>
               Card Scale
@@ -48,12 +38,7 @@
               <li @click="userUndo()"><u>U</u>ndo</li>
             </template>
           </template>
-          <!-- TTODO Remove Start Turn as an option from the UI and let the server handle it. This ALSO includes ensuring any maliciously sent messages to jump turns are ignored -->
-          <!-- <template x-if="inGame">
-            <template x-if="!turn.currentPlayer || myPlayerNum !== turn.currentPlayer">
-              <li @click="action.startTurn()" class="success">Start Turn</li>
-            </template>
-          </template> -->
+          <!-- TTODO Have an option to Leave Game - confirm first, then ditch lobby and notify opponent (who can TECHNICALLY stay in the game and hope someone else joins lol) -->
           <template x-if="inGame">
             <template x-if="myPlayerNum === turn.currentPlayer">
               <li @click="userEndTurn()" class="attention"><u>E</u>nd Turn</li>
@@ -83,14 +68,7 @@
 
       <template x-if="!inGame">
         <div>
-          <!-- TTODO Remove the manual joining of a game, and also block the messages from the client -->
-          <h1>To start the game join as a player</h1>
-          <button @click="action.joinGame({player: 'player1'})" class="success" @keyup.window.1="$el.click()">
-            Be Player <u>1</u>
-          </button>
-          <button @click="action.joinGame({player: 'player2'})" class="success" @keyup.window.2="$el.click()">
-            Be Player <u>2</u>
-          </button>
+          <h1>Join a game first from the lobby</h1>
         </div>
       </template>
 

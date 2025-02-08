@@ -17,7 +17,6 @@ const receiveClientWebsocketMessage = (message) => {
         return;
       }
 
-      // TTODO Hand the websocket message receiving handling off to lobby.js?
       if (message.details.subtype === 'giveLobbyList') {
         lobby.lobbies = message.details.lobbies;
       } else if (message.details.subtype === 'joinedLobby') {
@@ -27,18 +26,31 @@ const receiveClientWebsocketMessage = (message) => {
             lobby.joinedId = toJoin.gameId;
           }
         }
-      } else if (message.details.subtype === 'gotoGame') {
-        lobby.readying = true;
-        lobby.isFirst = message.details.isFirst;
-        lobby.countdownSeconds = GAME_START_COUNTDOWN_S;
-        setInterval(() => {
-          lobby.countdownSeconds = Math.max(0, lobby.countdownSeconds - 1);
-        }, 999);
-        setTimeout(() => {
-          window.location.href = `game.html`;
-        }, lobby.countdownSeconds * 1000);
-      } else if (message.details.subtype === 'gotoLobby') {
-        window.location.href = 'lobby.html';
+      } else if (message.details.subtype === 'wrongPassword') {
+        alert('Lobby password is incorrect'); // TTODO Better error displaying on lobby
+        lobby.enteredPassword = '';
+      }
+
+      break;
+    }
+    case 'nav': {
+      if (message.details.page === 'gotoGame') {
+        // Either hop right to our game or do a countdown
+        if (message.details.started) {
+          utils.performNav('game.html');
+        } else {
+          lobby.readying = true;
+          lobby.isFirst = message.details.isFirst;
+          lobby.countdownSeconds = GAME_START_COUNTDOWN_S;
+          setInterval(() => {
+            lobby.countdownSeconds = Math.max(0, lobby.countdownSeconds - 1);
+          }, 999);
+          setTimeout(() => {
+            utils.performNav('game.html');
+          }, lobby.countdownSeconds * 1000);
+        }
+      } else if (message.details.page === 'gotoLobby') {
+        utils.performNav('lobby.html');
       }
 
       break;

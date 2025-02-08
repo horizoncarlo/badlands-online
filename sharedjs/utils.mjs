@@ -19,7 +19,6 @@ globalThis.DEBUG_AUTO_OPPONENT = false; // Debugging flag to automatically join 
 globalThis.DEBUG_AUTO_OPPONENT_DRAW = 6; // Debugging flag for the number of cards the auto-opponent should draw on their first turn, regardless of camps
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // DEBUG_AUTO_OPPONENT ? 30 : 15; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
-globalThis.DEBUG_TESTING_PLAYERS = false; // Debugging flag to avoid a few checks to make it easier to test the main game logic. Such as can start your turn without an opponent present
 
 const utils = {
   lobbies: new Map(), // Global lobby list (used on the server)
@@ -42,6 +41,16 @@ const utils = {
     }
 
     return utils.lobbies?.get(utils.getGameIdByPlayerId(messageOrPlayerId));
+  },
+
+  leaveAllLobbies(playerId) {
+    // Leave any existing lobby
+    utils.lobbies.forEach((lobby) => {
+      const foundIndex = lobby.players.findIndex((player) => player.playerId === playerId);
+      if (foundIndex >= 0) {
+        lobby.players.splice(foundIndex, 1);
+      }
+    });
   },
 
   clearUniversal(message) {
@@ -562,6 +571,12 @@ const utils = {
       slotsInColumn.push(getGS(message)[playerNum].slots[slotIndex]);
     }
     return slotsInColumn;
+  },
+
+  performNav(page) {
+    if (onClient) {
+      window.location.href = page;
+    }
   },
 };
 

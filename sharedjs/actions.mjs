@@ -6,24 +6,8 @@ import { codeQueue, utils } from './utils.mjs';
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
 const rawAction = {
-  joinGame(message) {
-    if (onClient) {
-      sendC('joinGame', message);
-    } else {
-      /* TODO DEBUG For now it's annoying to check if a player already joined for our playerNum, as refreshing our page currently would trigger this
-                    Because we don't have proper leaving and rejoining support yet. So for now just count each request as valid... */
-      if (!DEBUG_TESTING_PLAYERS) {
-        const desiredPlayer = message.details.player;
-        if (
-          getGS(message)[desiredPlayer] &&
-          (!getGS(message)[desiredPlayer].playerId || getGS(message)[desiredPlayer].playerId === message.playerId)
-        ) {
-          getGS(message)[desiredPlayer].playerId = message.playerId;
-        } else {
-          return action.sendError('Invalid join request or someone already playing', message.playerId);
-        }
-      }
-
+  joinGame(message, params) { // params.fromServerRequest: boolean
+    if (!onClient && params?.fromServerRequest) {
       getGS(message)[message.details.player].playerId = message.playerId;
 
       sendS('setPlayer', message, message.details, message.playerId);
@@ -42,7 +26,7 @@ const rawAction = {
             details: {
               player: utils.getOppositePlayerNum(message.details.player),
             },
-          });
+          }, { fromServerRequest: true });
 
           utils.sleep(500);
 
@@ -63,7 +47,7 @@ const rawAction = {
           // Autostart the opponent turn
           action.startTurn({
             playerId: autoPlayerId,
-          });
+          }, { fromServerRequest: true });
 
           utils.sleep(500);
 
@@ -94,16 +78,14 @@ const rawAction = {
     }
   },
 
-  startTurn(message, params) { // params.isFirstTurn: boolean true if this is the first turn (change Water count)
+  startTurn(message, params) { // params.fromServerRequest: boolean, params.isFirstTurn: boolean true if this is the first turn (change Water count)
+    // TODO When DEBUG_AUTO_SELECT_CAMPS_START_TURN is removed we can also remove client handling of this call as it's only server side
     if (onClient) {
       sendC('startTurn');
     } else {
-      // Don't allow starting the game until an opponent is present
-      if (!DEBUG_TESTING_PLAYERS) {
-        if (!getGS(message).player1.playerId || !getGS(message).player2.playerId) {
-          action.sendError('Cannot start the turn, no opponent yet', message.playerId);
-          return;
-        }
+      // Don't allow starting the turn unless it's from the server OR we're doing a DEBUG process
+      if (!DEBUG_AUTO_SELECT_CAMPS_START_TURN && !params?.fromServerRequest) {
+        return;
       }
 
       const nextPlayerNum = utils.getPlayerNumById(message.playerId);
@@ -160,7 +142,7 @@ const rawAction = {
         getGS(message).turn.currentPlayer = nextPlayerNum;
         action.startTurn({
           playerId: nextPlayerId,
-        });
+        }, { fromServerRequest: true });
         action.sync(null, { gsMessage: message }); // For applying the reset of slot ready state
       } else {
         action.sendError('No opponent yet', message.playerId);
@@ -288,7 +270,17 @@ const rawAction = {
   },
 
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
-    // TTODO Check if we're ready and undamaged before doing a useCard (on both client and server)
+    // Check if card is ready before trying to use a card ability (on both client and server)
+    // TODO General validation that we'll need to improve - in this case instead of trusting the client we'd use the card.id to check our server gs and use the unReady from that version
+    if (message.details?.card?.unReady || message?.details?.card?.damage > 0) {
+      if (onClient) {
+        console.error('Card is not ready to be used');
+      } else {
+        action.sendError('Card is not ready to be used', message.playerId);
+      }
+      return;
+    }
+
     if (onClient) {
       if (message.details.card.abilities?.length) {
         if (typeof userAbilityIndex !== 'number' && message.details.card.abilities?.length > 1) {
@@ -306,12 +298,6 @@ const rawAction = {
         sendC('useCard', message.details);
       }
     } else {
-      // Check if card is ready before trying to use a card ability
-      if (message.details?.card?.unReady) { // TODO General validation that we'll need to improve - in this case instead of trusting the client we'd use the card.id to check our server gs and use the unReady from that version
-        action.sendError('Card is not ready to be used', message.playerId);
-        return;
-      }
-
       let chosenAbilityIndex = 0;
       if (
         message.details?.card?.abilities?.length > 1 &&
@@ -858,7 +844,7 @@ const rawAction = {
       if (utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.doneCamps) {
         action.startTurn({
           playerId: getGS(message)?.player1.playerId,
-        }, { isFirstTurn: true });
+        }, { fromServerRequest: true, isFirstTurn: true });
       }
     }
   },

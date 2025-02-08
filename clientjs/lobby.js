@@ -4,7 +4,7 @@ globalThis.lobby = { // Local state
   readying: false, // Countdown to the game start or not
   isFirst: false,
   countdownSeconds: 5,
-  playerName: 'No Name',
+  playerName: '',
   enteredPassword: '',
 };
 
@@ -34,7 +34,7 @@ init(initLobby);
 function initLobby(status) {
   if (status) {
     lobby = Alpine.reactive(lobby);
-    lobby.playerName = localStorage.getItem(LOCAL_STORAGE.playerName) ?? 'No Name';
+    lobby.playerName = localStorage.getItem(LOCAL_STORAGE.playerName) ?? 'Anonymous';
     if (localStorage.getItem(LOCAL_STORAGE.playerName)) {
       savePlayerName();
     }
@@ -60,19 +60,32 @@ function getLobbyList() {
   });
 }
 
-function joinLobby(lobbyObj) {
-  if (lobbyObj.hasPassword && (!lobby.enteredPassword || lobby.enteredPassword.trim().length === 0)) {
-    lobbyObj.showPasswordEntry = true;
+function isInLobby(lobbyObj) {
+  return lobby.joinedId && lobby.joinedId === lobbyObj?.gameId;
+}
+
+function clickLobby(lobbyObj) {
+  // Leave or join a lobby based on our state
+  if (isInLobby(lobbyObj)) {
+    sendC('lobby', {
+      subtype: 'leaveLobby',
+    });
+
+    lobby.joinedId = '';
   } else {
-    const toSend = {
-      subtype: 'joinLobby',
-      gameId: lobbyObj.gameId,
-      playerId: playerId,
-    };
-    if (lobbyObj.hasPassword) {
-      toSend.password = lobby.enteredPassword;
+    if (lobbyObj.hasPassword && (!lobby.enteredPassword || lobby.enteredPassword.trim().length === 0)) {
+      lobbyObj.showPasswordEntry = true;
+    } else {
+      const toSend = {
+        subtype: 'joinLobby',
+        gameId: lobbyObj.gameId,
+        playerId: playerId,
+      };
+      if (lobbyObj.hasPassword) {
+        toSend.password = lobby.enteredPassword;
+      }
+      sendC('lobby', toSend);
     }
-    sendC('lobby', toSend);
   }
 }
 

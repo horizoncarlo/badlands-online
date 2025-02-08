@@ -95,6 +95,7 @@ const handler = (req: Request) => {
     return response;
   } else if (filePath === '/lobby.html' || filePath === '/game.html') {
     // Get our main HTML to return, but replace any templating variables first
+    // TODO Even though this is a fast process we should do some aggressive long term caching of our read HTML files - only dynamic part after initial header/component setup is PLAYER_ID (not even CLIENT_WEBSOCKET_ADDRESS which doesn't change)
     let html = Deno.readTextFileSync('.' + filePath);
 
     // Common header file shared between pages
@@ -212,28 +213,47 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         lobbies: convertLobbiesForClient(),
       }, message.playerId);
 
-      // Determine if we are already in a lobby and rejoin it
+      // Determine if we are already in a lobby and rejoin it (or the game!)
       utils.lobbies.forEach((lobby: GameLobby) => {
         if (lobby.players.find((player: PlayerObj) => player.playerId === message.playerId)) {
-          sendS('lobby', message, {
-            subtype: 'joinedLobby',
-            gameId: lobby.gameId,
-          }, message.playerId);
+          if (lobby.started) {
+            sendS('nav', message, {
+              page: 'gotoGame',
+              started: lobby.started,
+            }, message.playerId);
+          } else {
+            sendS('lobby', message, {
+              subtype: 'joinedLobby',
+              gameId: lobby.gameId,
+            }, message.playerId);
+          }
         }
       });
     } else if (message.details.subtype === 'joinLobby') {
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
-        // TTODO Timing issue in Firefox when joining a lobby and clicking Ready, sometime puts us to the "join as player 1 or 2" screen incorrectly - likely means our joinGame is being fired too early and the client Websocket isn't ready
-        // TTODO Leave any other lobby we're in when joining a new one
+        // TTODO Figure out what to do with auto opponent - we still want the option so people can at least test out the game, and eventually maybe have AI?
         // TTODO Clean up empty games (that no one is trying to rejoin) automatically after a period
         const lobbyToJoin = utils.lobbies.get(message.details.gameId);
-        // TTODO Determine if we can join a lobby - has a slot, not already in, and no one is waiting to rejoin
-        // TTODO Add password handling to lobby.html when trying to join
+        // TTODO Determine if anyone is waiting to rejoin a game before we go in
         if (lobbyToJoin.players.length >= 2 || lobbyToJoin.players.find((player) => player.playerId === message.playerId)) {
-          // Ignore any full or existing error
+          // Don't need to do anything if the lobby is full
         } else {
+          // Check if a password is required, provided, and valid
+          if (
+            lobbyToJoin.password && lobbyToJoin.password.trim().length > 0 &&
+            message.details.password !== lobbyToJoin.password
+          ) {
+            sendS('lobby', message, {
+              subtype: 'wrongPassword',
+            }, message.playerId);
+            return;
+          }
+
+          // Leave all existing lobbies
+          utils.leaveAllLobbies(message.playerId);
+
           lobbyToJoin.players.push({
             playerId: message.playerId,
             playerName: players.get(message.playerId) ?? DEFAULT_PLAYER_NAME,
@@ -251,6 +271,13 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           }, message.playerId);
         }
       }
+    } else if (message.details.subtype === 'leaveLobby') {
+      utils.leaveAllLobbies(message.playerId);
+
+      sendS('lobby', message, {
+        subtype: 'giveLobbyList',
+        lobbies: convertLobbiesForClient(),
+      });
     } else if (message.details.subtype === 'markReady') {
       const lobbyObj = utils.lobbies.get(message.details.gameId);
       const foundPlayer = lobbyObj?.players.find((player) => player.playerId === message.playerId);
@@ -271,12 +298,12 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
               lobbyObj.gs.player1.playerId = opponent.playerId;
             }
 
-            sendS('lobby', message, {
-              subtype: 'gotoGame',
+            sendS('nav', message, {
+              page: 'gotoGame',
               isFirst: playerRoll === 0,
             }, message.playerId);
-            sendS('lobby', message, {
-              subtype: 'gotoGame',
+            sendS('nav', message, {
+              page: 'gotoGame',
               isFirst: playerRoll === 1,
             }, opponent.playerId);
 
@@ -290,8 +317,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
       // If we don't have a game setup, go back to the lobby
       if (!gameObj) {
-        sendS('lobby', message, {
-          subtype: 'gotoLobby',
+        sendS('nav', message, {
+          page: 'gotoLobby',
         }, message.playerId);
         return;
       }
@@ -306,14 +333,14 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         details: {
           player: playerNum,
         },
-      });
+      }, { fromServerRequest: true });
     } else {
       console.error('Received lobby message but unknown subtype=' + message.details.subtype);
     }
   } else {
     // Check if the player matches someone in the game
     if (
-      message.type !== 'joinGame' && message.type !== 'dumpDebug' &&
+      message.type !== 'dumpDebug' &&
       (!message.playerId || !utils.hasPlayerDataById(message.playerId))
     ) {
       action.sendError('Invalid player data, join a game first', message.playerId);
@@ -389,7 +416,6 @@ function setupComponents() {
 }
 setupComponents();
 
-// TTODO Add create lobby functionality to the lobby.html
 // TODO TEMPORARY Some default lobbies to populate the list
 createGame('Test Game 1');
 createGame('Private Game', 'test');

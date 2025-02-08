@@ -2,15 +2,13 @@
 <html lang="en">
   <include-header />
   <body x-data="lobby">
-    <!-- <section
-    x-data="ui"
-    :class="(inGame && targetMode.enabled) && `target-mode-section target-mode-section-${targetMode.cursor || targetMode.type}`"
-  >
-    <header> -->
-
     Player ID: <span x-text="playerId"></span>
     <input x-model="playerName" placeholder="Player Name" />
     <button @click="savePlayerName()">Save</button>
+
+    <!-- TTODO Add create lobby functionality to the lobby.html -->
+    <!-- TTODO Lobby chat - should just be a message of type='lobby' and subtype='chat' -->
+    <!-- TTODO Clean up baby's first UI, aka our super roughed out testing one -->
 
     <br />
     Lobbies:
@@ -25,20 +23,19 @@
               type="password"
               placeholder="Lobby requires a password"
               x-model="enteredPassword"
-              @keyup.enter="joinLobby(currentLobby)"
+              @keyup.enter="clickLobby(currentLobby)"
             />
           </template>
           <button
-            @click="joinLobby(currentLobby)"
+            @click="clickLobby(currentLobby)"
             :disabled="currentLobby.players.length >= 2"
           >
-            Join
+            <span x-text="isInLobby(currentLobby) ? 'Leave' : 'Join'"></span>
           </button>
         </li>
       </template>
     </ul>
 
-    Joined: <span x-text="joinedId"></span>
     <template x-if="joinedId && getJoinedLobby()">
       <div class="panel">
         You are in a game lobby for <span x-text="getJoinedLobby().gameId"></span>
@@ -61,16 +58,11 @@
     </template>
 
     <!--
-      Lobby system
+      TTODO Lobby system
       - What to do with an idle opponent? Timeout to kick or leave game?
       - Rejoining games on crash? Maybe keep current playerId or hidden key in local storage, then can check if joining a game that had a leaver/crash/timeout?
       - Handle page refresh while an action (such as target mode) is in progress
-  
-      Proper start of game - decide who goes first, and begin turn back and forth, win/loss screen (plus draw/tie)
-      - When both players are present, have a "mark ready" (...or likely do automatically when both have chosen camps)
-      - Then flip a coin to decide who goes first
-      - REMEMBER: First turn for first player only get 1 water
-      - Could also trim up the choosing player 1 or player 2 and just have a "join game" generically (that puts you in the next available slot), now that the logic is more fleshed out
+      - Win/loss screen and proper end of game
   
       Implementation details:
       lobby.html page, server maintains a list (in memory for now, Redis/CouchDB/LowDB eventually) of Games (gameId, title, password, observers, timeLimit) that are rendered into a Lobby List on the page
@@ -83,7 +75,6 @@
       What WILL be a problem is the gamestate which needs to be brought up another level - also everything in sub-files needs to be moved up, such as actions.undoStack (likely put INSIDE actions like we do with gs.universal)
       -->
 
-    <!-- JS scripts at the bottom like it's 1995 -->
     <script src="./clientjs/lobby.js"></script>
   </body>
 </html>

@@ -30,7 +30,6 @@ function doneChooseCamps() {
   //      I think some of the confusion comes from having to pass a message, when really we should pass state and build a message on the client for the action.*
   //      But that works less great for the idea of a consistent function both client and server can call. So maybe all the pre-logic SHOULD be here before the action
   //      In either case it's client JS - just need to know where it should be and stick to it
-  //      action.joinGame is another example of a slightly inconsistent approach as it takes state instead of a message like the approach just mentioned
   getPlayerData().camps = getMyCamps().filter((camp) => camp.selected);
   getPlayerData().doneCamps = true;
 
