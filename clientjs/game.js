@@ -1,5 +1,4 @@
 globalThis.ui = { // Local state
-  inGame: false,
   bodyReady: false,
   drawAnimationCount: 0,
   draggedCard: false,
@@ -263,24 +262,21 @@ function setupHotkeys() {
     }
 
     const key = event.key.toLowerCase();
-
-    if (ui.inGame) {
-      if (key === 'f') flipTray();
-      else if (key === 't') focusChatIn();
-      else if (key === 'd') userDrawCard();
-      else if (key === 'w') {
-        // Junk our Water Silo if we have it in hand, otherwise take it
-        const hasWaterSilo = getMyCards()?.find((card) => card.isWaterSilo);
-        if (hasWaterSilo) {
-          action.junkCard({
-            card: hasWaterSilo,
-          });
-        } else {
-          userTakeWaterSilo();
-        }
-      } else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
-      else if (key === 'e') userEndTurn();
-    }
+    if (key === 'f') flipTray();
+    else if (key === 't') focusChatIn();
+    else if (key === 'd') userDrawCard();
+    else if (key === 'w') {
+      // Junk our Water Silo if we have it in hand, otherwise take it
+      const hasWaterSilo = getMyCards()?.find((card) => card.isWaterSilo);
+      if (hasWaterSilo) {
+        action.junkCard({
+          card: hasWaterSilo,
+        });
+      } else {
+        userTakeWaterSilo();
+      }
+    } else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
+    else if (key === 'e') userEndTurn();
   });
 }
 
