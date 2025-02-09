@@ -191,7 +191,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       const foundIndex = socketMap.get(gameId)?.findIndex((socketDetails: WebSocketDetails) =>
         playerId === socketDetails.playerId
       );
-      if (foundIndex !== -1) {
+
+      if (typeof foundIndex === 'number' && foundIndex !== -1) {
         socketMap.get(gameId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
         socketMap.get(gameId).splice(foundIndex, 1);
       }
@@ -230,7 +231,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
-        // TTODO Figure out what to do with auto opponent - we still want the option so people can at least test out the game, and eventually maybe have AI?
+        // TTODO Figure out what to do with AI - we still want the option so people can at least test out the game, and eventually maybe have AI?
         // TTODO Clean up empty games (that no one is trying to rejoin) automatically after a period
         const lobbyToJoin = utils.lobbies.get(message.details.gameId);
         // TTODO Determine if anyone is waiting to rejoin a game before we go in
@@ -259,10 +260,17 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           // Refresh the lobby list of all viewing parties
           refreshLobbyList(message);
 
-          sendS('lobby', message, {
+          const toSend = {
             subtype: 'joinedLobby',
             gameId: lobbyToJoin.gameId,
-          }, message.playerId);
+          };
+
+          // Determine if we joined vs AI
+          if (lobbyToJoin.players.find((player) => player.playerId === AI_PLAYER_ID)) {
+            toSend['vsAI'] = true;
+          }
+
+          sendS('lobby', message, toSend, message.playerId);
         }
       }
     } else if (message.details.subtype === 'leaveLobby') {
@@ -277,9 +285,15 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         // If both players are ready start the game
         if (foundPlayer.ready && lobbyObj.players.length >= 2) {
           const opponent = lobbyObj.players.find((player) => player.playerId !== message.playerId);
-          if (opponent?.ready) {
-            // Determine the first player
-            const playerRoll = utils.randomRange(0, 1);
+
+          if (opponent?.ready || opponent.playerId === AI_PLAYER_ID) { // Human opponent is ready or AI is
+            // Determine the first player - AI always goes first, otherwise proper randomize
+            let playerRoll = utils.randomRange(0, 1);
+
+            if (opponent.playerId === AI_PLAYER_ID) {
+              playerRoll = 1;
+            }
+
             if (playerRoll === 0) {
               lobbyObj.gs.player1.playerId = foundPlayer.playerId;
               lobbyObj.gs.player2.playerId = opponent.playerId;
@@ -329,9 +343,18 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       };
 
       return receiveServerWebsocketMessage(toSend);
+    } else if (message.details.subtype === 'testGame') {
+      const toSend = { ...message };
+      toSend.details.subtype = 'createJoinLobby';
+      toSend.details.game = {
+        title: ((players.get(message.playerId) ?? '') + ' Lobby vs AI').trim(),
+        vsAI: true,
+      };
+
+      return receiveServerWebsocketMessage(toSend);
     } else if (message.details.subtype === 'createJoinLobby') {
       if (message.details.game?.title) {
-        createGame({ title: message.details.game.title }, { joinAfter: message });
+        createGame({ ...message.details.game }, { joinAfter: message });
       }
     } else if (message.details.subtype === 'gamePageLoaded') {
       const gameObj = utils.lobbies.get(utils.getGameIdByPlayerId(message.playerId));
@@ -355,6 +378,16 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           player: playerNum,
         },
       }, { fromServerRequest: true });
+
+      // Also have the AI join game if we're in a test game
+      if (gameObj.players?.find((player) => player.playerId === AI_PLAYER_ID)) {
+        action.joinGame({
+          playerId: AI_PLAYER_ID,
+          details: {
+            player: utils.getOppositePlayerNum(playerNum),
+          },
+        }, { fromServerRequest: true });
+      }
     } else {
       console.error('Received lobby message but unknown subtype=' + message.details.subtype);
     }
@@ -388,6 +421,15 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
   newGamestate.deck = createNewDeck();
   newGamestate.campDeck = createCampDeck();
 
+  const playerList = [];
+
+  if (gameParams['vsAI']) {
+    playerList.push({
+      playerId: AI_PLAYER_ID,
+      playerName: 'Simple AI',
+    });
+  }
+
   utils.lobbies.set(newGameId, {
     gameId: newGameId,
     title: gameParams.title ?? 'Unnamed Lobby',
@@ -397,7 +439,7 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
       seeAll: false,
     },
     timeLimit: 0,
-    players: [],
+    players: playerList,
     gs: newGamestate,
     undoStack: [], // Stack (LIFO) of gs we can undo back to
   });

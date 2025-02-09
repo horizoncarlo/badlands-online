@@ -102,7 +102,11 @@ function clickCustomGame() {
 }
 
 function clickTestGame() {
-  // TTODO Create a new lobby against Auto Opponent and join and start
+  if (!lobby.joinedId) {
+    sendC('lobby', {
+      subtype: 'testGame',
+    });
+  }
 }
 
 function savePlayerName() {

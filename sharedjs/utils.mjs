@@ -12,13 +12,12 @@ globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
 globalThis.SLOT_ID_PREFIX = 'slot_';
+globalThis.AI_PLAYER_ID = 'autoOpponent';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
 
-globalThis.DEBUG_AUTO_OPPONENT = false; // Debugging flag to automatically join the game as the opponent when someone starts a game
-globalThis.DEBUG_AUTO_OPPONENT_DRAW = 6; // Debugging flag for the number of cards the auto-opponent should draw on their first turn, regardless of camps
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // DEBUG_AUTO_OPPONENT ? 30 : 15; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 
 const utils = {
   // TODO Probably split up the utils file so it doesn't grow to a crazy size
@@ -50,6 +49,11 @@ const utils = {
       const foundIndex = lobby.players.findIndex((player) => player.playerId === playerId);
       if (foundIndex >= 0) {
         lobby.players.splice(foundIndex, 1);
+
+        // Also if our opponent was AI then we just remove the lobby
+        if (lobby.players.length === 1 && lobby.players[0].playerId === AI_PLAYER_ID) {
+          utils.lobbies.delete(lobby.gameId);
+        }
       }
     });
   },

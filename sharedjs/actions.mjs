@@ -16,64 +16,17 @@ const rawAction = {
       action.sync(message.playerId, { includeChat: true });
       action.promptCamps(message);
 
-      if (DEBUG_AUTO_OPPONENT) {
-        const autoPlayerId = 'autoOpponent';
-        if (!utils.getPlayerNumById(autoPlayerId)) {
-          // Autojoin the game
-          action.joinGame({
-            type: 'joinGame',
-            playerId: autoPlayerId,
-            details: {
-              player: utils.getOppositePlayerNum(message.details.player),
-            },
-          }, { fromServerRequest: true });
-
-          utils.sleep(500);
-
-          // Autochoose our camps too
-          const campOptions = getGS(message).campDeck.splice(0, 3);
-          utils.getPlayerDataById(autoPlayerId).camps = campOptions;
-          action.doneCamps({
-            type: 'doneCamps',
-            playerId: autoPlayerId,
-            details: {
-              camps: campOptions,
-              debugDrawAutoOpponent: true,
-            },
-          });
-
-          utils.sleep(500);
-
-          // Autostart the opponent turn
-          action.startTurn({
-            playerId: autoPlayerId,
-          }, { fromServerRequest: true });
-
-          utils.sleep(500);
-
-          // Play some random cards on the board as easy targets
-          utils.getPlayerDataById(autoPlayerId).waterCount = 20; // Make sure we can get plenty of cards out
-          utils.getPlayerDataById(autoPlayerId).cards.forEach((card, index) => {
-            action.playCard({
-              type: 'playCard',
-              playerId: autoPlayerId,
-              details: {
-                card: card,
-                slot: {
-                  index: index,
-                },
-              },
-            });
-          });
-
-          utils.sleep(500);
-
-          // End our turn so the human can just go
-          action.endTurn({
-            type: 'endTurn',
-            playerId: autoPlayerId,
-          });
-        }
+      if (message.playerId === AI_PLAYER_ID) {
+        // Autochoose our camps as AI
+        const campOptions = getGS(message).campDeck.splice(0, 3);
+        utils.getPlayerDataById(message.playerId).camps = campOptions;
+        action.doneCamps({
+          type: 'doneCamps',
+          playerId: message.playerId,
+          details: {
+            camps: campOptions,
+          },
+        });
       }
     }
   },
@@ -124,6 +77,64 @@ const rawAction = {
 
       action.drawCard(message, { fromServerRequest: true });
       action.sync(null, { gsMessage: message });
+
+      // TODO Better AI at some magical point in the future?
+      if (message.playerId === AI_PLAYER_ID) {
+        const aiData = utils.getPlayerDataById(message.playerId);
+
+        aiData.waterCount = 20; // Make sure we can get plenty of cards out - makes for easier targetting even if we break the rules
+
+        if (params?.isFirstTurn) {
+          aiData.cards.forEach((card, index) => {
+            action.playCard({
+              type: 'playCard',
+              playerId: message.playerId,
+              details: {
+                card: card,
+                slot: {
+                  index: index,
+                },
+              },
+            });
+          });
+        } else if (Math.random() >= 0.4) { // In MOST cases play a card
+          if (aiData.cards.length) {
+            const tryToPlay = aiData.cards[0];
+
+            const toSend = {
+              type: 'playCard',
+              playerId: message.playerId,
+              details: {
+                card: tryToPlay,
+              },
+            };
+
+            if (utils.cardIsEvent(tryToPlay)) {
+              action.playCard(toSend);
+            } else {
+              let nextFreeSlot = aiData.slots.findIndex((slot) => !slot.content);
+
+              // If we DON'T have a free slot just replace a random card
+              if (nextFreeSlot === -1) {
+                nextFreeSlot = utils.randomRange(0, SLOT_NUM_COLS * SLOT_NUM_ROWS);
+              }
+
+              toSend.details.slot = {
+                index: nextFreeSlot,
+              };
+              action.playCard(toSend);
+            }
+          }
+        }
+
+        if (params?.isFirstTurn) {
+          action.endTurn(message);
+        } else {
+          setTimeout(() => { // Trust me the computer is thinking - but primarily because just auto-having your next turn is too jaring
+            action.endTurn(message);
+          }, utils.randomRange(1000, 2000));
+        }
+      }
     }
   },
 
@@ -823,10 +834,6 @@ const rawAction = {
 
       let totalDrawCount = message.details.camps.reduce((total, camp) => total + camp.drawCount, 0);
       totalDrawCount = DEBUG_DRAW_SO_MANY_CARDS > 0 ? DEBUG_DRAW_SO_MANY_CARDS : totalDrawCount; // TODO DEBUG Should be a const and remove the DEBUG_DRAW_SO_MANY_CARDS
-
-      if (DEBUG_AUTO_OPPONENT && message.details.debugDrawAutoOpponent) {
-        totalDrawCount = DEBUG_AUTO_OPPONENT_DRAW;
-      }
 
       for (let i = 0; i < totalDrawCount; i++) {
         action.drawCard({

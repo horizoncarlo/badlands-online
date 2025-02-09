@@ -26,6 +26,11 @@ const receiveClientWebsocketMessage = (message) => {
             lobby.joinedId = toJoin.gameId;
           }
         }
+
+        // Also auto-ready if we're vs AI
+        if (message.details.vsAI) {
+          markReady({ checked: true });
+        }
       } else if (message.details.subtype === 'wrongPassword') {
         alert('Lobby password is incorrect'); // TTODO Better error displaying on lobby
         lobby.enteredPassword = '';

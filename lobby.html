@@ -26,12 +26,14 @@
               @keyup.enter="clickLobby(currentLobby)"
             />
           </template>
-          <button
-            @click="clickLobby(currentLobby)"
-            :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
-          >
-            <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
-          </button>
+          <template x-if="!readying">
+            <button
+              @click="clickLobby(currentLobby)"
+              :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
+            >
+              <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
+            </button>
+          </template>
         </li>
       </template>
     </ul>
@@ -57,7 +59,7 @@
       </div>
     </template>
 
-    <template x-if="!joinedId">
+    <template x-if="!joinedId && !readying">
       <div>
         <button
           @click="clickQuickplay()"
@@ -75,8 +77,8 @@
         </button>
         <button
           @click="clickTestGame()"
-          class="muted"
-          title="Play against a very basic AI opponent to try out the mechanics"
+          class="default"
+          title="Play against a passive AI opponent to try out the game and website"
         >
           Test Game vs AI
         </button>
