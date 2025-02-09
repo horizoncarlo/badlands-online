@@ -7,9 +7,6 @@
     <input x-model="playerName" placeholder="Player Name" />
     <button @click="savePlayerName()">Save</button>
 
-    <!-- TTODO Add Create Custom Lobby (less verbose name?) functionality that lets all the options be customized -->
-    <!-- TTODO Also have a "quick play" option that creates a lobby, gives it a generic title and default options, and joins it. So a single press to be in a lobby -->
-    <!-- TTODO Similarly have a "test game" that joins vs autoplay opponent in a private lobby -->
     <!-- TTODO Lobby chat - should just be a message of type='lobby' and subtype='chat' -->
     <!-- TTODO Clean up baby's first UI, aka our super roughed out testing one -->
 
@@ -19,7 +16,7 @@
       <template x-for="currentLobby in lobbies">
         <li>
           <span x-text="currentLobby.title"></span>
-          Players: <span x-text="currentLobby.players"></span>
+          - Players: <span x-text="currentLobby.players"></span>
           <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
             <input
               x-init="$el.focus()"
@@ -31,9 +28,9 @@
           </template>
           <button
             @click="clickLobby(currentLobby)"
-            :disabled="currentLobby.players.length >= 2"
+            :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
           >
-            <span x-text="isInLobby(currentLobby) ? 'Leave' : 'Join'"></span>
+            <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
           </button>
         </li>
       </template>
@@ -57,6 +54,32 @@
             <span x-text="`Game starting in ${countdownSeconds}...`"></span>
           </div>
         </template>
+      </div>
+    </template>
+
+    <template x-if="!joinedId">
+      <div>
+        <button
+          @click="clickQuickplay()"
+          class="success"
+          title="Join an open lobby or create a default new lobby"
+        >
+          Quickplay
+        </button>
+        <button
+          @click="clickCustomGame()"
+          class="accent"
+          title="Create a custom lobby with configurable options"
+        >
+          Custom Game
+        </button>
+        <button
+          @click="clickTestGame()"
+          class="muted"
+          title="Play against a very basic AI opponent to try out the mechanics"
+        >
+          Test Game vs AI
+        </button>
       </div>
     </template>
 

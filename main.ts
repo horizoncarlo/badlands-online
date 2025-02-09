@@ -208,10 +208,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       players.set(message.playerId, message.details.playerName);
     } else if (message.details.subtype === 'getLobbyList') {
       // TODO Probably wrap the lobby messages in a helper function, including sendC
-      sendS('lobby', message, {
-        subtype: 'giveLobbyList',
-        lobbies: convertLobbiesForClient(),
-      }, message.playerId);
+      refreshLobbyList(message, { justToPlayer: true });
 
       // Determine if we are already in a lobby and rejoin it (or the game!)
       utils.lobbies.forEach((lobby: GameLobby) => {
@@ -260,10 +257,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           });
 
           // Refresh the lobby list of all viewing parties
-          sendS('lobby', message, {
-            subtype: 'giveLobbyList',
-            lobbies: convertLobbiesForClient(),
-          });
+          refreshLobbyList(message);
 
           sendS('lobby', message, {
             subtype: 'joinedLobby',
@@ -273,11 +267,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       }
     } else if (message.details.subtype === 'leaveLobby') {
       utils.leaveAllLobbies(message.playerId);
-
-      sendS('lobby', message, {
-        subtype: 'giveLobbyList',
-        lobbies: convertLobbiesForClient(),
-      });
+      refreshLobbyList(message);
     } else if (message.details.subtype === 'markReady') {
       const lobbyObj = utils.lobbies.get(message.details.gameId);
       const foundPlayer = lobbyObj?.players.find((player) => player.playerId === message.playerId);
@@ -312,6 +302,37 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           }
         }
       }
+    } else if (message.details.subtype === 'quickplayLobby') {
+      const toSend = { ...message };
+      // See if there's an existing non-started non-password lobby we can just join
+      for (const loopLobby of utils.lobbies.values()) {
+        if (
+          !loopLobby.started && !loopLobby.password &&
+          loopLobby.players.length <= 1
+        ) {
+          // Also double check that somehow (ie: by skipping UI validation) we're already in the lobby
+          if (loopLobby.players.length === 1 && loopLobby.players[0].playerId === message.details.playerId) {
+            return;
+          }
+
+          toSend.details.subtype = 'joinLobby';
+          toSend.details.gameId = loopLobby.gameId;
+
+          return receiveServerWebsocketMessage(toSend);
+        }
+      }
+
+      // Otherwise create a default lobby and join it
+      toSend.details.subtype = 'createJoinLobby';
+      toSend.details.game = {
+        title: (players.get(message.playerId) ?? getDefaultQuickplayPrefix()) + ' Lobby',
+      };
+
+      return receiveServerWebsocketMessage(toSend);
+    } else if (message.details.subtype === 'createJoinLobby') {
+      if (message.details.game?.title) {
+        createGame({ title: message.details.game.title }, { joinAfter: message });
+      }
     } else if (message.details.subtype === 'gamePageLoaded') {
       const gameObj = utils.lobbies.get(utils.getGameIdByPlayerId(message.playerId));
 
@@ -337,8 +358,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     } else {
       console.error('Received lobby message but unknown subtype=' + message.details.subtype);
     }
+    // Non-lobby, in-game messages
   } else {
-    // Check if the player matches someone in the game
     if (
       message.type !== 'dumpDebug' &&
       (!message.playerId || !utils.hasPlayerDataById(message.playerId))
@@ -360,7 +381,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
   }
 };
 
-const createGame = (title: string, password?: string) => {
+const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /* Is a WS message */ }) => {
   const newGameId = uuidv4();
   const newGamestate = createGameState(newGameId);
   newGamestate.gameId = newGameId;
@@ -369,8 +390,8 @@ const createGame = (title: string, password?: string) => {
 
   utils.lobbies.set(newGameId, {
     gameId: newGameId,
-    title: title,
-    password: password,
+    title: gameParams.title ?? 'Unnamed Lobby',
+    password: gameParams.password,
     observers: {
       allow: false,
       seeAll: false,
@@ -380,7 +401,26 @@ const createGame = (title: string, password?: string) => {
     gs: newGamestate,
     undoStack: [], // Stack (LIFO) of gs we can undo back to
   });
+
+  if (status?.joinAfter?.playerId) {
+    const toSend = { ...status.joinAfter };
+    toSend.details.subtype = 'joinLobby';
+    toSend.details.gameId = newGameId;
+    return receiveServerWebsocketMessage(toSend);
+  }
 };
+
+function refreshLobbyList(message, params?: { justToPlayer?: boolean }) {
+  sendS('lobby', message, {
+    subtype: 'giveLobbyList',
+    lobbies: convertLobbiesForClient(),
+  }, params?.justToPlayer ? message.playerId : null);
+}
+
+function getDefaultQuickplayPrefix() {
+  const prefix = String(Date.now());
+  return prefix.substring(prefix.length - 4);
+}
 
 // Convert our map of lobbies to an array of just public information for the client to display
 function convertLobbiesForClient() {
@@ -417,8 +457,8 @@ function setupComponents() {
 setupComponents();
 
 // TODO TEMPORARY Some default lobbies to populate the list
-createGame('Test Game 1');
-createGame('Private Game', 'test');
+createGame({ title: 'Test Game 1' });
+createGame({ title: 'Private Game', password: 'test' });
 
 /* TODO HTTPS support example for a self hosted setup with our own certs
   port: 443,

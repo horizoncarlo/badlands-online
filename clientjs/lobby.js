@@ -1,6 +1,6 @@
 globalThis.lobby = { // Local state
   lobbies: [],
-  joinedId: '', // Game ID we've joined
+  joinedId: null, // Game ID we've joined
   readying: false, // Countdown to the game start or not
   isFirst: false,
   countdownSeconds: 5,
@@ -43,12 +43,6 @@ function initLobby(status) {
   }
 }
 
-function getJoinedLobby() {
-  if (lobby.joinedId) {
-    return lobby.lobbies.find((loopLobby) => lobby.joinedId === loopLobby.gameId);
-  }
-}
-
 function getOpponentName() {
   const lobbyObj = getJoinedLobby();
   return lobbyObj.players.find((player) => player !== lobby.playerName) ?? 'None Yet';
@@ -58,6 +52,12 @@ function getLobbyList() {
   sendC('lobby', {
     subtype: 'getLobbyList',
   });
+}
+
+function getJoinedLobby() {
+  if (lobby.joinedId) {
+    return lobby.lobbies.find((loopLobby) => lobby.joinedId === loopLobby.gameId);
+  }
 }
 
 function isInLobby(lobbyObj) {
@@ -71,7 +71,7 @@ function clickLobby(lobbyObj) {
       subtype: 'leaveLobby',
     });
 
-    lobby.joinedId = '';
+    lobby.joinedId = null;
   } else {
     if (lobbyObj.hasPassword && (!lobby.enteredPassword || lobby.enteredPassword.trim().length === 0)) {
       lobbyObj.showPasswordEntry = true;
@@ -79,7 +79,6 @@ function clickLobby(lobbyObj) {
       const toSend = {
         subtype: 'joinLobby',
         gameId: lobbyObj.gameId,
-        playerId: playerId,
       };
       if (lobbyObj.hasPassword) {
         toSend.password = lobby.enteredPassword;
@@ -87,6 +86,23 @@ function clickLobby(lobbyObj) {
       sendC('lobby', toSend);
     }
   }
+}
+
+function clickQuickplay() {
+  if (!lobby.joinedId) {
+    sendC('lobby', {
+      subtype: 'quickplayLobby',
+    });
+  }
+}
+
+function clickCustomGame() {
+  // TTODO Show a form with lobby creation options, upon clicking "Go" there make and join lobby
+  // Send a "createJoinLobby" message
+}
+
+function clickTestGame() {
+  // TTODO Create a new lobby against Auto Opponent and join and start
 }
 
 function savePlayerName() {
