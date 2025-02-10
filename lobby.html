@@ -27,12 +27,16 @@
             />
           </template>
           <template x-if="!readying">
+            <!-- TODO Add observing games to the lobby functionality...and the actual game -->
             <button
               @click="clickLobby(currentLobby)"
               :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
             >
               <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
             </button>
+          </template>
+          <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
+            <button @click="currentLobby.showPasswordEntry = false" class="danger">Cancel</button>
           </template>
         </li>
       </template>
@@ -59,7 +63,47 @@
       </div>
     </template>
 
-    <template x-if="!joinedId && !readying">
+    <template x-if="!joinedId && !readying && creating">
+      <div>
+        <form @submit.prevent="submitCustomGame()">
+          <label>
+            Title
+            <input x-model="createForm.title" x-init="$el.focus()" required="true" />
+          </label>
+
+          <label>
+            Password
+            <small>Leave blank for none</small>
+            <input x-model="createForm.password" />
+          </label>
+
+          <label>
+            Time Limit (mins)
+            <small>Leave blank for none</small>
+            <input x-model="createForm.timeLimit" type="number" />
+          </label>
+
+          <label title="Allow other players to watch your game">
+            Allow Observers
+            <input x-model="createForm.observers.allow" type="checkbox" />
+          </label>
+
+          <template x-if="createForm.observers.allow">
+            <label>
+              See All
+              <input x-model="createForm.observers.seeAll" type="checkbox" />
+              <small>(hand of cards, etc.)</small>
+            </label>
+          </template>
+
+          <button type="submit">Submit</button>
+          <button type="reset">Reset</button>
+          <button type="button" class="attention" @click="cancelCustomGame()">Cancel</button>
+        </form>
+      </div>
+    </template>
+
+    <template x-if="!joinedId && !readying && !creating">
       <div>
         <button
           @click="clickQuickplay()"
@@ -88,6 +132,7 @@
     <!--
       TTODO Lobby system
       - What to do with an idle opponent? Timeout to kick or leave game?
+        - Also send a message when the browser is closed, if possible, or hook into the unsubscribe, to start a "opponent left" timeout
       - Handle page refresh while an action (such as target mode) is in progress
       - Win/loss screen and proper end of game
       -->

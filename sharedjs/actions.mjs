@@ -12,21 +12,26 @@ const rawAction = {
 
       sendS('setPlayer', message, message.details, message.playerId);
 
-      // Draw our initial set of camps to choose from
       action.sync(message.playerId, { includeChat: true });
-      action.promptCamps(message);
 
-      if (message.playerId === AI_PLAYER_ID) {
-        // Autochoose our camps as AI
-        const campOptions = getGS(message).campDeck.splice(0, 3);
-        utils.getPlayerDataById(message.playerId).camps = campOptions;
-        action.doneCamps({
-          type: 'doneCamps',
-          playerId: message.playerId,
-          details: {
-            camps: campOptions,
-          },
-        });
+      // Only do camp setup and AI work if the game isn't already started
+      // We'd re-hit this joinGame function on a started game when refreshing/rejoining
+      if (!getGS(message).gameStarted) {
+        // Draw our initial set of camps to choose from
+        action.promptCamps(message);
+
+        if (message.playerId === AI_PLAYER_ID) {
+          // Autochoose our camps as AI
+          const campOptions = getGS(message).campDeck.splice(0, 3);
+          utils.getPlayerDataById(message.playerId).camps = campOptions;
+          action.doneCamps({
+            type: 'doneCamps',
+            playerId: message.playerId,
+            details: {
+              camps: campOptions,
+            },
+          });
+        }
       }
     }
   },
@@ -794,6 +799,8 @@ const rawAction = {
       // Check if BOTH our camp choices are done then the game can begin
       // We start with player1, and make sure to only give them 1 Water for their first turn
       if (utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.doneCamps) {
+        getGS(message).gameStarted = true;
+
         action.startTurn({
           playerId: getGS(message)?.player1.playerId,
         }, { fromServerRequest: true, isFirstTurn: true });

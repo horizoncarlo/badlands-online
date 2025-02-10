@@ -2,10 +2,20 @@ globalThis.lobby = { // Local state
   lobbies: [],
   joinedId: null, // Game ID we've joined
   readying: false, // Countdown to the game start or not
+  creating: false, // Show the Create Game UI // QUIDEL should be false
   isFirst: false,
   countdownSeconds: 5,
   playerName: '',
   enteredPassword: '',
+  createForm: {
+    title: null,
+    password: null,
+    timeLimit: null,
+    observers: {
+      allow: false,
+      seeAll: false,
+    },
+  },
 };
 
 // TODO Centralize this function with `init` in game.js
@@ -96,17 +106,35 @@ function clickQuickplay() {
   }
 }
 
-function clickCustomGame() {
-  // TTODO Show a form with lobby creation options, upon clicking "Go" there make and join lobby
-  // Send a "createJoinLobby" message
-}
-
 function clickTestGame() {
   if (!lobby.joinedId) {
     sendC('lobby', {
       subtype: 'testGame',
     });
   }
+}
+
+function clickCustomGame() {
+  lobby.creating = true;
+}
+
+function submitCustomGame() {
+  if (
+    lobby.createForm.title?.trim().length &&
+    (!lobby.createForm.timeLimit?.trim().length ||
+      !isNaN(parseInt(lobby.createForm.timeLimit)))
+  ) {
+    lobby.creating = false;
+    sendC('lobby', {
+      subtype: 'createJoinLobby',
+      game: lobby.createForm,
+    });
+  }
+}
+
+function cancelCustomGame() {
+  lobby.creating = false;
+  lobby.createForm.password = null;
 }
 
 function savePlayerName() {

@@ -8,6 +8,7 @@ globalThis.WS_NORMAL_CLOSE_CODE = 1000;
 globalThis.DECK_IMAGE_EXTENSION = '.png'; // In case we want smaller filesize JPGs in the future, TODO this is only consistently used on the deck generation, not throughout the app
 globalThis.CORRECT_CAMP_NUM = 3;
 globalThis.FIRST_TURN_WATER_COUNT = 1;
+globalThis.EMPTY_LOBBY_CLEANUP_S = 30;
 globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
@@ -22,6 +23,7 @@ globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger init
 const utils = {
   // TODO Probably split up the utils file so it doesn't grow to a crazy size
   lobbies: new Map(), // Global lobby list (used on the server)
+  lobbiesTimeout: new Map(), // Global list of cleanup timers for empty lobbies. key=gameId, value=timer instance
 
   getGameIdByPlayerId(playerId) {
     for (const loopLobby of utils.lobbies.values()) {
@@ -43,6 +45,7 @@ const utils = {
     return utils.lobbies?.get(utils.getGameIdByPlayerId(messageOrPlayerId));
   },
 
+  // TODO Split out lobby functionality into a separate file or at least separate export here
   leaveAllLobbies(playerId) {
     // Leave any existing lobby
     utils.lobbies.forEach((lobby) => {
@@ -54,8 +57,53 @@ const utils = {
         if (lobby.players.length === 1 && lobby.players[0].playerId === AI_PLAYER_ID) {
           utils.lobbies.delete(lobby.gameId);
         }
+
+        // If the lobby is empty delete after a bit
+        if (lobby.players.length === 0) {
+          // Cleanup any existing timer and start fresh
+          if (utils.lobbiesTimeout.get(lobby.gameId)) {
+            clearTimeout(utils.lobbiesTimeout.get(lobby.gameId));
+            utils.lobbiesTimeout.delete(lobby.gameId);
+          }
+
+          const cleanupTimeout = setTimeout(() => {
+            if (utils.lobbies.get(lobby.gameId)?.players?.length === 0) {
+              utils.lobbies.delete(lobby.gameId);
+              utils.refreshLobbyList();
+            }
+          }, EMPTY_LOBBY_CLEANUP_S * 1000);
+
+          utils.lobbiesTimeout.set(lobby.gameId, cleanupTimeout);
+        }
       }
     });
+  },
+
+  refreshLobbyList(message, params) { // params.justToPlayer: boolean
+    sendS('lobby', message, {
+      subtype: 'giveLobbyList',
+      lobbies: utils.convertLobbiesForClient(),
+    }, params?.justToPlayer ? message?.playerId : null);
+  },
+
+  // Convert our map of lobbies to an array of just public information for the client to display
+  convertLobbiesForClient() {
+    const toReturn = [];
+    if (utils.lobbies?.size) {
+      utils.lobbies.forEach((lobby, key) => {
+        toReturn.push({
+          gameId: key,
+          title: lobby.title,
+          hasPassword: typeof lobby.password === 'string',
+          observers: {
+            ...lobby.observers,
+          },
+          timeLimit: lobby.timeLimit ?? 0,
+          players: lobby.players.map((player) => player.playerName), // Strip IDs and just send names
+        });
+      });
+    }
+    return toReturn;
   },
 
   clearUniversal(message) {

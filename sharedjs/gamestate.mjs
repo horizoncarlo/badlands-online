@@ -7,6 +7,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 export function createGameState(gameId) {
   return {
     gameId: gameId,
+    gameStarted: false,
     myPlayerNum: null, // player1 or player2 as a string, only used on client
     opponentPlayerNum: null,
     player1: {

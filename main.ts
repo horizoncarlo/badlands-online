@@ -209,7 +209,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       players.set(message.playerId, message.details.playerName);
     } else if (message.details.subtype === 'getLobbyList') {
       // TODO Probably wrap the lobby messages in a helper function, including sendC
-      refreshLobbyList(message, { justToPlayer: true });
+      utils.refreshLobbyList(message, { justToPlayer: true });
 
       // Determine if we are already in a lobby and rejoin it (or the game!)
       utils.lobbies.forEach((lobby: GameLobby) => {
@@ -231,11 +231,9 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
-        // TTODO Clean up empty games (that no one is trying to rejoin) automatically after a period
         const lobbyToJoin = utils.lobbies.get(message.details.gameId);
-        // TTODO Determine if anyone is waiting to rejoin a game before we go in
         if (lobbyToJoin.players.length >= 2 || lobbyToJoin.players.find((player) => player.playerId === message.playerId)) {
-          // Don't need to do anything if the lobby is full
+          // Currently don't need to do anything if the lobby is full
         } else {
           // Check if a password is required, provided, and valid
           if (
@@ -257,7 +255,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           });
 
           // Refresh the lobby list of all viewing parties
-          refreshLobbyList(message);
+          utils.refreshLobbyList(message);
 
           const toSend = {
             subtype: 'joinedLobby',
@@ -274,7 +272,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       }
     } else if (message.details.subtype === 'leaveLobby') {
       utils.leaveAllLobbies(message.playerId);
-      refreshLobbyList(message);
+      utils.refreshLobbyList(message);
     } else if (message.details.subtype === 'markReady') {
       const lobbyObj = utils.lobbies.get(message.details.gameId);
       const foundPlayer = lobbyObj?.players.find((player) => player.playerId === message.playerId);
@@ -396,6 +394,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       message.type !== 'dumpDebug' &&
       (!message.playerId || !utils.hasPlayerDataById(message.playerId))
     ) {
+      // TODO Could also key off the getGS(message).gameStarted boolean?
       action.sendError('Invalid player data, join a game first', message.playerId);
       return;
     }
@@ -429,15 +428,22 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
     });
   }
 
+  let parsedTimeLimit = 0;
+  try {
+    parsedTimeLimit = typeof gameParams.timeLimit === 'string'
+      ? parseInt(gameParams.timeLimit)
+      : (gameParams.timeLimit ?? 0);
+  } catch (ignored) {}
+
   utils.lobbies.set(newGameId, {
     gameId: newGameId,
     title: gameParams.title ?? 'Unnamed Lobby',
     password: gameParams.password,
     observers: {
-      allow: false,
-      seeAll: false,
+      allow: gameParams.observers?.allow ?? false,
+      seeAll: gameParams.observers?.seeAll ?? false,
     },
-    timeLimit: 0,
+    timeLimit: parsedTimeLimit,
     players: playerList,
     gs: newGamestate,
     undoStack: [], // Stack (LIFO) of gs we can undo back to
@@ -447,40 +453,14 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
     const toSend = { ...status.joinAfter };
     toSend.details.subtype = 'joinLobby';
     toSend.details.gameId = newGameId;
+    toSend.details.password = gameParams.password;
     return receiveServerWebsocketMessage(toSend);
   }
 };
 
-function refreshLobbyList(message, params?: { justToPlayer?: boolean }) {
-  sendS('lobby', message, {
-    subtype: 'giveLobbyList',
-    lobbies: convertLobbiesForClient(),
-  }, params?.justToPlayer ? message.playerId : null);
-}
-
 function getDefaultQuickplayPrefix() {
   const prefix = String(Date.now());
   return prefix.substring(prefix.length - 4);
-}
-
-// Convert our map of lobbies to an array of just public information for the client to display
-function convertLobbiesForClient() {
-  const toReturn = [];
-  if (utils.lobbies?.size) {
-    utils.lobbies.forEach((lobby: GameLobby, key: string) => {
-      toReturn.push({
-        gameId: key,
-        title: lobby.title,
-        hasPassword: typeof lobby.password === 'string',
-        observers: {
-          ...lobby.observers,
-        },
-        timeLimit: lobby.timeLimit ?? 0,
-        players: lobby.players.map((player) => player.playerName), // Strip IDs and just send names
-      });
-    });
-  }
-  return toReturn;
 }
 
 // Read our components/ in preparation for replacing in the HTML
