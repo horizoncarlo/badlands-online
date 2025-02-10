@@ -231,7 +231,6 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
-        // TTODO Figure out what to do with AI - we still want the option so people can at least test out the game, and eventually maybe have AI?
         // TTODO Clean up empty games (that no one is trying to rejoin) automatically after a period
         const lobbyToJoin = utils.lobbies.get(message.details.gameId);
         // TTODO Determine if anyone is waiting to rejoin a game before we go in

@@ -1,7 +1,7 @@
 import { abilities } from './abilities.mjs';
 import { events } from './events.mjs';
 import { getGS } from './gamestate.mjs';
-import { codeQueue, utils } from './utils.mjs';
+import { ai, codeQueue, utils } from './utils.mjs';
 
 globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefined';
 
@@ -78,63 +78,8 @@ const rawAction = {
       action.drawCard(message, { fromServerRequest: true });
       action.sync(null, { gsMessage: message });
 
-      // TODO Better AI at some magical point in the future?
-      if (message.playerId === AI_PLAYER_ID) {
-        const aiData = utils.getPlayerDataById(message.playerId);
-
-        aiData.waterCount = 20; // Make sure we can get plenty of cards out - makes for easier targetting even if we break the rules
-
-        if (params?.isFirstTurn) {
-          aiData.cards.forEach((card, index) => {
-            action.playCard({
-              type: 'playCard',
-              playerId: message.playerId,
-              details: {
-                card: card,
-                slot: {
-                  index: index,
-                },
-              },
-            });
-          });
-        } else if (Math.random() >= 0.4) { // In MOST cases play a card
-          if (aiData.cards.length) {
-            const tryToPlay = aiData.cards[0];
-
-            const toSend = {
-              type: 'playCard',
-              playerId: message.playerId,
-              details: {
-                card: tryToPlay,
-              },
-            };
-
-            if (utils.cardIsEvent(tryToPlay)) {
-              action.playCard(toSend);
-            } else {
-              let nextFreeSlot = aiData.slots.findIndex((slot) => !slot.content);
-
-              // If we DON'T have a free slot just replace a random card
-              if (nextFreeSlot === -1) {
-                nextFreeSlot = utils.randomRange(0, SLOT_NUM_COLS * SLOT_NUM_ROWS);
-              }
-
-              toSend.details.slot = {
-                index: nextFreeSlot,
-              };
-              action.playCard(toSend);
-            }
-          }
-        }
-
-        if (params?.isFirstTurn) {
-          action.endTurn(message);
-        } else {
-          setTimeout(() => { // Trust me the computer is thinking - but primarily because just auto-having your next turn is too jaring
-            action.endTurn(message);
-          }, utils.randomRange(1000, 2000));
-        }
-      }
+      // Determine if this is an AI turn and handle it
+      ai.checkAndHandleAITurn(message, params);
     }
   },
 
@@ -927,7 +872,13 @@ const rawAction = {
         hideCancel: params.hideCancel ?? false,
       };
 
-      sendS('targetMode', message, toSend, message.playerId);
+      // Little bit jank, but for AI just use the first target
+      if (message.playerId === AI_PLAYER_ID && toSend.validTargets.length) {
+        message.details.targets = [toSend.validTargets[0]];
+        action.doneTargets(message);
+      } else {
+        sendS('targetMode', message, toSend, message.playerId);
+      }
     }
   },
 

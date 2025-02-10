@@ -472,6 +472,7 @@ const utils = {
   checkSelectedTargets(message) {
     const validTargets = message?.validTargets;
     const targets = message?.details?.targets ?? [];
+
     if (validTargets?.length && targets?.length) {
       if (!targets.every((id) => validTargets.includes(id))) {
         throw new Error('Target(s) invalid');
@@ -585,6 +586,68 @@ const utils = {
   },
 };
 
+const ai = {
+  checkAndHandleAITurn(message, params) { // params.fromServerRequest: boolean, params.isFirstTurn: boolean true if this is the first turn
+    // TODO Better AI at some magical point in the future?
+    if (message.playerId === AI_PLAYER_ID) {
+      const aiData = utils.getPlayerDataById(message.playerId);
+
+      aiData.waterCount = 20; // Make sure we can get plenty of cards out - makes for easier targetting even if we break the rules
+
+      if (params?.isFirstTurn) {
+        aiData.cards.forEach((card, index) => {
+          action.playCard({
+            type: 'playCard',
+            playerId: message.playerId,
+            details: {
+              card: card,
+              slot: {
+                index: index,
+              },
+            },
+          });
+        });
+      } else if (Math.random() >= 0.2) { // In MOST cases play a card
+        if (aiData.cards.length) {
+          const tryToPlay = aiData.cards[0];
+
+          const toSend = {
+            type: 'playCard',
+            playerId: message.playerId,
+            details: {
+              card: tryToPlay,
+            },
+          };
+
+          if (utils.cardIsEvent(tryToPlay)) {
+            action.playCard(toSend);
+          } else {
+            let nextFreeSlot = aiData.slots.findIndex((slot) => !slot.content);
+
+            // If we DON'T have a free slot just replace a random card
+            if (nextFreeSlot === -1) {
+              nextFreeSlot = utils.randomRange(0, SLOT_NUM_COLS * SLOT_NUM_ROWS);
+            }
+
+            toSend.details.slot = {
+              index: nextFreeSlot,
+            };
+            action.playCard(toSend);
+          }
+        }
+      }
+
+      if (params?.isFirstTurn) {
+        action.endTurn(message);
+      } else {
+        setTimeout(() => { // Trust me the computer is thinking - but primarily because just auto-having your next turn is too jaring
+          action.endTurn(message);
+        }, utils.randomRange(750, 1500));
+      }
+    }
+  },
+};
+
 const codeQueue = {
   internalQueue: [], // Internal queue (FIFO) of server side code to execute, for complicated cards like Mutant
   skipPreprocess: false,
@@ -637,7 +700,8 @@ const codeQueue = {
 
 if (onClient) {
   window.utils = utils;
+  window.ai = ai;
   window.codeQueue = codeQueue;
   (document || window).dispatchEvent(new Event('sharedReady'));
 }
-export { codeQueue, utils };
+export { ai, codeQueue, utils };

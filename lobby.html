@@ -88,20 +88,8 @@
     <!--
       TTODO Lobby system
       - What to do with an idle opponent? Timeout to kick or leave game?
-      - Rejoining games on crash? Maybe keep current playerId or hidden key in local storage, then can check if joining a game that had a leaver/crash/timeout?
-        - Honestly don't need to do this extra key and can just use playerId from local storage (already done)
       - Handle page refresh while an action (such as target mode) is in progress
       - Win/loss screen and proper end of game
-  
-      Implementation details:
-      lobby.html page, server maintains a list (in memory for now, Deno KV/Redis/CouchDB/LowDB eventually) of Games (gameId, title, password, observers, timeLimit) that are rendered into a Lobby List on the page
-      1. To start auto-add a plain game and focus on getting joining/gamestate/etc. working
-      2. Make "create game" UI
-      Can click join to hop into a middle step of a waiting lobby, when both ready there launch to game.html
-      For now ignore auto_player and need 2 actual browsers
-  
-      So existing Websocket approach should "just work" once we tweak the gameId generation and setting
-      What WILL be a problem is the gamestate which needs to be brought up another level - also everything in sub-files needs to be moved up, such as actions.undoStack (likely put INSIDE actions like we do with gs.universal)
       -->
 
     <script src="./clientjs/lobby.js"></script>
