@@ -38,7 +38,6 @@
               <li @click="userUndo()"><u>U</u>ndo</li>
             </template>
           </template>
-          <!-- TTODO Have an option to Leave Game - confirm first, then ditch lobby and notify opponent (who can TECHNICALLY stay in the game and hope someone else joins lol) -->
           <template x-if="inGame">
             <template x-if="myPlayerNum === turn.currentPlayer">
               <li @click="userEndTurn()" class="attention"><u>E</u>nd Turn</li>
@@ -62,6 +61,9 @@
                 <span>Waiting for Opponent...</span>
               </template>
             </li>
+          </template>
+          <template x-if="inGame && gameStarted">
+            <li @click="leaveGame()" class="severe">Leave Game</li>
           </template>
         </menu>
       </header>

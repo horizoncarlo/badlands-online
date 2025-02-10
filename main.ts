@@ -247,7 +247,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           }
 
           // Leave all existing lobbies
-          utils.leaveAllLobbies(message.playerId);
+          utils.leaveAllLobbies(message, { noRefreshAfter: true });
 
           lobbyToJoin.players.push({
             playerId: message.playerId,
@@ -271,13 +271,32 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         }
       }
     } else if (message.details.subtype === 'leaveLobby') {
-      utils.leaveAllLobbies(message.playerId);
-      utils.refreshLobbyList(message);
+      utils.leaveAllLobbies(message);
     } else if (message.details.subtype === 'markReady') {
       const lobbyObj = utils.lobbies.get(message.details.gameId);
       const foundPlayer = lobbyObj?.players.find((player) => player.playerId === message.playerId);
       if (foundPlayer && lobbyObj) {
         foundPlayer.ready = message.details.ready;
+
+        // Rarer code path of the game already being started
+        // This specifically would be a person leaving the game, then someone else joining from the lobby
+        // In which case we can do a truncated approach to the process
+        if (lobbyObj.started) {
+          // Set to an open slot
+          if (!lobbyObj.gs.player1.playerId) {
+            lobbyObj.gs.player1.playerId = foundPlayer.playerId;
+          } else if (!lobbyObj.gs.player2.playerId) {
+            lobbyObj.gs.player2.playerId = foundPlayer.playerId;
+          } else {
+            return false;
+          }
+
+          sendS('nav', null, {
+            page: 'gotoGame',
+          }, foundPlayer.playerId);
+
+          return true;
+        }
 
         // If both players are ready start the game
         if (foundPlayer.ready && lobbyObj.players.length >= 2) {
@@ -299,11 +318,11 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
               lobbyObj.gs.player1.playerId = opponent.playerId;
             }
 
-            sendS('nav', message, {
+            sendS('nav', null, {
               page: 'gotoGame',
               isFirst: playerRoll === 0,
             }, message.playerId);
-            sendS('nav', message, {
+            sendS('nav', null, {
               page: 'gotoGame',
               isFirst: playerRoll === 1,
             }, opponent.playerId);
@@ -395,7 +414,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       (!message.playerId || !utils.hasPlayerDataById(message.playerId))
     ) {
       // TODO Could also key off the getGS(message).gameStarted boolean?
-      action.sendError('Invalid player data, join a game first', message.playerId);
+      action.sendError('Invalid player data, join a game first', { gsMessage: message }, message.playerId);
       return;
     }
 
@@ -407,7 +426,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     } else if (typeof abilities[message.type] === 'function') {
       abilities[message.type](message);
     } else {
-      action.sendError(`Invalid action ${message.type}`, message.playerId);
+      action.sendError(`Invalid action ${message.type}`, { gsMessage: message }, message.playerId);
     }
   }
 };

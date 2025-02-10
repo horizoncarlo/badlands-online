@@ -112,6 +112,12 @@ function preloadImages() {
   new Image().src = getCampImage({ isDestroyed: true });
 }
 
+function leaveGame() {
+  if (window.confirm('Are you sure you want to leave the game?')) {
+    action.leaveGame();
+  }
+}
+
 function repositionStart(event) {
   ui.repositionOffsetX = event.offsetX;
   ui.repositionOffsetY = event.offsetY;

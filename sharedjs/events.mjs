@@ -94,7 +94,7 @@ const events = {
           });
         } else {
           action.doneTargets(); // This is to fire off the matching event to contine our codeQueue
-          action.sendError('Famine does nothing to player'); // TODO Integrate player names
+          action.sendError('Famine does nothing to player', { gsMessage: message }); // TODO Integrate player names
         }
       }
     }
@@ -155,7 +155,7 @@ const events = {
           help: 'Select a card to rearrange with High Ground (click Cancel when done)',
         });
       } else {
-        action.sendError('High Ground has no valid targets');
+        action.sendError('High Ground has no valid targets', { gsMessage: message });
       }
     }
   },

@@ -2,7 +2,7 @@ globalThis.lobby = { // Local state
   lobbies: [],
   joinedId: null, // Game ID we've joined
   readying: false, // Countdown to the game start or not
-  creating: false, // Show the Create Game UI // QUIDEL should be false
+  creating: false, // Show the Create Game UI
   isFirst: false,
   countdownSeconds: 5,
   playerName: '',

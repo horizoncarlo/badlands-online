@@ -36,6 +36,32 @@ const rawAction = {
     }
   },
 
+  leaveGame(message) {
+    if (onClient) {
+      sendC('leaveGame');
+    } else {
+      // If for whatever reason we're not in a lobby there's nothing to leave
+      if (!utils.lobbies.get(getGS(message).gameId)) {
+        return false;
+      }
+
+      // Clear player from the gamestate, in case the other person wants to stick around
+      const cachedGs = getGS(message);
+      if (cachedGs) {
+        cachedGs[utils.getPlayerNumById(message.playerId)].playerId = null;
+      }
+
+      // Notify, navigate, and leave lobby. Ordering is fairly important here as we need to be able to get our Websocket connection
+      action.sendError('Opponent left the game', { gsMessage: message });
+
+      sendS('nav', message, {
+        page: 'gotoLobby',
+      }, message.playerId);
+
+      utils.leaveAllLobbies(message);
+    }
+  },
+
   startTurn(message, params) { // params.fromServerRequest: boolean, params.isFirstTurn: boolean true if this is the first turn (change Water count)
     // TODO When DEBUG_AUTO_SELECT_CAMPS_START_TURN is removed we can also remove client handling of this call as it's only server side
     if (onClient) {
@@ -106,7 +132,7 @@ const rawAction = {
         }, { fromServerRequest: true });
         action.sync(null, { gsMessage: message }); // For applying the reset of slot ready state
       } else {
-        action.sendError('No opponent yet', message.playerId);
+        action.sendError('No opponent yet', { gsMessage: message }, message.playerId);
         return;
       }
     }
@@ -135,7 +161,7 @@ const rawAction = {
 
       const waterCost = message.details.card.cost || 0;
       if (waterCost > utils.getPlayerDataById(message.playerId).waterCount) {
-        action.sendError('Not enough Water to play that card', message.playerId);
+        action.sendError('Not enough Water to play that card', { gsMessage: message }, message.playerId);
         return;
       }
 
@@ -161,7 +187,7 @@ const rawAction = {
         }
 
         if (targetSpace >= eventQueue.length) {
-          action.sendError('No empty space for this Event', message.playerId);
+          action.sendError('No empty space for this Event', { gsMessage: message }, message.playerId);
           return;
         }
 
@@ -176,7 +202,7 @@ const rawAction = {
         const playerSlots = getGS(message)[playerNum].slots;
         let targetSlot = playerSlots[message.details.slot.index];
         if (!utils.determineValidDropSlot(targetSlot, playerSlots)) {
-          action.sendError('Invalid card position', message.playerId);
+          action.sendError('Invalid card position', { gsMessage: message }, message.playerId);
           return;
         }
 
@@ -237,7 +263,7 @@ const rawAction = {
       if (onClient) {
         console.error('Card is not ready to be used');
       } else {
-        action.sendError('Card is not ready to be used', message.playerId);
+        action.sendError('Card is not ready to be used', { gsMessage: message }, message.playerId);
       }
       return;
     }
@@ -270,7 +296,7 @@ const rawAction = {
       // Check for water validity before continuing
       const abilityObj = message.details.card.abilities[chosenAbilityIndex];
       if (abilityObj.cost > utils.getPlayerDataById(message.playerId).waterCount) {
-        action.sendError('Not enough Water to use that ability', message.playerId);
+        action.sendError('Not enough Water to use that ability', { gsMessage: message }, message.playerId);
         return;
       }
 
@@ -289,7 +315,7 @@ const rawAction = {
         }
       } catch (err) {
         console.error('Error using ability', err);
-        action.sendError(err?.message, message.playerId);
+        action.sendError(err?.message, { gsMessage: message }, message.playerId);
       }
     }
   },
@@ -303,7 +329,7 @@ const rawAction = {
         );
       } catch (err) {
         console.error('Error using event', err);
-        action.sendError(err?.message, message.playerId);
+        action.sendError(err?.message, { gsMessage: message }, message.playerId);
       }
     }
   },
@@ -317,7 +343,7 @@ const rawAction = {
         const foundIndex = playerData.cards.findIndex((card) => card.isWaterSilo);
 
         if (!playerData.hasWaterSilo || foundIndex === -1) {
-          action.sendError('No Water Silo taken to junk', message.playerId);
+          action.sendError('No Water Silo taken to junk', { gsMessage: message }, message.playerId);
           return false;
         }
 
@@ -397,7 +423,7 @@ const rawAction = {
 
       if (message.details?.fromWater) {
         if (2 > utils.getPlayerDataById(message.playerId).waterCount) {
-          action.sendError('Not enough Water to draw a card', message.playerId);
+          action.sendError('Not enough Water to draw a card', { gsMessage: message }, message.playerId);
           return false;
         }
 
@@ -420,7 +446,7 @@ const rawAction = {
 
         sendS('addCard', message, newMessage, message.playerId);
       } else {
-        action.sendError('No cards left to draw', message.playerId);
+        action.sendError('No cards left to draw', { gsMessage: message }, message.playerId);
         return false;
       }
     }
@@ -444,7 +470,7 @@ const rawAction = {
         return returnStatus;
       } catch (err) {
         console.error('Error junking card', err);
-        action.sendError(err?.message, message.playerId);
+        action.sendError(err?.message, { gsMessage: message }, message.playerId);
       }
     }
   },
@@ -455,10 +481,10 @@ const rawAction = {
     } else {
       const playerData = utils.getPlayerDataById(message.playerId);
       if (playerData.hasWaterSilo) {
-        action.sendError('Already have Water Silo', message.playerId);
+        action.sendError('Already have Water Silo', { gsMessage: message }, message.playerId);
         return;
       } else if (playerData.waterCount < 1) {
-        action.sendError('Not enough Water to take Water Silo', message.playerId);
+        action.sendError('Not enough Water to take Water Silo', { gsMessage: message }, message.playerId);
         return;
       }
 
@@ -478,7 +504,7 @@ const rawAction = {
       if (targets?.length) {
         let newPunk = utils.drawFromDeck(message);
         if (!newPunk) {
-          action.sendError('No cards left to draw', message.playerId);
+          action.sendError('No cards left to draw', { gsMessage: message }, message.playerId);
           return false;
         }
 
@@ -543,7 +569,7 @@ const rawAction = {
           playerEvents[existingRaidersIndex] = undefined;
           existingRaidersIndex--;
         } else {
-          action.sendError('Cannot advance Raiders, next event queue spot is full');
+          action.sendError('Cannot advance Raiders, next event queue spot is full', { gsMessage: message });
           return false;
         }
 
@@ -696,7 +722,7 @@ const rawAction = {
 
         action.sync(null, { gsMessage: message });
       } else {
-        action.sendError('Invalid target to destroy', message.playerId);
+        action.sendError('Invalid target to destroy', { gsMessage: message }, message.playerId);
       }
     }
   },
@@ -728,7 +754,7 @@ const rawAction = {
 
               action.sync(null, { gsMessage: message }); // TODO Not ideal - restoreCard sync needed for Mutant because it directly calls fireAbilityOrJunk, whereas other approaches (like junkCard) naturally sync afterwards
             } else {
-              action.sendError('No damage to Restore', message.playerId);
+              action.sendError('No damage to Restore', { gsMessage: message }, message.playerId);
               throw new Error(); // Ditch if we didn't restore (would be an invalid target)
             }
           });
@@ -770,12 +796,12 @@ const rawAction = {
       // Validate that we have the right number of camps and they were valid choices (in the case of malicious use)
       const playerData = utils.getPlayerDataById(message.playerId);
       if (message?.details?.camps?.length !== CORRECT_CAMP_NUM) {
-        action.sendError(`Select ${CORRECT_CAMP_NUM} camps`, message.playerId);
+        action.sendError(`Select ${CORRECT_CAMP_NUM} camps`, { gsMessage: message }, message.playerId);
         return;
       }
       const incomingCampIds = message.details.camps.map((camp) => camp.id);
       if (playerData.camps.filter((camp) => incomingCampIds.includes(camp.id)).length !== CORRECT_CAMP_NUM) {
-        action.sendError('Invalid camp selections', message.playerId);
+        action.sendError('Invalid camp selections', { gsMessage: message }, message.playerId);
         return;
       }
 
@@ -808,9 +834,9 @@ const rawAction = {
     }
   },
 
-  sendError(text, playerId) {
+  sendError(text, params, playerId) { // params.gsMessage
     function sendErrorChat(text, playerId) {
-      action.chat({ details: { text: text } }, { playerId: playerId, fromServerRequest: true });
+      action.chat({ playerId: playerId, details: { text: text } }, { playerId: playerId, fromServerRequest: true });
     }
 
     if (!onClient) {
@@ -818,8 +844,8 @@ const rawAction = {
         console.error(`Send Error (to ${playerId}):`, text);
         sendErrorChat(text, playerId);
       } else {
-        sendErrorChat(text, getGS(message).player1.playerId);
-        sendErrorChat(text, getGS(message).player2.playerId);
+        sendErrorChat(text, getGS(params?.gsMessage)?.player1.playerId);
+        sendErrorChat(text, getGS(params?.gsMessage)?.player2.playerId);
       }
     } else {
       console.error(text);
@@ -856,7 +882,7 @@ const rawAction = {
 
       if (text) {
         if (!params?.playerId) {
-          getGS(message).chat.push(text);
+          getGS(message)?.chat.push(text);
         }
 
         sendS('chat', message, { text: text }, params?.playerId ?? null);
@@ -896,14 +922,14 @@ const rawAction = {
       if (getGS(message).pendingTargetAction) {
         // Protect against malicious attempts to cancel an uncancellable target
         if (!getGS(message).pendingTargetCancellable) {
-          action.sendError('Cannot cancel target mode', message.playerId);
+          action.sendError('Cannot cancel target mode', { gsMessage: message }, message.playerId);
           return;
         }
 
         getGS(message).pendingTargetAction = null;
         sendS('cancelTarget', message, {}, message.playerId);
       } else {
-        action.sendError('Not in target mode', message.playerId);
+        action.sendError('Not in target mode', { gsMessage: message }, message.playerId);
       }
     }
   },
@@ -948,7 +974,7 @@ const rawAction = {
         }
       } catch (err) {
         console.error('Unknown target action', err);
-        action.sendError('Unknown target action', message.playerId);
+        action.sendError('Unknown target action', { gsMessage: message }, message.playerId);
       }
     }
   },
@@ -1026,6 +1052,7 @@ const rawAction = {
 
 // Certain actions can be done outside of our turn, which means skipping the preprocessor
 rawAction.joinGame.skipPreprocess = true;
+rawAction.leaveGame.skipPreprocess = true;
 rawAction.promptCamps.skipPreprocess = true;
 rawAction.doneCamps.skipPreprocess = true;
 rawAction.startTurn.skipPreprocess = true;
@@ -1044,6 +1071,7 @@ rawAction.takeWaterSilo.recordUndo = true;
 
 // Certain actions also clear the undo queue
 rawAction.joinGame.clearUndo = true;
+rawAction.leaveGame.clearUndo = true;
 rawAction.promptCamps.clearUndo = true;
 rawAction.doneCamps.clearUndo = true;
 rawAction.triggerEvent.recordUndo = true;
@@ -1112,7 +1140,7 @@ const actionHandler = {
         // PRE PROCESS hook for all actions
         if (!onClient && !utils.isPlayersTurn(args[0].playerId)) {
           console.error(`Ignored action [${originalMethod.name}] out of turn order by playerId=${args[0].playerId}`);
-          action.sendError('Not your turn', args[0].playerId);
+          action.sendError('Not your turn', { gsMessage: args[0] }, args[0].playerId);
           return;
         }
 

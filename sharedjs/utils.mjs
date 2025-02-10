@@ -46,10 +46,10 @@ const utils = {
   },
 
   // TODO Split out lobby functionality into a separate file or at least separate export here
-  leaveAllLobbies(playerId) {
+  leaveAllLobbies(message, params) { // params.noRefreshAfter: boolean
     // Leave any existing lobby
     utils.lobbies.forEach((lobby) => {
-      const foundIndex = lobby.players.findIndex((player) => player.playerId === playerId);
+      const foundIndex = lobby.players.findIndex((player) => player.playerId === message.playerId);
       if (foundIndex >= 0) {
         lobby.players.splice(foundIndex, 1);
 
@@ -74,6 +74,10 @@ const utils = {
           }, EMPTY_LOBBY_CLEANUP_S * 1000);
 
           utils.lobbiesTimeout.set(lobby.gameId, cleanupTimeout);
+        }
+
+        if (!params?.noRefreshAfter) {
+          utils.refreshLobbyList(message);
         }
       }
     });
@@ -156,7 +160,7 @@ const utils = {
           );
         } catch (err) {
           console.error('Error firing ability or junk', err);
-          action.sendError(err?.message, message.playerId);
+          action.sendError(err?.message, { gsMessage: message }, message.playerId);
           return false;
         }
       } else if (typeof abilities[effectName] === 'function') {
@@ -466,12 +470,14 @@ const utils = {
 
       if (cachedGS.deckReshuffleCount >= 2) {
         // TODO Actual handling of the draw/tie from a double reshuffle - very rare, but worth covering
-        action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)');
+        action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)', { gsMessage: message });
         return null;
       }
       // Can't imagine a legitimate situation where the draw deck has run out and there are no discards
       if (cachedGS.discard.length <= 0) {
-        action.sendError('Game is a tie! (Had to reshuffle the draw deck, but there are no discards)');
+        action.sendError('Game is a tie! (Had to reshuffle the draw deck, but there are no discards)', {
+          gsMessage: message,
+        });
         return null;
       }
 
@@ -484,7 +490,7 @@ const utils = {
 
       action.sync(null, { gsMessage: message });
 
-      action.sendError('Reshuffled the draw deck');
+      action.sendError('Reshuffled the draw deck', { gsMessage: message });
       toReturn = cachedGS.deck.shift();
     }
 

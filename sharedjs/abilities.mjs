@@ -298,7 +298,7 @@ const abilities = {
 
       // Safety check that should never happen - don't think we can run out of cards in a proper game, and if we reshuffle too many times the game is just a draw
       if (cardOptions.length <= 0) {
-        action.sendError('Not enough cards for Scientist effect', message.playerId);
+        action.sendError('Not enough cards for Scientist effect', { gsMessage: message }, message.playerId);
         return false;
       }
 
@@ -338,7 +338,11 @@ const abilities = {
 
         if (returnStatus === false) {
           // TODO Convert junkEffect to readable text for scientist error note
-          action.sendError(`Drastic misuse of scientific resources (${chosenCard.junkEffect})`, message.playerId);
+          action.sendError(
+            `Drastic misuse of scientific resources (${chosenCard.junkEffect})`,
+            { gsMessage: message },
+            message.playerId,
+          );
         }
 
         action.sync(null, { gsMessage: message });
