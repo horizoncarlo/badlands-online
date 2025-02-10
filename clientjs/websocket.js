@@ -47,10 +47,10 @@ const receiveClientWebsocketMessage = (message) => {
           lobby.readying = true;
           lobby.isFirst = message.details.isFirst;
           lobby.countdownSeconds = GAME_START_COUNTDOWN_S;
-          setInterval(() => {
+          setInterval(() => { // Countdown on an interval for the game to be ready
             lobby.countdownSeconds = Math.max(0, lobby.countdownSeconds - 1);
           }, 999);
-          setTimeout(() => {
+          setTimeout(() => { // Navigate to the game after our countdown is done
             utils.performNav('game.html');
           }, lobby.countdownSeconds * 1000);
         }
@@ -88,15 +88,15 @@ const receiveClientWebsocketMessage = (message) => {
       };
 
       if (message.details.showAnimation) {
-        setTimeout(() => {
+        setTimeout(() => { // Some variance so fast cards, such as initial hand, don't overlap
           ui.drawAnimationCount++;
-          setTimeout(() => {
+          setTimeout(() => { // Draw the card properly
             addUniqCard(message.details.card);
           }, 1100);
-          setTimeout(() => {
+          setTimeout(() => { // Keep track of our draw animation count
             ui.drawAnimationCount--;
           }, 1400);
-        }, message.details.multiAnimation ? utils.randomRange(0, 500) : 0); // Some variance so fast cards, such as initial hand, don't overlap
+        }, message.details.multiAnimation ? utils.randomRange(0, 500) : 0);
       } else {
         addUniqCard(message.details.card);
       }
@@ -204,9 +204,9 @@ const setupWebsocket = () => {
     console.log('Opened Websocket, subscribing ' + playerId);
     reconnectAttempts = 0;
 
-    setTimeout(() => {
+    setTimeout(() => { // TODO Bad, need to reliably know when we're connected to the Websocket, which can happen so fast our JS isn't ready
       (document || window).dispatchEvent(new Event('websocketReady'));
-    }, 100); // TODO Bad, need to reliably know when we're connected to the Websocket, which can happen so fast our JS isn't ready
+    }, 100);
   });
 
   socket.addEventListener('close', (event) => {
@@ -215,7 +215,7 @@ const setupWebsocket = () => {
       console.error(`Abnormal websocket closure [${event.code}], going to reconnect (attempt ${reconnectAttempts})...`);
 
       reconnectAttempts++;
-      setTimeout(() => {
+      setTimeout(() => { // Reconnect failed Websocket on a throttled scale
         socket = null;
         setupWebsocket();
       }, reconnectAttempts * 1000);
@@ -225,7 +225,7 @@ const setupWebsocket = () => {
   if (pingPongIntervaler) {
     clearInterval(pingPongIntervaler);
   }
-  pingPongIntervaler = setInterval(() => {
+  pingPongIntervaler = setInterval(() => { // Keep the socket alive the usual way
     sendC('ping');
   }, WS_PING_INTERVAL);
 };

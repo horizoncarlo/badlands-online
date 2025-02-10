@@ -27,7 +27,6 @@
             />
           </template>
           <template x-if="!readying">
-            <!-- TODO Add observing games to the lobby functionality...and the actual game -->
             <button
               @click="clickLobby(currentLobby)"
               :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"

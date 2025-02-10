@@ -24,8 +24,7 @@ function doneChooseDiscards(selectedDiscards) {
     });
     selectedDiscards.length = 0; // Clear our discard selections
 
-    // Clear after a bit of a delay to match the server throttling
-    setTimeout(() => {
+    setTimeout(() => { // Clear after a bit of a delay to match the server throttling
       doneDiscard = true;
       hideDiscardDialog();
     }, 100);

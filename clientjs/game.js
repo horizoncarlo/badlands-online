@@ -293,10 +293,9 @@ function setupHotkeys() {
 function flipTray() {
   ui.trayIsCards = !ui.trayIsCards;
 
-  // Gimmick
   if (ui.$refs?.flipTray) {
     ui.$refs?.flipTray.classList.add('flip-tray-click');
-    setTimeout(() => {
+    setTimeout(() => { // Gimmick for style points
       ui.$refs?.flipTray.classList.remove('flip-tray-click');
     }, 305);
   }

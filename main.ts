@@ -5,7 +5,7 @@ import { startScraper } from './backendjs/scraper.ts';
 import { abilities } from './sharedjs/abilities.mjs';
 import { action } from './sharedjs/actions.mjs';
 import { createGameState } from './sharedjs/gamestate.mjs';
-import { utils } from './sharedjs/utils.mjs';
+import { ai, utils } from './sharedjs/utils.mjs';
 
 type WebSocketDetails = {
   playerId: string;
@@ -23,11 +23,11 @@ type GameLobby = {
   started?: boolean;
   title: string;
   password?: string;
-  observers: {
+  observers: { // TODO Implement observers to the game (and lobby)
     allow: boolean;
     seeAll: boolean;
   };
-  timeLimit?: number;
+  timeLimit?: number; // TODO Implement timeLimit functionality in the actual game
   players: PlayerObj[];
   gs: any;
 };
@@ -71,6 +71,13 @@ const handler = (req: Request) => {
 
     socket.addEventListener('open', () => {
       const newPlayerId = url.searchParams.get('playerId') ?? DEFAULT_PLAYER_ID;
+
+      // If we're using an invalid playerId, in the case of bad client data, just bail
+      if (ai.isAI(newPlayerId)) {
+        socket.close(1003, 'Bad playerId');
+        return false;
+      }
+
       players.set(newPlayerId, DEFAULT_PLAYER_NAME);
 
       // See if we're in a game
@@ -263,7 +270,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           };
 
           // Determine if we joined vs AI
-          if (lobbyToJoin.players.find((player) => player.playerId === AI_PLAYER_ID)) {
+          if (lobbyToJoin.players.find((player) => ai.isAI(player.playerId))) {
             toSend['vsAI'] = true;
           }
 
@@ -302,11 +309,11 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         if (foundPlayer.ready && lobbyObj.players.length >= 2) {
           const opponent = lobbyObj.players.find((player) => player.playerId !== message.playerId);
 
-          if (opponent?.ready || opponent.playerId === AI_PLAYER_ID) { // Human opponent is ready or AI is
+          if (opponent?.ready || ai.isAI(opponent.playerId)) { // Human opponent is ready or AI is
             // Determine the first player - AI always goes first, otherwise proper randomize
             let playerRoll = utils.randomRange(0, 1);
 
-            if (opponent.playerId === AI_PLAYER_ID) {
+            if (ai.isAI(opponent.playerId)) {
               playerRoll = 1;
             }
 
@@ -396,9 +403,10 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       }, { fromServerRequest: true });
 
       // Also have the AI join game if we're in a test game
-      if (gameObj.players?.find((player) => player.playerId === AI_PLAYER_ID)) {
+      const aiPlayer = gameObj.players?.find((player) => ai.isAI(player.playerId));
+      if (aiPlayer) {
         action.joinGame({
-          playerId: AI_PLAYER_ID,
+          playerId: aiPlayer.playerId,
           details: {
             player: utils.getOppositePlayerNum(playerNum),
           },
@@ -442,7 +450,7 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
 
   if (gameParams['vsAI']) {
     playerList.push({
-      playerId: AI_PLAYER_ID,
+      playerId: ai.makeAIPlayerId(),
       playerName: 'Simple AI',
     });
   }

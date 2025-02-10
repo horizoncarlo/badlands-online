@@ -13,7 +13,7 @@ globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
 globalThis.SLOT_ID_PREFIX = 'slot_';
-globalThis.AI_PLAYER_ID = 'autoOpponent';
+globalThis.AI_PLAYER_ID_PREFIX = 'autoOpponent_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
 
@@ -22,6 +22,7 @@ globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger init
 
 const utils = {
   // TODO Probably split up the utils file so it doesn't grow to a crazy size
+
   lobbies: new Map(), // Global lobby list (used on the server)
   lobbiesTimeout: new Map(), // Global list of cleanup timers for empty lobbies. key=gameId, value=timer instance
 
@@ -54,7 +55,7 @@ const utils = {
         lobby.players.splice(foundIndex, 1);
 
         // Also if our opponent was AI then we just remove the lobby
-        if (lobby.players.length === 1 && lobby.players[0].playerId === AI_PLAYER_ID) {
+        if (lobby.players.length === 1 && ai.isAI(lobby.players[0].playerId)) {
           utils.lobbies.delete(lobby.gameId);
         }
 
@@ -66,7 +67,7 @@ const utils = {
             utils.lobbiesTimeout.delete(lobby.gameId);
           }
 
-          const cleanupTimeout = setTimeout(() => {
+          const cleanupTimeout = setTimeout(() => { // Check if a lobby is empty after a set amount of time and destroy it
             if (utils.lobbies.get(lobby.gameId)?.players?.length === 0) {
               utils.lobbies.delete(lobby.gameId);
               utils.refreshLobbyList();
@@ -641,9 +642,17 @@ const utils = {
 };
 
 const ai = {
+  isAI(playerId) {
+    return playerId?.startsWith(AI_PLAYER_ID_PREFIX);
+  },
+
+  makeAIPlayerId() {
+    return AI_PLAYER_ID_PREFIX + Date.now();
+  },
+
   checkAndHandleAITurn(message, params) { // params.fromServerRequest: boolean, params.isFirstTurn: boolean true if this is the first turn
     // TODO Better AI at some magical point in the future?
-    if (message.playerId === AI_PLAYER_ID) {
+    if (ai.isAI(message.playerId)) {
       const aiData = utils.getPlayerDataById(message.playerId);
 
       aiData.waterCount = 20; // Make sure we can get plenty of cards out - makes for easier targetting even if we break the rules

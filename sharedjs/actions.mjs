@@ -20,7 +20,7 @@ const rawAction = {
         // Draw our initial set of camps to choose from
         action.promptCamps(message);
 
-        if (message.playerId === AI_PLAYER_ID) {
+        if (ai.isAI(message.playerId)) {
           // Autochoose our camps as AI
           const campOptions = getGS(message).campDeck.splice(0, 3);
           utils.getPlayerDataById(message.playerId).camps = campOptions;
@@ -52,7 +52,9 @@ const rawAction = {
       }
 
       // Notify, navigate, and leave lobby. Ordering is fairly important here as we need to be able to get our Websocket connection
-      action.sendError('Opponent left the game', { gsMessage: message });
+      action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
+        gsMessage: message,
+      });
 
       sendS('nav', message, {
         page: 'gotoLobby',
@@ -402,11 +404,11 @@ const rawAction = {
       if (foundIndex !== -1) {
         getGS(message).discard.push(cards.splice(foundIndex, 1)[0]);
 
-        // Sync on a timer, so that if we have multiple requests in a row we just sync once
         if (getGS(message).discardCardTimer) {
           clearTimeout(getGS(message).discardCardTimer);
         }
-        getGS(message).discardCardTimer = setTimeout(() => {
+        // TODO This manual sync batching won't be necessary when sync itself does similar
+        getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
           action.sync(message.playerId);
         }, 200);
       }
@@ -906,7 +908,7 @@ const rawAction = {
       };
 
       // Little bit jank, but for AI just use the first target
-      if (message.playerId === AI_PLAYER_ID && toSend.validTargets.length) {
+      if (ai.isAI(message.playerId) && toSend.validTargets.length) {
         message.details.targets = [toSend.validTargets[0]];
         action.doneTargets(message);
       } else {
