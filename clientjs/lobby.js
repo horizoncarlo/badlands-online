@@ -16,6 +16,7 @@ globalThis.lobby = { // Local state
       seeAll: false,
     },
   },
+  chat: [], // Local copy of the lobby chat
 };
 
 // TODO Centralize this function with `init` in game.js

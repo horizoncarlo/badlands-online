@@ -341,30 +341,8 @@
         </footer>
       </template>
 
-      <!-- TODO Start simple with the chat & log, but go absolutely wild with features later - emojis, quick emotes, press up for last message, new message count in page title, trigger visual effects on opponent's screen, etc. -->
       <template x-if="inGame">
-        <fieldset
-          id="chatLog"
-          class="repositionable chat panel bd-severe"
-          draggable="true"
-          @dragstart="repositionStart($event)"
-          @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-          x-init="repositionFromStorage($el.id)"
-        >
-          <legend class="severe" @click="applyChatMax({alsoUpdate: true})">
-            Log <small>(press <b>T</b> to focus)</small>
-            <div class="inline icon-sm">↨</div>
-          </legend>
-          <template x-if="chat.length === 0">
-            <span>No messages yet...</span>
-          </template>
-          <div x-effect="scrollChatToBottom($el, chat.length, chatMax)" class="chat-wrap">
-            <template x-for="message in chat">
-              <div x-text="message"></div>
-            </template>
-          </div>
-          <input x-ref="chatIn" x-model="currentChat" @keyup.enter="submitChat($el)" />
-        </fieldset>
+        <chat-log />
       </template>
 
       <template x-if="inGame" x-teleport="body">

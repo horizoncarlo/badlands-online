@@ -61,10 +61,12 @@ const rawAction = {
         cachedGs[utils.getPlayerNumById(message.playerId)].playerId = null;
       }
 
-      // Notify, navigate, and leave lobby. Ordering is fairly important here as we need to be able to get our Websocket connection
-      action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
-        gsMessage: message,
-      });
+      // Notify (non-AI opponent), navigate, and leave lobby. Ordering is fairly important here as we need to be able to get our Websocket connection
+      if (!ai.isAI(utils.getOppositePlayerId(message.playerId))) {
+        action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
+          gsMessage: message,
+        });
+      }
 
       sendS('nav', message, {
         page: 'gotoLobby',
@@ -888,14 +890,28 @@ const rawAction = {
       if (params?.fromServerRequest) {
         // TODO Have the concept of a System level message too, maybe special formatting on the client. SYS (general stuff like start turn) and ERR (error)?
         text = 'SYS';
+      } else if (message.details.sender) {
+        if (message.details.sender === 'SYS') {
+          message.details.sender = 'Anonymous';
+        }
+        text = message.details.sender;
       } else {
         text = utils.getPlayerNumById(message.playerId);
       }
       text += ': ' + message.details.text;
 
       if (text) {
-        if (!params?.playerId) {
-          getGS(message)?.chat.push(text);
+        if (!params?.playerId && getGS(message)) {
+          getGS(message).chat.push(text);
+        } else if (utils.lobbyChat) {
+          // Chop off earlier messages if needed
+          // Brutally and without reason or adjustment
+          if (utils.lobbyChat.length > LOBBY_CHAT_MAX) {
+            utils.lobbyChat.length = 0;
+            utils.lobbyChat.push('SYS: Routine chat log purge');
+          }
+
+          utils.lobbyChat.push(text);
         }
 
         sendS('chat', message, { text: text }, params?.playerId ?? null);

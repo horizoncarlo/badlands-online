@@ -260,19 +260,27 @@
   filter: brightness(120%) saturate(100%);
 }
 
-.chat {
+.chat-game {
   top: 5%;
   right: 2%;
 }
 
-.chat-wrap {
+.chat-wrap-lobby,
+.chat-wrap-game {
   scroll-behavior: smooth;
-  max-width: 20vw;
   max-height: var(--chat-max-height);
+}
+
+.chat-wrap-lobby {
+  overflow-y: scroll;
+}
+
+.chat-wrap-game {
+  max-width: 20vw;
   overflow-y: hidden;
 }
 
-.chat-wrap:hover {
+.chat-wrap-game:hover {
   overflow-y: scroll;
 }
 

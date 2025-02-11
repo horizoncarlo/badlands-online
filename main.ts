@@ -44,6 +44,7 @@ const DEFAULT_PLAYER_NAME = 'Anonymous';
 const TEMPLATE_COMPONENTJS = '<component-js />';
 const TEMPLATE_HEADER = '<include-header />';
 const COMPONENT_DIRECTORY = './backendjs/components/';
+const LOBBY_CHAT_CATCHUP_COUNT = 300;
 const IDLE_RULES = {
   intervalDelay: 15 * 1000, // Check for idleness every 15 seconds
   warningAfter: 60 * 2 * 1000, // Default warning after 2 minutes
@@ -122,23 +123,19 @@ const handler = (req: Request) => {
     html = html.replaceAll('${CLIENT_WEBSOCKET_ADDRESS}', CLIENT_WEBSOCKET_ADDRESS);
 
     // Replace any components we've read from files and can find tags for
-    if (filePath === '/game.html') {
-      if (htmlComponentMap.size > 0) {
-        htmlComponentMap.forEach((value, key) => {
-          html = html.replaceAll(key, value);
-        });
+    if (htmlComponentMap.size > 0) {
+      htmlComponentMap.forEach((value, key) => {
+        html = html.replaceAll(key, value);
+      });
+    }
+
+    if (jsComponentList.length > 0) {
+      let combinedJS = '';
+      for (let i = 0; i < jsComponentList.length; i++) {
+        combinedJS += jsComponentList[i];
       }
 
-      if (jsComponentList.length > 0) {
-        let combinedJS = '';
-        for (let i = 0; i < jsComponentList.length; i++) {
-          combinedJS += jsComponentList[i];
-        }
-
-        html = html.replaceAll(TEMPLATE_COMPONENTJS, combinedJS);
-      }
-    } else {
-      html = html.replaceAll(TEMPLATE_COMPONENTJS, '');
+      html = html.replaceAll(TEMPLATE_COMPONENTJS, combinedJS);
     }
 
     return new Response(html, {
@@ -244,25 +241,33 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     if (message.details.subtype === 'setName') {
       players.set(message.playerId, message.details.playerName);
     } else if (message.details.subtype === 'getLobbyList') {
-      // TODO Probably wrap the lobby messages in a helper function, including sendC
       utils.refreshLobbyList(message, { justToPlayer: true });
 
       // Determine if we are already in a lobby and rejoin it (or the game!)
-      utils.lobbies.forEach((lobby: GameLobby) => {
-        if (lobby.players.find((player: PlayerObj) => player.playerId === message.playerId)) {
-          if (lobby.started) {
+      for (const loopLobby of utils.lobbies.values()) {
+        if (loopLobby.players.find((player: PlayerObj) => player.playerId === message.playerId)) {
+          if (loopLobby.started) {
             sendS('nav', message, {
               page: 'gotoGame',
-              started: lobby.started,
+              started: loopLobby.started,
             }, message.playerId);
+            return;
           } else {
             sendS('lobby', message, {
               subtype: 'joinedLobby',
-              gameId: lobby.gameId,
+              gameId: loopLobby.gameId,
             }, message.playerId);
+            return;
           }
         }
-      });
+      }
+
+      // If we're not rejoining also dump the most recent chat log, up to a reasonable point
+      const toSend = utils.lobbyChat.slice(
+        Math.max(utils.lobbyChat.length - LOBBY_CHAT_CATCHUP_COUNT, 0),
+        utils.lobbyChat.length,
+      );
+      sendS('chatCatchup', message, { chats: toSend }, message.playerId);
     } else if (message.details.subtype === 'joinLobby') {
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
@@ -473,6 +478,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     // Non-lobby, in-game messages
   } else {
     if (
+      message.type !== 'chat' &&
       message.type !== 'dumpDebug' &&
       (!message.playerId || !utils.hasPlayerDataById(message.playerId))
     ) {

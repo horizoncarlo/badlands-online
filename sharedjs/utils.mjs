@@ -13,6 +13,7 @@ globalThis.TURN_WATER_COUNT = 3;
 globalThis.SLOT_NUM_ROWS = 2;
 globalThis.SLOT_NUM_COLS = 3;
 globalThis.SLOT_ID_PREFIX = 'slot_';
+globalThis.LOBBY_CHAT_MAX = 10000; // Number of lobbyChat messages to keep in memory
 globalThis.AI_PLAYER_ID_PREFIX = 'autoOpponent_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
@@ -25,7 +26,8 @@ const utils = {
   // TODO Probably split up the utils file so it doesn't grow to a crazy size
 
   lobbies: new Map(), // Global lobby list (used on the server)
-  lobbiesTimeout: new Map(), // Global list of cleanup timers for empty lobbies. key=gameId, value=timer instance
+  lobbiesTimeout: new Map(), // Global list of cleanup timers for empty lobbies. key=gameId, value=setTimeout ref
+  lobbyChat: [], // Global chat log for the lobby
 
   getGameIdByPlayerId(playerId) {
     for (const loopLobby of utils.lobbies.values()) {

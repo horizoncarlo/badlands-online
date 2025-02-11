@@ -12,7 +12,6 @@ globalThis.ui = { // Local state
   chatMax: 50, // As a view height property
   trayIsCamps: false,
   trayIsCards: true,
-  currentChat: '',
   targetModePrefix: 'target_',
   targetMode: {
     enabled: false,
@@ -272,7 +271,6 @@ function setupHotkeys() {
 
     if (ui.inGame) {
       if (key === 'f') flipTray();
-      else if (key === 't') focusChatIn();
       else if (key === 'd') userDrawCard();
       else if (key === 'w') {
         // Junk our Water Silo if we have it in hand, otherwise take it
@@ -319,20 +317,6 @@ function userUndo() {
 
 function userEndTurn() {
   action.endTurn();
-}
-
-function focusChatIn() {
-  if (ui.$refs?.chatIn) {
-    ui.$refs.chatIn.focus();
-  }
-}
-
-function scrollChatToBottom(ele) {
-  Alpine.nextTick(() => {
-    if (ele) {
-      ele.scrollTop = ele.scrollHeight;
-    }
-  });
 }
 
 function showWaterCost(cost) {
@@ -417,13 +401,6 @@ function getDroppedCard(event) {
 
     return getMyCards().find((card) => card.id === droppedCardId);
   }
-}
-
-function submitChat(ele) {
-  action.chat({
-    text: ui.currentChat,
-  });
-  ele.value = '';
 }
 
 function fullCardPath(card) {

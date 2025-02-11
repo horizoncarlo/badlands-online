@@ -32,7 +32,7 @@ const receiveClientWebsocketMessage = (message) => {
           markReady({ checked: true });
         }
       } else if (message.details.subtype === 'wrongPassword') {
-        alert('Lobby password is incorrect'); // TTODO Better error displaying on lobby
+        alert('Lobby password is incorrect');
         lobby.enteredPassword = '';
       }
 
@@ -125,6 +125,12 @@ const receiveClientWebsocketMessage = (message) => {
       showCampPromptDialog();
       break;
     case 'chat': {
+      // If we're on the lobby page just append there
+      if (typeof ui === 'undefined') {
+        lobby.chat.push(message.details.text);
+        break;
+      }
+
       // Some cutesy behaviour to ensure spammed messages just note their count. So 'Hey dude' becomes 'Hey dude (x1)' then x2 and so on
       if (gs.chat.length > 0 && gs.chat[gs.chat.length - 1].startsWith(message.details.text)) {
         let count = gs.chat[gs.chat.length - 1].substring(message.details.text.length).trim();
@@ -144,6 +150,16 @@ const receiveClientWebsocketMessage = (message) => {
       gs.chat.push(message.details.text);
       break;
     }
+    case 'chatCatchup':
+      // Get a big list of chat messages to catch up from in the lobby
+      if (typeof ui === 'undefined') {
+        message.details.chats?.forEach((text) => {
+          lobby.chat.push(text);
+        });
+
+        scrollChatToBottom();
+      }
+      break;
     case 'cancelTarget':
       disableTargetMode();
       break;

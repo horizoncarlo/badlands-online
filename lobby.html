@@ -7,9 +7,6 @@
     <input x-model="playerName" placeholder="Player Name" />
     <button @click="savePlayerName()">Save</button>
 
-    <!-- TTODO Lobby chat - should just be a message of type='lobby' and subtype='chat' -->
-    <!-- TTODO Clean up baby's first UI, aka our super roughed out testing one -->
-
     <br />
     Lobbies:
     <ul>
@@ -128,11 +125,13 @@
       </div>
     </template>
 
-    <!--
-      TTODO Lobby system
-      - Add game lobby creation settings for "idle rules" - how long a person can idle, and when/if they get kicked (see IDLE_RULES in main.ts)
-      - Win/loss screen and proper end of game
-      -->
+    <template x-if="!readying">
+      <chat-log />
+    </template>
+
+    <!-- TTODO Clean up baby's first UI, aka our super roughed out testing one -->
+    <!-- TTODO Add game lobby creation settings for "idle rules" - how long a person can idle, and when/if they get kicked (see IDLE_RULES in main.ts) -->
+    <!-- TTODO Win/loss screen and proper end of game (show stats, return to lobby, etc.) -->
 
     <script src="./clientjs/lobby.js"></script>
   </body>
