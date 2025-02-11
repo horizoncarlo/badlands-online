@@ -34,6 +34,14 @@ const rawAction = {
             },
           });
         }
+      } else {
+        // If we're joining a game in progress, this might be from a refresh, but regardless we want to renew any target action
+        if (getGS(message).pendingTargetAction) {
+          action.targetMode(getGS(message).pendingTargetAction, {
+            help: 'Targetting interrupted, try again',
+            hideCancel: !getGS(message).pendingTargetCancellable,
+          });
+        }
       }
     }
   },
