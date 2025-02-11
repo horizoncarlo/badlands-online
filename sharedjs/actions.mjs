@@ -903,7 +903,7 @@ const rawAction = {
       if (text) {
         if (!params?.playerId && getGS(message)) {
           getGS(message).chat.push(text);
-        } else if (utils.lobbyChat) {
+        } else if (message.details.sender && utils.lobbyChat) {
           // Chop off earlier messages if needed
           // Brutally and without reason or adjustment
           if (utils.lobbyChat.length > LOBBY_CHAT_MAX) {

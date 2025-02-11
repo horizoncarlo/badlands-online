@@ -10,7 +10,7 @@
       <template x-if="componentData.abilityCard?.img">
         <img
           :alt="componentData.abilityCard.img"
-          :src="fullCardPath(componentData.abilityCard)"
+          :src="utils.fullCardPath(componentData.abilityCard)"
           draggable="false"
         />
       </template>

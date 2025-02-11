@@ -1,7 +1,7 @@
 <!-- TODO Start simple with the chat & log, but go absolutely wild with features later - emojis, quick emotes, press up for last message, new message count in page title, trigger visual effects on opponent's screen, etc. -->
 <fieldset
   id="chatLog"
-  :class="(gamePage ? 'repositionable chat-game' : 'chat-lobby') + ' panel bd-severe'"
+  :class="(gamePage ? 'repositionable panel chat-game' : 'chat-lobby') + ' bd-severe'"
   :draggable="gamePage ? true : false"
   @dragstart="gamePage && repositionStart($event)"
   @dragend="gamePage && repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
@@ -9,7 +9,8 @@
   x-data="{ currentChat: '', gamePage: typeof ui !== 'undefined' }"
 >
   <legend class="severe" @click="gamePage && applyChatMax({alsoUpdate: true})">
-    Log <small>(press <b>T</b> to focus)</small>
+    <span x-text="gamePage ? 'Log' : 'Chat Log'"></span>
+    <small>(press <b>T</b> to focus)</small>
     <template x-if="gamePage">
       <div class="inline icon-sm">↨</div>
     </template>

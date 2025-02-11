@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-color-scheme="dark">
   <include-header />
   <body x-data="gs">
     <section
@@ -13,12 +13,14 @@
     >
       <header>
         <menu :class="targetMode.enabled ? 'invalid-target' : ''">
+          <!-- TODO Just remove debug menu eventually
           <li>
             Debug Menu
             <menu>
               <li @click="action.dumpDebug()">Log Gamestate</li>
             </menu>
           </li>
+          -->
           <template x-if="inGame">
             <li>
               Card Scale
@@ -63,7 +65,7 @@
             </li>
           </template>
           <template x-if="inGame && gameStarted">
-            <li @click="leaveGame()" class="severe">Leave Game</li>
+            <li @click="leaveGame()" class="danger">QUIT</li>
           </template>
         </menu>
       </header>
@@ -109,7 +111,7 @@
             <template x-if="deckCount > 0">
               <img
                 @click="userDrawCard()"
-                :src="fullCardPath('punk')"
+                :src="utils.fullCardPath('punk')"
                 draggable="false"
                 class="card-size"
               />
@@ -123,7 +125,7 @@
               @click="hideWaterCost()"
               title="Take the Water Silo for 1 Water (hotkey 'W')"
             >
-              <img class="bd-accent" :src="fullCardPath('water_silo')" @click="userTakeWaterSilo()" />
+              <img class="bd-accent" :src="utils.fullCardPath('water_silo')" @click="userTakeWaterSilo()" />
             </div>
           </template>
           <template x-if="draggedCard">
@@ -143,7 +145,7 @@
       </template>
       <template x-if="drawAnimationCount > 0">
         <template x-for="anim in drawAnimationCount">
-          <img :src="fullCardPath('punk')" class="draw-animation card-size" />
+          <img :src="utils.fullCardPath('punk')" class="draw-animation card-size" />
         </template>
       </template>
 
@@ -231,7 +233,7 @@
                       @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
                       draggable="false"
                       :alt="slot.content.img"
-                      :src="fullCardPath(slot.content)"
+                      :src="utils.fullCardPath(slot.content)"
                       :class="`card-size card-anim ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
                     />
                   </span>
@@ -279,7 +281,7 @@
                       <img
                         draggable="false"
                         :alt="event.img"
-                        :src="fullCardPath(event)"
+                        :src="utils.fullCardPath(event)"
                         :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' } ${event.unReady ? ' unready-card' : ''}`"
                       />
                     </span>
@@ -325,7 +327,7 @@
                 <img
                   :id="`${targetModePrefix}${card.id}`"
                   :alt="card.img"
-                  :src="fullCardPath(card)"
+                  :src="utils.fullCardPath(card)"
                   :title="'Click and drag to play for ' + card.cost + ' Water'"
                   draggable="true"
                   @dragstart="draggedCard = card"

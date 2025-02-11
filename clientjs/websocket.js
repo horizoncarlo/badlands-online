@@ -31,6 +31,17 @@ const receiveClientWebsocketMessage = (message) => {
         if (message.details.vsAI) {
           markReady({ checked: true });
         }
+      } else if (message.details.subtype === 'giveDemoDeck') {
+        lobby.demoDeck = message.details.deck;
+      } else if (message.details.subtype === 'chatCatchup') {
+        // Get a big list of chat messages to catch up from in the lobby
+        if (typeof ui === 'undefined') {
+          message.details.chats?.forEach((text) => {
+            lobby.chat.push(text);
+          });
+
+          scrollChatToBottom();
+        }
       } else if (message.details.subtype === 'wrongPassword') {
         alert('Lobby password is incorrect');
         lobby.enteredPassword = '';
@@ -150,16 +161,6 @@ const receiveClientWebsocketMessage = (message) => {
       gs.chat.push(message.details.text);
       break;
     }
-    case 'chatCatchup':
-      // Get a big list of chat messages to catch up from in the lobby
-      if (typeof ui === 'undefined') {
-        message.details.chats?.forEach((text) => {
-          lobby.chat.push(text);
-        });
-
-        scrollChatToBottom();
-      }
-      break;
     case 'cancelTarget':
       disableTargetMode();
       break;

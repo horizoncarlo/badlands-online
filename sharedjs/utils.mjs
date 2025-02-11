@@ -584,6 +584,31 @@ const utils = {
     return typeof card?.drawCount === 'number';
   },
 
+  fullCardPath(card) {
+    if (card || card.img) {
+      let dir = 'people';
+
+      if (card.img) {
+        if (card.isWaterSilo) {
+          dir = 'silo';
+        } else if (utils.cardIsEvent(card)) {
+          dir = 'events';
+        } else if (utils.cardIsCamp(card)) {
+          dir = 'camps';
+        }
+      } else {
+        if (card === 'punk') {
+          card += DECK_IMAGE_EXTENSION;
+        } else if (card === 'water_silo') {
+          dir = 'silo';
+          card += DECK_IMAGE_EXTENSION;
+        }
+      }
+
+      return `images/cards/${dir}/${card.img ?? card}`;
+    }
+  },
+
   cardImgToName(img) {
     if (!img) {
       return img;

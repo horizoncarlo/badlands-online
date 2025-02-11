@@ -41,7 +41,11 @@ const createCampDeck = (): Array<any> => { // TODO Camp typing
   ]);
 };
 
-const createNewDeck = (): Array<any> => { // TODO Card typing
+const createDemoDeck = (): Array<any> => {
+  return createNewDeck({ isDemo: true });
+};
+
+const createNewDeck = (params?: { isDemo?: boolean }): Array<any> => { // TODO Card typing
   const dupePeople = [
     { img: 'assassin', cost: 1, junkEffect: 'raid', abilities: [{ cost: 2, abilityEffect: 'assassin' }] },
     { img: 'cult_leader', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 0, abilityEffect: 'cultLeader' }] },
@@ -93,13 +97,23 @@ const createNewDeck = (): Array<any> => { // TODO Card typing
     { img: 'uprising', cost: 1, startSpace: 2, junkEffect: 'injurePerson', abilityEffect: 'uprising' },
   ];
 
-  const deck = _shuffleNewDeck([
-    ...uniqPeople,
-    ...structuredClone(dupePeople),
-    ...structuredClone(dupePeople),
-    ...structuredClone(dupeEvents),
-    ...structuredClone(dupeEvents),
-  ]);
+  let deck = [];
+  if (params?.isDemo) {
+    deck = _shuffleNewDeck([
+      ...uniqPeople,
+      ...structuredClone(dupePeople),
+      ...structuredClone(dupeEvents),
+    ]);
+    deck = deck.concat(createCampDeck());
+  } else {
+    deck = _shuffleNewDeck([
+      ...uniqPeople,
+      ...structuredClone(dupePeople),
+      ...structuredClone(dupePeople),
+      ...structuredClone(dupeEvents),
+      ...structuredClone(dupeEvents),
+    ]);
+  }
 
   return deck;
 };
@@ -116,4 +130,4 @@ const _shuffleNewDeck = (array) => {
   return array;
 };
 
-export { createCampDeck, createNewDeck };
+export { createCampDeck, createDemoDeck, createNewDeck };

@@ -1,6 +1,6 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
-import { createCampDeck, createNewDeck } from './backendjs/deck.ts';
+import { createCampDeck, createDemoDeck, createNewDeck } from './backendjs/deck.ts';
 import { startScraper } from './backendjs/scraper.ts';
 import { abilities } from './sharedjs/abilities.mjs';
 import { action } from './sharedjs/actions.mjs';
@@ -174,7 +174,10 @@ const sendS = (type: string, messageForGs: any, messageDetails?: any, optionalGr
     socketId = messageForGs ? utils.getGameIdByPlayerId(messageForGs.playerId) ?? lobbySocketId : lobbySocketId;
   }
 
-  if (type !== 'sync' && type !== 'ping' && type !== 'pong') {
+  if (
+    type !== 'sync' && type !== 'ping' && type !== 'pong' &&
+    (type === 'lobby' && messageDetails.subtype && messageDetails.subtype !== 'giveDemoDeck')
+  ) {
     console.log(`SENT to ${socketId}:`, messageObj);
   }
 
@@ -267,7 +270,10 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         Math.max(utils.lobbyChat.length - LOBBY_CHAT_CATCHUP_COUNT, 0),
         utils.lobbyChat.length,
       );
-      sendS('chatCatchup', message, { chats: toSend }, message.playerId);
+      sendS('lobby', message, { subtype: 'chatCatchup', chats: toSend }, message.playerId);
+
+      // Also give a "demo deck" to the player which will show some of the cards
+      sendS('lobby', message, { subtype: 'giveDemoDeck', deck: createDemoDeck() }, message.playerId);
     } else if (message.details.subtype === 'joinLobby') {
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)

@@ -12,7 +12,7 @@
       <div @click="chooseDiscardCard(card, selectedDiscards)" class="three-card-choice-wrap">
         <img
           :alt="card.img"
-          :src="fullCardPath(card)"
+          :src="utils.fullCardPath(card)"
           draggable="false"
           :class="'card-size card-choice' + (isSelectedDiscard(card, selectedDiscards) ? ' card-choice-sel' : '')"
         />

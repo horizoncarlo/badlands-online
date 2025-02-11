@@ -196,7 +196,7 @@ function getMyCamps() {
 }
 
 function getCampImage(camp) {
-  return fullCardPath(camp.isDestroyed ? { img: 'DESTROYED.png', drawCount: 0 } : camp);
+  return utils.fullCardPath(camp.isDestroyed ? { img: 'DESTROYED.png', drawCount: 0 } : camp);
 }
 
 function getOpponentCardCount() {
@@ -400,31 +400,6 @@ function getDroppedCard(event) {
     droppedCardId = Number(droppedCardId);
 
     return getMyCards().find((card) => card.id === droppedCardId);
-  }
-}
-
-function fullCardPath(card) {
-  if (card || card.img) {
-    let dir = 'people';
-
-    if (card.img) {
-      if (card.isWaterSilo) {
-        dir = 'silo';
-      } else if (utils.cardIsEvent(card)) {
-        dir = 'events';
-      } else if (utils.cardIsCamp(card)) {
-        dir = 'camps';
-      }
-    } else {
-      if (card === 'punk') {
-        card += DECK_IMAGE_EXTENSION;
-      } else if (card === 'water_silo') {
-        dir = 'silo';
-        card += DECK_IMAGE_EXTENSION;
-      }
-    }
-
-    return `images/cards/${dir}/${card.img ?? card}`;
   }
 }
 

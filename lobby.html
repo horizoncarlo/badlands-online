@@ -1,137 +1,229 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-color-scheme="dark">
+  <!-- TODO Bit torn on forcing dark mode, but the app just looks so much better -->
   <include-header />
   <body x-data="lobby">
-    Player ID: <span x-text="playerId"></span>
-    <!-- TTODO Changing name after joining a lobby is a bit jank - name doesn't update, you list your old name as your opponent, etc. -->
-    <input x-model="playerName" placeholder="Player Name" />
-    <button @click="savePlayerName()">Save</button>
+    <div class="lobby-wrap">
+      <details>
+        <summary>
+          <span class="variant">Radlands</span> is a competitive, dueling card game about identifying fiercely powerful card
+          synergies...
+        </summary>
+        <p>
+          This is a fan made adaptation of the amazing Radlands card game - no copyright infringement on art or icons
+          intended!
+        </p>
+        <i>
+          Act as the leader of your post apocalyptic group of survivors in a tooth-and-nail fight to protect your three camps
+          from a vicious rival tribe. If all of them are destroyed, you lose the game.<br />
+          The main resource in the game is water. You will spend it to play people and events, and to use the abilities of
+          cards you already have on the table. People protect your camps and provide useful abilities, while events are
+          powerful effects that take time to pay off.<br />
+          Both players draw cards from the same deck. All cards can either be played to the table or discarded for quick
+          “junk” effects. To win, you will need to manage your cards and water wisely.<br />
+        </i>
+        <hr />
+        <ul>
+          <li><a href="https://roxley.com/products/radlands" target="_blank">Roxley (publisher)</a></li>
+          <li><a href="https://danielpiechnick.com/" target="_blank">Daniel Piechnick (designer)</a></li>
+          <li><a href="https://boardgamegeek.com/boardgame/329082/radlands" target="_blank">BoardGameGeek</a></li>
+          <li><a href="https://www.youtube.com/watch?v=00HDPb-BrLA" target="_blank">How to Play video</a></li>
+          <li><a href="https://github.com/horizoncarlo" target="_blank">Carlo Guglielmin (online adaptation)</a></li>
+        </ul>
+      </details>
 
-    <br />
-    Lobbies:
-    <ul>
-      <template x-for="currentLobby in lobbies">
-        <li>
-          <span x-text="currentLobby.title"></span>
-          - Players: <span x-text="currentLobby.players"></span>
-          <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
-            <input
-              x-init="$el.focus()"
-              type="password"
-              placeholder="Lobby requires a password"
-              x-model="enteredPassword"
-              @keyup.enter="clickLobby(currentLobby)"
-            />
-          </template>
-          <template x-if="!readying">
-            <button
-              @click="clickLobby(currentLobby)"
-              :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
-            >
-              <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
-            </button>
-          </template>
-          <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
-            <button @click="currentLobby.showPasswordEntry = false" class="danger">Cancel</button>
-          </template>
-        </li>
-      </template>
-    </ul>
+      <aside>
+        <!-- TTODO Changing name after joining a lobby is a bit jank - name doesn't update, you list your old name as your opponent, etc. -->
+        <label>
+          Your Name
+          <input placeholder="Player Name" x-model="playerName" @change="savePlayerName()" class="default" />
+        </label>
 
-    <template x-if="joinedId && getJoinedLobby()">
-      <div class="panel">
-        You are in a game lobby for <span x-text="getJoinedLobby().gameId"></span>
-        <br />
-        Your opponent is <span x-text="getOpponentName()"></span>
-        <template x-if="!readying">
-          <label style="font-size: 48px">
-            <input type="checkbox" @click="markReady($el)">
-            I'm Ready
-          </label>
-        </template>
-        <template x-if="readying">
-          <div>
-            <span x-text="`You will be going ${isFirst ? 'FIRST' : 'SECOND'}`"></span>
-            <br />
-            <span x-text="`Game starting in ${countdownSeconds}...`"></span>
+        <!-- Besides looking cool the demo deck reel has the advantage of preloading the cards -->
+        <template x-if="demoDeck?.length">
+          <div style="text-align: center" @click="demoCounter++">
+            <img :src="getDemoCard(demoCounter)" class="bright-hover card-friendly" />
           </div>
         </template>
-      </div>
-    </template>
+      </aside>
 
-    <template x-if="!joinedId && !readying && creating">
-      <div>
-        <form @submit.prevent="submitCustomGame()">
-          <label>
-            Title
-            <input x-model="createForm.title" x-init="$el.focus()" required="true" />
-          </label>
+      <fieldset class="bd-active">
+        <legend class="active">Lobbies</legend>
 
-          <label>
-            Password
-            <small>Leave blank for none</small>
-            <input x-model="createForm.password" />
-          </label>
+        <p style="text-align: center">
+          <button
+            @click="clickQuickplay()"
+            :disabled="(joinedId || readying || creating)"
+            class="success"
+            title="Join an open lobby or create a default new lobby"
+          >
+            Quickplay
+          </button>
+          <button
+            @click="clickCustomGame()"
+            :disabled="(joinedId || readying || creating)"
+            class="accent"
+            title="Create a custom lobby with configurable options"
+          >
+            Custom Game
+          </button>
+          <button
+            @click="clickTestGame()"
+            :disabled="(joinedId || readying || creating)"
+            class="default"
+            title="Play against a passive AI opponent to try out the game and website"
+          >
+            Test Game vs AI
+          </button>
+        </p>
 
-          <label>
-            Time Limit (mins)
-            <small>Leave blank for none</small>
-            <input x-model="createForm.timeLimit" type="number" />
-          </label>
+        <template x-if="joinedId && getJoinedLobby()">
+          <div class="panel">
+            You are in a game lobby for <span class="active" x-text="getJoinedLobby().title"></span>
+            <br />
+            Your opponent is
+            <template x-if="getOpponentName()">
+              <span class="attention" x-text="getOpponentName()"></span>
+            </template>
+            <template x-if="!getOpponentName()">
+              <small class="muted">none yet</small>
+            </template>
 
-          <label title="Allow other players to watch your game">
-            Allow Observers
-            <input x-model="createForm.observers.allow" type="checkbox" />
-          </label>
+            <template x-if="!readying">
+              <label class="success" style="font-size: 2rem">
+                <input type="checkbox" @click="markReady($el)" style="transform: scale(1.5)">
+                I'm Ready
+              </label>
+            </template>
+            <template x-if="readying">
+              <div>
+                <hr />
+                You will be going <span class="severe" x-text="isFirst ? 'FIRST' : 'SECOND'"></span>
+                <br />
+                Game starting in <span class="accent" x-text="countdownSeconds + '...'"></span>
+              </div>
+            </template>
+          </div>
+        </template>
 
-          <template x-if="createForm.observers.allow">
-            <label>
-              See All
-              <input x-model="createForm.observers.seeAll" type="checkbox" />
-              <small>(hand of cards, etc.)</small>
-            </label>
+        <br />
+
+        <form @submit.prevent="">
+          <template x-for="currentLobby in lobbies">
+            <article>
+              <header>
+                <h2 style="float: left">
+                  <span x-text="currentLobby.title"></span>
+                  <template x-if="currentLobby.hasPassword">
+                    <span>🔒</span>
+                  </template>
+                </h2>
+
+                <div style="float: right">
+                  <template x-if="!readying">
+                    <button
+                      @click="clickLobby(currentLobby)"
+                      :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
+                    >
+                      <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
+                    </button>
+                  </template>
+                  <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
+                    <button @click="currentLobby.showPasswordEntry = false" class="danger">Cancel</button>
+                  </template>
+                </div>
+              </header>
+
+              <div class="lobby-info">
+                <div class="bold">Players:</div>
+                <template x-if="currentLobby.players.length">
+                  <div class="attention" x-text="currentLobby.players.join(', ')"></div>
+                </template>
+                <template x-if="!currentLobby.players.length">
+                  <div class="muted"><small>empty</small></div>
+                </template>
+
+                <template x-if="currentLobby.timeLimit ?? -1 > 0">
+                  <div class="info-row">
+                    <div class="bold">Time Limit:</div>
+                    <div><span class="accent" x-text="currentLobby.timeLimit"></span> minutes</div>
+                  </div>
+                </template>
+
+                <template x-if="currentLobby.observers?.allow">
+                  <div class="info-row">
+                    <div class="bold">Observers:</div>
+                    <div>
+                      <span class="success">allowed</span>
+                      <span x-text="currentLobby.observers.seeAll ? '(see all)' : ''"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+              <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
+                <input
+                  x-init="$el.focus()"
+                  type="password"
+                  placeholder="Lobby requires a password"
+                  x-model="enteredPassword"
+                  @keyup.enter="clickLobby(currentLobby)"
+                />
+              </template>
+            </article>
           </template>
-
-          <button type="submit">Submit</button>
-          <button type="reset">Reset</button>
-          <button type="button" class="attention" @click="cancelCustomGame()">Cancel</button>
         </form>
-      </div>
-    </template>
 
-    <template x-if="!joinedId && !readying && !creating">
-      <div>
-        <button
-          @click="clickQuickplay()"
-          class="success"
-          title="Join an open lobby or create a default new lobby"
-        >
-          Quickplay
-        </button>
-        <button
-          @click="clickCustomGame()"
-          class="accent"
-          title="Create a custom lobby with configurable options"
-        >
-          Custom Game
-        </button>
-        <button
-          @click="clickTestGame()"
-          class="default"
-          title="Play against a passive AI opponent to try out the game and website"
-        >
-          Test Game vs AI
-        </button>
-      </div>
-    </template>
+        <template x-if="!joinedId && !readying && creating">
+          <div style="max-width: 500px">
+            <form @submit.prevent="submitCustomGame()">
+              <label>
+                &nbsp;Title
+                <input x-model="createForm.title" x-init="$el.focus()" required="true" />
+              </label>
 
-    <template x-if="!readying">
-      <chat-log />
-    </template>
+              <label>
+                Password
+                <small>Leave blank for none</small>
+                <input x-model="createForm.password" />
+              </label>
 
-    <!-- TTODO Clean up baby's first UI, aka our super roughed out testing one -->
-    <!-- TTODO Add game lobby creation settings for "idle rules" - how long a person can idle, and when/if they get kicked (see IDLE_RULES in main.ts) -->
-    <!-- TTODO Win/loss screen and proper end of game (show stats, return to lobby, etc.) -->
+              <label>
+                Time Limit (mins)
+                <small>Leave blank for none</small>
+                <input x-model="createForm.timeLimit" type="number" />
+              </label>
+
+              <label title="Allow other players to watch your game">
+                Allow Observers
+                <input x-model="createForm.observers.allow" type="checkbox" />
+              </label>
+
+              <template x-if="createForm.observers.allow">
+                <label>
+                  See All
+                  <input x-model="createForm.observers.seeAll" type="checkbox" />
+                  <small>(hand of cards, etc.)</small>
+                </label>
+              </template>
+
+              <button type="submit">Submit</button>
+              <button type="reset">Reset</button>
+              <button type="button" class="attention" @click="cancelCustomGame()">Cancel</button>
+            </form>
+          </div>
+        </template>
+      </fieldset>
+
+      <br />
+
+      <template x-if="!readying">
+        <chat-log />
+      </template>
+
+      <!-- TTODO Lobby creation time to show how stale it is? Relative time displayed? -->
+      <!-- TTODO Add game lobby creation settings for "idle rules" - how long a person can idle, and when/if they get kicked (see IDLE_RULES in main.ts) -->
+      <!-- TTODO Win/loss screen and proper end of game (show stats, return to lobby, etc.) -->
+    </div>
 
     <script src="./clientjs/lobby.js"></script>
   </body>

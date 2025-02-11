@@ -15,7 +15,7 @@
       <div @click="chooseCamp(camp)" class="three-card-choice-wrap">
         <img
           :alt="camp.img"
-          :src="fullCardPath(camp)"
+          :src="utils.fullCardPath(camp)"
           draggable="false"
           :class="'card-choice' + (camp?.selected ? ' card-choice-sel' : '')"
         />

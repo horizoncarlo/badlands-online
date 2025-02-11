@@ -66,3 +66,17 @@ body:has(dialog[open]) {
 menu {
   margin: 0;
 }
+
+.lobby-wrap {
+  padding: 20px;
+}
+
+.lobby-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+
+.info-row {
+  display: contents;
+}

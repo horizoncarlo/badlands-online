@@ -16,8 +16,12 @@ globalThis.lobby = { // Local state
       seeAll: false,
     },
   },
+  demoDeck: [], // Little demo reel of cards we get from the server
+  demoCounter: 0, // Track when to update the demo card
   chat: [], // Local copy of the lobby chat
 };
+
+const DEMO_REEL_SPEED_MS = 4000;
 
 // TODO Centralize this function with `init` in game.js
 function init(funcOnReady) {
@@ -51,12 +55,16 @@ function initLobby(status) {
     }
 
     getLobbyList();
+
+    setInterval(() => {
+      lobby.demoCounter++;
+    }, DEMO_REEL_SPEED_MS);
   }
 }
 
 function getOpponentName() {
   const lobbyObj = getJoinedLobby();
-  return lobbyObj.players.find((player) => player !== lobby.playerName) ?? 'None Yet';
+  return lobbyObj.players.find((player) => player !== lobby.playerName);
 }
 
 function getLobbyList() {
@@ -153,4 +161,14 @@ function markReady(ele) {
     gameId: lobby.joinedId,
     ready: ele.checked,
   });
+}
+
+function getDemoCard() {
+  if (lobby.demoDeck?.length > 0) {
+    try {
+      const demoCard = lobby.demoDeck[utils.randomRange(0, lobby.demoDeck.length)];
+      return utils.fullCardPath(demoCard);
+    } catch (ignored) {}
+  }
+  return utils.fullCardPath('punk');
 }
