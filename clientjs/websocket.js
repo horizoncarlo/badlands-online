@@ -233,7 +233,9 @@ const setupWebsocket = () => {
 const teardownWebsocket = () => {
   if (socket) {
     try {
-      sendC('unsubscribe');
+      sendC('teardown', {
+        checkConnection: ui.inGame,
+      });
 
       if (
         socket.readyState !== WebSocket.CLOSED &&
@@ -245,7 +247,7 @@ const teardownWebsocket = () => {
   }
 };
 
-// Before we unload, unsubscribe from our Websocket if possible
+// Before we unload, teardown our Websocket if possible
 window.onbeforeunload = function () {
   teardownWebsocket();
 };

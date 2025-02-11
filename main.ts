@@ -21,6 +21,7 @@ type PlayerObj = {
 type GameLobby = {
   gameId: string;
   started?: boolean;
+  idleCheckInterval?: number | null;
   title: string;
   password?: string;
   observers: { // TODO Implement observers to the game (and lobby)
@@ -43,9 +44,16 @@ const DEFAULT_PLAYER_NAME = 'Anonymous';
 const TEMPLATE_COMPONENTJS = '<component-js />';
 const TEMPLATE_HEADER = '<include-header />';
 const COMPONENT_DIRECTORY = './backendjs/components/';
+const IDLE_RULES = {
+  intervalDelay: 15 * 1000, // Check for idleness every 15 seconds
+  warningAfter: 60 * 2 * 1000, // Default warning after 2 minutes
+  kickAfter: 35 * 1000, // Kick after an additional ~30 seconds from the warning
+  teardownAfter: 10 * 1000, // Warn about connection problems if a Websocket drops for this long without a reconnect
+};
 
 const lobbySocketId = 'lobby';
 const socketMap = new Map<string, WebSocketDetails[]>(); // Track which actual socket is in what channel (the string identifier), such as lobby or a gameId
+const teardownMap = new Map<string, number | null>(); // Track teardown timer notifications, key=playerId and value=setTimeout ref
 const htmlComponentMap = new Map<string, string>();
 const jsComponentList = new Array<string>();
 const players = new Map<string, string>(); // key is playerId, value is name
@@ -190,17 +198,38 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
   // TODO Be consistent between this and the client-side receive message and just use switch statements in both
   if (message.type === 'ping') {
     sendS('pong', message, null, message.playerId);
-  } else if (message.type === 'unsubscribe') {
+  } else if (message.type === 'teardown') {
     const playerId = message.playerId;
-    const gameId = utils.getGameIdByPlayerId(message.playerId) ?? lobbySocketId;
 
     if (playerId) {
+      const gameId = utils.getGameIdByPlayerId(playerId) ?? lobbySocketId;
+
+      // Notify the opponent about the potential connection problems
+      // This would be a Websocket that closes - they might rejoin, but if they don't the normal idle timeout will handle it
+      const teardownDetails = teardownMap.get(playerId);
+      if (teardownDetails) {
+        clearTimeout(teardownDetails);
+        teardownMap.delete(playerId);
+      }
+
+      if (utils.lobbies.get(gameId)?.started && message.details.checkConnection) {
+        const timeoutRef = setTimeout(() => {
+          // Check if we have a socket, if not then we never reconnected and should show the connection problem warning
+          const ourPlayerId = socketMap.get(gameId).find((details) => playerId === details.playerId);
+          const gsPlayerId = socketMap.get(gameId).find((details) => details.playerId); // Opponent who we want to leverage to send an error
+          if (gsPlayerId && !ourPlayerId) {
+            action.sendError('Player having connection problems', { gsMessage: { playerId: gsPlayerId.playerId } });
+          }
+        }, IDLE_RULES.teardownAfter);
+        teardownMap.set(playerId, timeoutRef);
+      }
+
       const foundIndex = socketMap.get(gameId)?.findIndex((socketDetails: WebSocketDetails) =>
         playerId === socketDetails.playerId
       );
 
       if (typeof foundIndex === 'number' && foundIndex !== -1) {
-        socketMap.get(gameId)[foundIndex].socket?.close(WS_NORMAL_CLOSE_CODE);
+        socketMap.get(gameId)[foundIndex]?.socket?.close(WS_NORMAL_CLOSE_CODE);
         socketMap.get(gameId).splice(foundIndex, 1);
       }
     }
@@ -336,6 +365,32 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
             // Game is set to start
             lobbyObj.started = true;
+
+            if (!DEBUG_NO_IDLE_TIMEOUT) {
+              // Determine if a player is idling too long on their turn
+              let errorSent = false;
+              lobbyObj.idleCheckInterval = setInterval(() => {
+                if (lobbyObj?.gs?.turn?.currentPlayer) {
+                  const idleAmount = Date.now() - lobbyObj.gs.turn.interactionTime;
+
+                  if (!errorSent && idleAmount >= IDLE_RULES.warningAfter) {
+                    const gsPlayerId = lobbyObj.gs.player1.playerId || lobbyObj.gs.player2.playerId;
+                    action.sendError('Player is idle, will kick in 30 seconds', { gsMessage: { playerId: gsPlayerId } });
+                    errorSent = true;
+                  } else if (errorSent && idleAmount >= IDLE_RULES.kickAfter) {
+                    const gsPlayerId = lobbyObj.gs.player1.playerId || lobbyObj.gs.player2.playerId;
+                    const kickId = utils.getPlayerIdByNum(lobbyObj.gs.turn.currentPlayer, gsPlayerId);
+                    if (kickId) {
+                      console.warn('Kicked player for being idle', kickId);
+                      action.leaveGame({ playerId: kickId });
+                    }
+                  }
+                } else {
+                  // Maintain non-idle state until we have a current player
+                  lobbyObj.gs.turn.interactionTime = Date.now();
+                }
+              }, IDLE_RULES.intervalDelay);
+            }
           }
         }
       }

@@ -32,6 +32,8 @@ export function createGameState(gameId) {
     },
     turn: {
       currentPlayer: null, // player1 or player2
+      startTime: null, // Date.now when the current turn started, to detect idle or long turns
+      interactionTime: null,
       player1: {
         turnCount: 0,
       },

@@ -12,6 +12,8 @@ const rawAction = {
 
       sendS('setPlayer', message, message.details, message.playerId);
 
+      updateInteractionTime(message); // Count joining (or more likely RE-joining) as interaction
+
       action.sync(message.playerId, { includeChat: true });
 
       // Only do camp setup and AI work if the game isn't already started
@@ -78,6 +80,7 @@ const rawAction = {
       getGS(message)[nextPlayerNum].waterCount = params?.isFirstTurn ? FIRST_TURN_WATER_COUNT : TURN_WATER_COUNT;
       getGS(message).turn[nextPlayerNum].turnCount++;
       getGS(message).turn.currentPlayer = nextPlayerNum;
+      getGS(message).turn.startTime = Date.now();
 
       // Reset ready state of cards, then apply for our damaged cards
       utils.markAllSlotsReady(message);
@@ -1016,6 +1019,8 @@ const rawAction = {
       delete updatedGs.deck;
       delete updatedGs.discard;
       delete updatedGs.discardCardTimer;
+      delete updatedGs.turn.startTime;
+      delete updatedGs.turn.interactionTime;
       delete updatedGs.punks;
       delete updatedGs.pendingTargetAction;
       delete updatedGs.pendingTargetCancellable;
@@ -1103,20 +1108,20 @@ const actionHandler = {
       }
 
       return function (...args) {
-        const applyOriginalMethod = (originalMethod, context, args) => {
-          // There were many unpleasant changes going from a plain `gs` to `getGS`
-          // Which was necessary when adding an actual lobby system for multiplayer, instead of just a single instance shared by all visitors
-          // But yeah one of the uglier ones is figuring out our gamestate from the messages here
-          let gsPlayerId = args[0];
-          if (!gsPlayerId || !gsPlayerId.playerId) {
-            gsPlayerId = args[1];
+        // There were many unpleasant changes going from a plain `gs` to `getGS`
+        // Which was necessary when adding an actual lobby system for multiplayer, instead of just a single instance shared by all visitors
+        // But yeah one of the uglier ones is figuring out our gamestate from the messages here
+        let gsPlayerId = args[0];
+        if (!gsPlayerId || !gsPlayerId.playerId) {
+          gsPlayerId = args[1];
 
-            // Format that sync uses
-            if (typeof gsPlayerId === 'object' && gsPlayerId['gsMessage']) {
-              gsPlayerId = gsPlayerId.gsMessage;
-            }
+          // Format that sync uses
+          if (typeof gsPlayerId === 'object' && gsPlayerId['gsMessage']) {
+            gsPlayerId = gsPlayerId.gsMessage;
           }
+        }
 
+        const applyOriginalMethod = (originalMethod, context, args) => {
           if (!onClient) {
             try {
               const toClone = getGS(gsPlayerId);
@@ -1131,6 +1136,7 @@ const actionHandler = {
 
           const res = originalMethod.apply(context, args);
           codeQueue.step(requestedAction);
+
           return res;
         };
 
@@ -1145,6 +1151,9 @@ const actionHandler = {
           action.sendError('Not your turn', { gsMessage: args[0] }, args[0].playerId);
           return;
         }
+
+        // Mark that we interacted with an action that didn't skip preprocessing, so sync and chat and similar won't reset this
+        utils.updateInteractionTime(gsPlayerId);
 
         return applyOriginalMethod(originalMethod, this, args);
       };

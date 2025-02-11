@@ -17,6 +17,7 @@ globalThis.AI_PLAYER_ID_PREFIX = 'autoOpponent_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
 
+globalThis.DEBUG_NO_IDLE_TIMEOUT = false; // Debugging flag if we want to ignore idle timeout and not kick players, for testing
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 
@@ -46,6 +47,17 @@ const utils = {
     return utils.lobbies?.get(utils.getGameIdByPlayerId(messageOrPlayerId));
   },
 
+  deleteLobby(gameId) {
+    const lobbyObj = utils.lobbies?.get(gameId);
+    if (lobbyObj) {
+      if (lobbyObj.idleCheckInterval) {
+        clearInterval(lobbyObj.idleCheckInterval);
+      }
+
+      utils.lobbies.delete(gameId);
+    }
+  },
+
   // TODO Split out lobby functionality into a separate file or at least separate export here
   leaveAllLobbies(message, params) { // params.noRefreshAfter: boolean
     // Leave any existing lobby
@@ -56,7 +68,7 @@ const utils = {
 
         // Also if our opponent was AI then we just remove the lobby
         if (lobby.players.length === 1 && ai.isAI(lobby.players[0].playerId)) {
-          utils.lobbies.delete(lobby.gameId);
+          utils.deleteLobby(lobby.gameId);
         }
 
         // If the lobby is empty delete after a bit
@@ -69,7 +81,7 @@ const utils = {
 
           const cleanupTimeout = setTimeout(() => { // Check if a lobby is empty after a set amount of time and destroy it
             if (utils.lobbies.get(lobby.gameId)?.players?.length === 0) {
-              utils.lobbies.delete(lobby.gameId);
+              utils.deleteLobby(lobby.gameId);
               utils.refreshLobbyList();
             }
           }, EMPTY_LOBBY_CLEANUP_S * 1000);
@@ -109,6 +121,12 @@ const utils = {
       });
     }
     return toReturn;
+  },
+
+  updateInteractionTime(message) {
+    try {
+      getGS(message).turn.interactionTime = Date.now();
+    } catch (ignored) {}
   },
 
   clearUniversal(message) {
