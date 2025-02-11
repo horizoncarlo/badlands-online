@@ -125,7 +125,10 @@
                       @click="clickLobby(currentLobby)"
                       :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
                     >
-                      <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
+                      <span
+                        x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"
+                        :class="!isInLobby(currentLobby) ? 'accent' : 'danger'"
+                      ></span>
                     </button>
                   </template>
                   <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
