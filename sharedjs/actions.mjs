@@ -12,7 +12,7 @@ const rawAction = {
 
       sendS('setPlayer', message, message.details, message.playerId);
 
-      updateInteractionTime(message); // Count joining (or more likely RE-joining) as interaction
+      utils.updateInteractionTime(message); // Count joining (or more likely RE-joining) as interaction
 
       action.sync(message.playerId, { includeChat: true });
 
