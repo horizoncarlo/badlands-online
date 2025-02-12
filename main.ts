@@ -246,6 +246,9 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     } else if (message.details.subtype === 'getLobbyList') {
       utils.refreshLobbyList(message, { justToPlayer: true });
 
+      // Also give a "demo deck" to the player which will show some of the cards
+      sendS('lobby', message, { subtype: 'giveDemoDeck', deck: createDemoDeck() }, message.playerId);
+
       // Determine if we are already in a lobby and rejoin it (or the game!)
       for (const loopLobby of utils.lobbies.values()) {
         if (loopLobby.players.find((player: PlayerObj) => player.playerId === message.playerId)) {
@@ -271,9 +274,6 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         utils.lobbyChat.length,
       );
       sendS('lobby', message, { subtype: 'chatCatchup', chats: toSend }, message.playerId);
-
-      // Also give a "demo deck" to the player which will show some of the cards
-      sendS('lobby', message, { subtype: 'giveDemoDeck', deck: createDemoDeck() }, message.playerId);
     } else if (message.details.subtype === 'joinLobby') {
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)

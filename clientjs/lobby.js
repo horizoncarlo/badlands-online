@@ -5,6 +5,7 @@ globalThis.lobby = { // Local state
   creating: false, // Show the Create Game UI
   isFirst: false,
   countdownSeconds: 5,
+  comparePlayerName: '',
   playerName: '',
   enteredPassword: '',
   createForm: {
@@ -50,6 +51,7 @@ function initLobby(status) {
   if (status) {
     lobby = Alpine.reactive(lobby);
     lobby.playerName = localStorage.getItem(LOCAL_STORAGE.playerName) ?? 'Anonymous';
+    lobby.comparePlayerName = lobby.playerName;
     if (localStorage.getItem(LOCAL_STORAGE.playerName)) {
       savePlayerName();
     }
@@ -64,7 +66,7 @@ function initLobby(status) {
 
 function getOpponentName() {
   const lobbyObj = getJoinedLobby();
-  return lobbyObj.players.find((player) => player !== lobby.playerName);
+  return lobbyObj.players.find((player) => player !== lobby.comparePlayerName);
 }
 
 function getLobbyList() {
@@ -147,6 +149,7 @@ function cancelCustomGame() {
 }
 
 function savePlayerName() {
+  lobby.comparePlayerName = lobby.playerName;
   localStorage.setItem(LOCAL_STORAGE.playerName, lobby.playerName);
 
   sendC('lobby', {
