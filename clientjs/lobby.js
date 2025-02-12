@@ -58,9 +58,12 @@ function initLobby(status) {
 
     getLobbyList();
 
-    setInterval(() => {
+    setInterval(() => { // Page through the demo deck
       lobby.demoCounter++;
     }, DEMO_REEL_SPEED_MS);
+    setTimeout(() => { // Do an initial faster demo reel to show the user what the idea is
+      lobby.demoCounter++;
+    }, DEMO_REEL_SPEED_MS / 4);
   }
 }
 

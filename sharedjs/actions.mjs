@@ -468,6 +468,7 @@ const rawAction = {
   },
 
   junkCard(message) {
+    // TTODO Can't junk a card to restore a damaged card because pointer-events: none, and the card is grayed out. Maybe turn off Ready/Unready when targetMode is on? Otherwise part of the global pointer-events change
     if (onClient) {
       sendC('junkCard', message);
     } else {
