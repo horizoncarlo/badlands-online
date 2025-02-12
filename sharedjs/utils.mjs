@@ -28,6 +28,7 @@ const utils = {
   lobbies: new Map(), // Global lobby list (used on the server)
   lobbiesTimeout: new Map(), // Global list of cleanup timers for empty lobbies. key=gameId, value=setTimeout ref
   lobbyChat: [], // Global chat log for the lobby
+  players: new Map(), // Global player list, key is playerId, value is name
 
   getGameIdByPlayerId(playerId) {
     for (const loopLobby of utils.lobbies.values()) {
@@ -118,7 +119,7 @@ const utils = {
             ...lobby.observers,
           },
           timeLimit: lobby.timeLimit ?? 0,
-          players: lobby.players.map((player) => player.playerName), // Strip IDs and just send names
+          players: lobby.players.map((player) => utils.players.get(player.playerId) ?? player.playerName), // Strip IDs and just send names
         });
       });
     }

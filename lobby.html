@@ -35,8 +35,17 @@
       <aside>
         <!-- TTODO Changing name after joining a lobby is a bit jank - name doesn't update, you list your old name as your opponent, etc. -->
         <label>
-          Your Name
-          <input placeholder="Player Name" x-model="playerName" @change="savePlayerName()" class="default" />
+          <span>Your Name</span>
+          &nbsp;
+          <a @click="savePlayerName()"><small>Save</small>
+            <!--TTODO<template x-if="isSavingName"><span>✓</span></template>--></a>
+          <input
+            placeholder="Player Name"
+            x-model="playerName"
+            @keyup.enter="savePlayerName()"
+            class="default"
+            style="max-width: 200px"
+          />
         </label>
 
         <!-- Besides looking cool the demo deck reel has the advantage of preloading the cards -->

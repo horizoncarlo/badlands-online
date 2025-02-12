@@ -80,3 +80,7 @@ menu {
 .info-row {
   display: contents;
 }
+
+.name-wrap {
+  display: flex;
+}

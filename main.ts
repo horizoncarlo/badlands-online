@@ -57,7 +57,6 @@ const socketMap = new Map<string, WebSocketDetails[]>(); // Track which actual s
 const teardownMap = new Map<string, number | null>(); // Track teardown timer notifications, key=playerId and value=setTimeout ref
 const htmlComponentMap = new Map<string, string>();
 const jsComponentList = new Array<string>();
-const players = new Map<string, string>(); // key is playerId, value is name
 
 const handler = (req: Request) => {
   const url = new URL(req.url);
@@ -87,7 +86,7 @@ const handler = (req: Request) => {
         return false;
       }
 
-      players.set(newPlayerId, DEFAULT_PLAYER_NAME);
+      utils.players.set(newPlayerId, DEFAULT_PLAYER_NAME);
 
       // See if we're in a game
       const socketId = utils.getGameIdByPlayerId(newPlayerId) ?? lobbySocketId;
@@ -242,7 +241,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     console.log('RECEIVE (Lobby):', message);
 
     if (message.details.subtype === 'setName') {
-      players.set(message.playerId, message.details.playerName);
+      utils.players.set(message.playerId, message.details.playerName);
+      utils.refreshLobbyList(message);
     } else if (message.details.subtype === 'getLobbyList') {
       utils.refreshLobbyList(message, { justToPlayer: true });
 
@@ -298,7 +298,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
 
           lobbyToJoin.players.push({
             playerId: message.playerId,
-            playerName: players.get(message.playerId) ?? DEFAULT_PLAYER_NAME,
+            playerName: utils.players.get(message.playerId) ?? DEFAULT_PLAYER_NAME,
           });
 
           // Refresh the lobby list of all viewing parties
@@ -428,7 +428,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       // Otherwise create a default lobby and join it
       toSend.details.subtype = 'createJoinLobby';
       toSend.details.game = {
-        title: (players.get(message.playerId) ?? getDefaultQuickplayPrefix()) + ' Lobby',
+        title: (utils.players.get(message.playerId) ?? getDefaultQuickplayPrefix()) + ' Lobby',
       };
 
       return receiveServerWebsocketMessage(toSend);
@@ -436,7 +436,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       const toSend = { ...message };
       toSend.details.subtype = 'createJoinLobby';
       toSend.details.game = {
-        title: ((players.get(message.playerId) ?? '') + ' Lobby vs AI').trim(),
+        title: ((utils.players.get(message.playerId) ?? '') + ' Lobby vs AI').trim(),
         vsAI: true,
       };
 
