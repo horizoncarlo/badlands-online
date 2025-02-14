@@ -181,7 +181,7 @@
         <div class="slots opponent-camps">
           <template x-for="camp in getOpponentCamps()">
             <div class="opponent-camp">
-              <!-- TODO Better damage effect on opponent camps, currently with the built-in rotation the 'turn sideways for damage' style doesn't apply -->
+              <!-- TTODO Better damage effect on opponent camps, currently with the built-in rotation the 'turn sideways for damage' style doesn't apply -->
               <img
                 :id="`${targetModePrefix}${camp.id}`"
                 draggable="false"
@@ -325,7 +325,7 @@
               </div>
             </template>
 
-            <!-- TODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
+            <!-- TTODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
             <template x-for="card in getMyCards()">
               <div x-show="trayIsCards && myPlayerNum">
                 <img

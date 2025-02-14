@@ -273,7 +273,7 @@ const rawAction = {
 
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
     // Check if card is ready before trying to use a card ability (on both client and server)
-    // TODO General validation that we'll need to improve - in this case instead of trusting the client we'd use the card.id to check our server gs and use the unReady from that version
+    // TTODO General validation that we'll need to improve - in this case instead of trusting the client we'd use the card.id to check our server gs and use the unReady from that version
     if (message.details?.card?.unReady || message?.details?.card?.damage > 0) {
       if (onClient) {
         console.error('Card is not ready to be used');
@@ -420,7 +420,7 @@ const rawAction = {
         if (getGS(message).discardCardTimer) {
           clearTimeout(getGS(message).discardCardTimer);
         }
-        // TODO This manual sync batching won't be necessary when sync itself does similar
+        // TTODO This manual sync batching won't be necessary when sync itself does similar
         getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
           action.sync(message.playerId);
         }, 200);
@@ -1024,7 +1024,7 @@ const rawAction = {
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
     // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?). Might be easier to throttle these calls too so double calling doesn't matter (besides different params I guess...)
-    // TODO Need to throttle/batch syncs, for example junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
+    // TTODO Need to throttle/batch syncs, for example junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
 
     function internalSync(playerNum) {
       const playerId = playerIdOrNullForBoth ?? params?.gsMessage?.playerId;

@@ -94,7 +94,7 @@ const events = {
           });
         } else {
           action.doneTargets(); // This is to fire off the matching event to contine our codeQueue
-          action.sendError('Famine does nothing to player', { gsMessage: message }); // TODO Integrate player names
+          action.sendError('Famine does nothing to player', { gsMessage: message }); // TTODO Integrate player names here and across the app, look for player1/player2 usage in messages
         }
       }
     }

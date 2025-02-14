@@ -80,7 +80,7 @@ const abilities = {
   // if opponent has an event, damageCard
   doomsayer(message) {
     if (!onClient) {
-      // TODO When event system is done fix Doomsayer card to check if the opponent has an event in play. For now use plain damage
+      // TTODO When event system is done fix Doomsayer card to check if the opponent has an event in play. For now use plain damage
       // if (utils.opponentHasEvent(utils.getOppositePlayerId(message.playerId))) {
       action.damageCard(message, 'Select an unprotected card to damage with Doomsayer');
       // } else {

@@ -19,7 +19,7 @@ globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
 
 globalThis.DEBUG_NO_IDLE_TIMEOUT = false; // Debugging flag if we want to ignore idle timeout and not kick players, for testing
-globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
+globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 
 const utils = {
@@ -565,7 +565,7 @@ const utils = {
         return null;
       }
 
-      // TODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
+      // TTODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
       const reshuffledDeck = utils.shuffleDeck(cachedGS.discard);
       cachedGS.deck = reshuffledDeck;
       cachedGS.deckCount = cachedGS.deck.length;
@@ -759,7 +759,7 @@ const ai = {
   },
 
   checkAndHandleAITurn(message, params) { // params.fromServerRequest: boolean, params.isFirstTurn: boolean true if this is the first turn
-    // TODO Better AI at some magical point in the future?
+    // TODO Better opponent AI at some magical point in the future?
     if (ai.isAI(message.playerId)) {
       const aiData = utils.getPlayerDataById(message.playerId);
 

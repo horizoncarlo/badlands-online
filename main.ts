@@ -112,7 +112,7 @@ const handler = (req: Request) => {
     return response;
   } else if (filePath === '/lobby.html' || filePath === '/game.html') {
     // Get our main HTML to return, but replace any templating variables first
-    // TODO Even though this is a fast process we should do some aggressive long term caching of our read HTML files - only dynamic part after initial header/component setup is PLAYER_ID (not even CLIENT_WEBSOCKET_ADDRESS which doesn't change)
+    // TTODO Even though this is a fast process we should do some aggressive long term caching of our read HTML files - only dynamic part after initial header/component setup is PLAYER_ID (not even CLIENT_WEBSOCKET_ADDRESS which doesn't change)
     let html = Deno.readTextFileSync('.' + filePath);
 
     // Common header file shared between pages
@@ -196,7 +196,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
     return;
   }
 
-  // TODO Be consistent between this and the client-side receive message and just use switch statements in both
+  // TTODO Be consistent between this and the client-side receive message and just use switch statements in both
   if (message.type === 'ping') {
     sendS('pong', message, null, message.playerId);
   } else if (message.type === 'teardown') {
@@ -575,7 +575,7 @@ function setupComponents() {
 }
 setupComponents();
 
-// TODO TEMPORARY Some default lobbies to populate the list
+// TTODO TEMPORARY Some default lobbies to populate the list
 createGame({ title: 'Test Game 1' });
 createGame({ title: 'Private Game', password: 'test' });
 
