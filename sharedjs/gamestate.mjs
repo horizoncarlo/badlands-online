@@ -65,7 +65,6 @@ export function createGameState(gameId) {
       highGround: false, // Whether High Ground was played this turn or not
     },
     chat: [],
-    discardCardTimer: null, // To prevent multiple discards from syncing individually
     pendingTargetAction: null, // Clone of a message that initiated a targetMode
     pendingTargetCancellable: true, // Determine if we allow cancelTarget to the pendingTargetAction
   };

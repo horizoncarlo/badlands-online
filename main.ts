@@ -59,6 +59,7 @@ const socketMap = new Map<string, WebSocketDetails[]>(); // Track which actual s
 const teardownMap = new Map<string, number | null>(); // Track teardown timer notifications, key=playerId and value=setTimeout ref
 const htmlComponentMap = new Map<string, string>();
 const jsComponentList = new Array<string>();
+const cachedFile = new Map<string, string>(); // Store read text files. key is filename, value is content
 
 const handler = (req: Request) => {
   const url = new URL(req.url);
@@ -112,32 +113,9 @@ const handler = (req: Request) => {
     return response;
   } else if (filePath === '/lobby.html' || filePath === '/game.html') {
     // Get our main HTML to return, but replace any templating variables first
-    // TTODO Even though this is a fast process we should do some aggressive long term caching of our read HTML files - only dynamic part after initial header/component setup is PLAYER_ID (not even CLIENT_WEBSOCKET_ADDRESS which doesn't change)
-    let html = Deno.readTextFileSync('.' + filePath);
-
-    // Common header file shared between pages
-    if (html.includes(TEMPLATE_HEADER)) {
-      html = html.replaceAll(TEMPLATE_HEADER, Deno.readTextFileSync('./includes/header.html'));
-    }
-
+    let html = readCachedPage('.' + filePath);
     html = html.replaceAll('${PLAYER_ID}', uuidv4());
     html = html.replaceAll('${CLIENT_WEBSOCKET_ADDRESS}', CLIENT_WEBSOCKET_ADDRESS);
-
-    // Replace any components we've read from files and can find tags for
-    if (htmlComponentMap.size > 0) {
-      htmlComponentMap.forEach((value, key) => {
-        html = html.replaceAll(key, value);
-      });
-    }
-
-    if (jsComponentList.length > 0) {
-      let combinedJS = '';
-      for (let i = 0; i < jsComponentList.length; i++) {
-        combinedJS += jsComponentList[i];
-      }
-
-      html = html.replaceAll(TEMPLATE_COMPONENTJS, combinedJS);
-    }
 
     return new Response(html, {
       headers: { 'Content-Type': 'text/html' },
@@ -192,60 +170,94 @@ const sendS = (type: string, messageForGs: any, messageDetails?: any, optionalGr
 };
 
 const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing for receiving Websocket messages once we have a more realistic idea of our incoming format
-  if (!message || !message.type) {
+  if (!message?.type) {
     return;
   }
 
-  // TTODO Be consistent between this and the client-side receive message and just use switch statements in both
-  if (message.type === 'ping') {
-    sendS('pong', message, null, message.playerId);
-  } else if (message.type === 'teardown') {
-    const playerId = message.playerId;
+  switch (message.type) {
+    case 'lobby':
+      handleLobbyWebsocketMessage(message);
+      break;
+    case 'ping':
+      sendS('pong', message, null, message.playerId);
+      break;
+    case 'teardown': {
+      const playerId = message.playerId;
 
-    if (playerId) {
-      const gameId = utils.getGameIdByPlayerId(playerId) ?? lobbySocketId;
+      if (playerId) {
+        const gameId = utils.getGameIdByPlayerId(playerId) ?? lobbySocketId;
 
-      // Notify the opponent about the potential connection problems
-      // This would be a Websocket that closes - they might rejoin, but if they don't the normal idle timeout will handle it
-      const teardownDetails = teardownMap.get(playerId);
-      if (teardownDetails) {
-        clearTimeout(teardownDetails);
-        teardownMap.delete(playerId);
+        // Notify the opponent about the potential connection problems
+        // This would be a Websocket that closes - they might rejoin, but if they don't the normal idle timeout will handle it
+        const teardownDetails = teardownMap.get(playerId);
+        if (teardownDetails) {
+          clearTimeout(teardownDetails);
+          teardownMap.delete(playerId);
+        }
+
+        if (utils.lobbies.get(gameId)?.started && message.details.checkConnection) {
+          const timeoutRef = setTimeout(() => {
+            // Check if we have a socket, if not then we never reconnected and should show the connection problem warning
+            const ourPlayerId = socketMap.get(gameId).find((details) => playerId === details.playerId);
+            const gsPlayerId = socketMap.get(gameId).find((details) => details.playerId); // Opponent who we want to leverage to send an error
+            if (gsPlayerId && !ourPlayerId) {
+              action.sendError('Player having connection problems', { gsMessage: { playerId: gsPlayerId.playerId } });
+            }
+          }, IDLE_RULES.teardownAfter);
+          teardownMap.set(playerId, timeoutRef);
+        }
+
+        const foundIndex = socketMap.get(gameId)?.findIndex((socketDetails: WebSocketDetails) =>
+          playerId === socketDetails.playerId
+        );
+
+        if (typeof foundIndex === 'number' && foundIndex !== -1) {
+          socketMap.get(gameId)[foundIndex]?.socket?.close(WS_NORMAL_CLOSE_CODE);
+          socketMap.get(gameId).splice(foundIndex, 1);
+        }
       }
-
-      if (utils.lobbies.get(gameId)?.started && message.details.checkConnection) {
-        const timeoutRef = setTimeout(() => {
-          // Check if we have a socket, if not then we never reconnected and should show the connection problem warning
-          const ourPlayerId = socketMap.get(gameId).find((details) => playerId === details.playerId);
-          const gsPlayerId = socketMap.get(gameId).find((details) => details.playerId); // Opponent who we want to leverage to send an error
-          if (gsPlayerId && !ourPlayerId) {
-            action.sendError('Player having connection problems', { gsMessage: { playerId: gsPlayerId.playerId } });
-          }
-        }, IDLE_RULES.teardownAfter);
-        teardownMap.set(playerId, timeoutRef);
-      }
-
-      const foundIndex = socketMap.get(gameId)?.findIndex((socketDetails: WebSocketDetails) =>
-        playerId === socketDetails.playerId
-      );
-
-      if (typeof foundIndex === 'number' && foundIndex !== -1) {
-        socketMap.get(gameId)[foundIndex]?.socket?.close(WS_NORMAL_CLOSE_CODE);
-        socketMap.get(gameId).splice(foundIndex, 1);
-      }
+      break;
     }
-  } else if (message.type === 'lobby') {
-    if (!message.details.subtype) {
-      console.error('Received lobby message but no subtype');
-      return;
+    default: {
+      if (
+        message.type !== 'chat' &&
+        message.type !== 'dumpDebug' &&
+        (!message.playerId || !utils.hasPlayerDataById(message.playerId))
+      ) {
+        // TODO Could also key off the getGS(message).gameStarted boolean?
+        action.sendError('Invalid player data, join a game first', { gsMessage: message }, message.playerId);
+        return;
+      }
+
+      console.log('RECEIVE:', message);
+
+      const possibleFunc = action[message.type];
+      if (typeof possibleFunc === 'function') {
+        possibleFunc(message);
+      } else if (typeof abilities[message.type] === 'function') {
+        abilities[message.type](message);
+      } else {
+        action.sendError(`Invalid action ${message.type}`, { gsMessage: message }, message.playerId);
+      }
+      break;
     }
+  }
+};
 
-    console.log('RECEIVE (Lobby):', message);
+const handleLobbyWebsocketMessage = (message: any) => {
+  if (!message?.details?.subtype) {
+    console.error('Received lobby message but no subtype');
+    return;
+  }
 
-    if (message.details.subtype === 'setName') {
+  console.log('RECEIVE (Lobby):', message);
+
+  switch (message.details.subtype) {
+    case 'setName':
       utils.players.set(message.playerId, message.details.playerName);
       utils.refreshLobbyList(message);
-    } else if (message.details.subtype === 'getLobbyList') {
+      break;
+    case 'getLobbyList': {
       utils.refreshLobbyList(message, { justToPlayer: true });
 
       // Also give a "demo deck" to the player which will show some of the cards
@@ -276,7 +288,9 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
         utils.lobbyChat.length,
       );
       sendS('lobby', message, { subtype: 'chatCatchup', chats: toSend }, message.playerId);
-    } else if (message.details.subtype === 'joinLobby') {
+      break;
+    }
+    case 'joinLobby':
       if (
         message.playerId && message.details.gameId && utils.lobbies.get(message.details.gameId)
       ) {
@@ -319,9 +333,11 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           sendS('lobby', message, toSend, message.playerId);
         }
       }
-    } else if (message.details.subtype === 'leaveLobby') {
+      break;
+    case 'leaveLobby':
       utils.leaveAllLobbies(message);
-    } else if (message.details.subtype === 'markReady') {
+      break;
+    case 'markReady': {
       const lobbyObj = utils.lobbies.get(message.details.gameId);
       const foundPlayer = lobbyObj?.players.find((player) => player.playerId === message.playerId);
       if (foundPlayer && lobbyObj) {
@@ -407,7 +423,9 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           }
         }
       }
-    } else if (message.details.subtype === 'quickplayLobby') {
+      break;
+    }
+    case 'quickplayLobby': {
       const toSend = { ...message };
       // See if there's an existing non-started non-password lobby we can just join
       for (const loopLobby of utils.lobbies.values()) {
@@ -434,7 +452,8 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       };
 
       return receiveServerWebsocketMessage(toSend);
-    } else if (message.details.subtype === 'testGame') {
+    }
+    case 'testGame': {
       const toSend = { ...message };
       toSend.details.subtype = 'createJoinLobby';
       toSend.details.game = {
@@ -443,11 +462,13 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
       };
 
       return receiveServerWebsocketMessage(toSend);
-    } else if (message.details.subtype === 'createJoinLobby') {
+    }
+    case 'createJoinLobby':
       if (message.details.game?.title) {
         createGame({ ...message.details.game }, { joinAfter: message });
       }
-    } else if (message.details.subtype === 'gamePageLoaded') {
+      break;
+    case 'gamePageLoaded': {
       const gameObj = utils.lobbies.get(utils.getGameIdByPlayerId(message.playerId));
 
       // If we don't have a game setup, go back to the lobby
@@ -480,31 +501,11 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
           },
         }, { fromServerRequest: true });
       }
-    } else {
+      break;
+    }
+    default:
       console.error('Received lobby message but unknown subtype=' + message.details.subtype);
-    }
-    // Non-lobby, in-game messages
-  } else {
-    if (
-      message.type !== 'chat' &&
-      message.type !== 'dumpDebug' &&
-      (!message.playerId || !utils.hasPlayerDataById(message.playerId))
-    ) {
-      // TODO Could also key off the getGS(message).gameStarted boolean?
-      action.sendError('Invalid player data, join a game first', { gsMessage: message }, message.playerId);
-      return;
-    }
-
-    console.log('RECEIVE:', message);
-
-    const possibleFunc = action[message.type];
-    if (typeof possibleFunc === 'function') {
-      possibleFunc(message);
-    } else if (typeof abilities[message.type] === 'function') {
-      abilities[message.type](message);
-    } else {
-      action.sendError(`Invalid action ${message.type}`, { gsMessage: message }, message.playerId);
-    }
+      break;
   }
 };
 
@@ -559,6 +560,41 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
 function getDefaultQuickplayPrefix() {
   const prefix = String(Date.now());
   return prefix.substring(prefix.length - 4);
+}
+
+function readCachedPage(fileName) {
+  let fileContents;
+  if (fileName && cachedFile.has(fileName)) {
+    fileContents = cachedFile.get(fileName);
+  }
+
+  fileContents = Deno.readTextFileSync(fileName);
+  cachedFile.set(fileName, fileContents);
+
+  if (fileContents) {
+    // Common header file shared between pages
+    if (fileContents.includes(TEMPLATE_HEADER)) {
+      fileContents = fileContents.replaceAll(TEMPLATE_HEADER, readCachedPage('./includes/header.html'));
+    }
+
+    // Replace any components we've read from files and can find tags for
+    if (htmlComponentMap.size > 0) {
+      htmlComponentMap.forEach((value, key) => {
+        fileContents = fileContents.replaceAll(key, value);
+      });
+    }
+
+    if (jsComponentList.length > 0) {
+      let combinedJS = '';
+      for (let i = 0; i < jsComponentList.length; i++) {
+        combinedJS += jsComponentList[i];
+      }
+
+      fileContents = fileContents.replaceAll(TEMPLATE_COMPONENTJS, combinedJS);
+    }
+  }
+
+  return fileContents;
 }
 
 // Read our components/ in preparation for replacing in the HTML

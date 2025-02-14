@@ -325,7 +325,12 @@
               </div>
             </template>
 
-            <!-- TTODO Space properly when no cards are in hand, or put a shrug emoji or something as a filler -->
+            <template x-if="trayIsCards && !getMyCards()?.length">
+              <div class="centered">
+                <small>No Cards</small>
+                <p class="larger monospace">¯\_(ツ)_/¯</p>
+              </div>
+            </template>
             <template x-for="card in getMyCards()">
               <div x-show="trayIsCards && myPlayerNum">
                 <img

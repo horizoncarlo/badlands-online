@@ -5,48 +5,16 @@ let pingPongIntervaler;
 let reconnectAttempts = 0;
 
 const receiveClientWebsocketMessage = (message) => {
-  if (!message || !message.type || message.type === 'pong') {
+  if (!message.type || message.type === 'pong') {
     return;
   }
 
   console.log('Received client message', JSON.parse(JSON.stringify(message)));
 
+  // TODO This and the main.ts `switch (message.type)` could just call a matching function directly, similar to how action[type] behaves
   switch (message.type) {
     case 'lobby': {
-      if (!message.details.subtype) {
-        return;
-      }
-
-      if (message.details.subtype === 'giveLobbyList') {
-        lobby.lobbies = message.details.lobbies;
-      } else if (message.details.subtype === 'joinedLobby') {
-        if (message.details.gameId) {
-          const toJoin = lobby.lobbies.find((loopLobby) => loopLobby.gameId === message.details.gameId);
-          if (toJoin) {
-            lobby.joinedId = toJoin.gameId;
-          }
-        }
-
-        // Also auto-ready if we're vs AI
-        if (message.details.vsAI) {
-          markReady({ checked: true });
-        }
-      } else if (message.details.subtype === 'giveDemoDeck') {
-        lobby.demoDeck = message.details.deck;
-      } else if (message.details.subtype === 'chatCatchup') {
-        // Get a big list of chat messages to catch up from in the lobby
-        if (typeof ui === 'undefined') {
-          message.details.chats?.forEach((text) => {
-            lobby.chat.push(text);
-          });
-
-          scrollChatToBottom();
-        }
-      } else if (message.details.subtype === 'wrongPassword') {
-        alert('Lobby password is incorrect');
-        lobby.enteredPassword = '';
-      }
-
+      handleLobbyWebsocketMessage(message);
       break;
     }
     case 'nav': {
@@ -179,6 +147,48 @@ const receiveClientWebsocketMessage = (message) => {
       break;
     case 'endScreen':
       showEndScreenDialog(message);
+      break;
+  }
+};
+
+const handleLobbyWebsocketMessage = (message) => {
+  if (!message.details?.subtype) {
+    return;
+  }
+
+  switch (message.details.subtype) {
+    case 'giveLobbyList':
+      lobby.lobbies = message.details.lobbies;
+      break;
+    case 'joinedLobby':
+      if (message.details.gameId) {
+        const toJoin = lobby.lobbies.find((loopLobby) => loopLobby.gameId === message.details.gameId);
+        if (toJoin) {
+          lobby.joinedId = toJoin.gameId;
+        }
+      }
+
+      // Also auto-ready if we're vs AI
+      if (message.details.vsAI) {
+        markReady({ checked: true });
+      }
+      break;
+    case 'giveDemoDeck':
+      lobby.demoDeck = message.details.deck;
+      break;
+    case 'chatCatchup':
+      // Get a big list of chat messages to catch up from in the lobby
+      if (typeof ui === 'undefined') {
+        message.details.chats?.forEach((text) => {
+          lobby.chat.push(text);
+        });
+
+        scrollChatToBottom();
+      }
+      break;
+    case 'wrongPassword':
+      alert('Lobby password is incorrect');
+      lobby.enteredPassword = '';
       break;
   }
 };

@@ -273,8 +273,8 @@ const rawAction = {
 
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
     // Check if card is ready before trying to use a card ability (on both client and server)
-    // TTODO General validation that we'll need to improve - in this case instead of trusting the client we'd use the card.id to check our server gs and use the unReady from that version
-    if (message.details?.card?.unReady || message?.details?.card?.damage > 0) {
+    const checkCardReturn = utils.findCardInGame(message, message.details?.card);
+    if (!checkCardReturn?.cardObj || checkCardReturn.cardObj.unReady || checkCardReturn.cardObj.damage > 0) {
       if (onClient) {
         console.error('Card is not ready to be used');
       } else {
@@ -309,7 +309,7 @@ const rawAction = {
       }
 
       // Check for water validity before continuing
-      const abilityObj = message.details.card.abilities[chosenAbilityIndex];
+      const abilityObj = checkCardReturn.cardObj.abilities?.[chosenAbilityIndex];
       if (abilityObj.cost > utils.getPlayerDataById(message.playerId).waterCount) {
         action.sendError('Not enough Water to use that ability', { gsMessage: message }, message.playerId);
         return;
@@ -416,14 +416,7 @@ const rawAction = {
       const foundIndex = cards.findIndex((card) => card.id === message.details.card.id);
       if (foundIndex !== -1) {
         getGS(message).discard.push(cards.splice(foundIndex, 1)[0]);
-
-        if (getGS(message).discardCardTimer) {
-          clearTimeout(getGS(message).discardCardTimer);
-        }
-        // TTODO This manual sync batching won't be necessary when sync itself does similar
-        getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
-          action.sync(message.playerId);
-        }, 200);
+        action.sync(message.playerId);
       }
     }
   },
@@ -1023,8 +1016,16 @@ const rawAction = {
       a card or destroying a camp)
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
-    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?). Might be easier to throttle these calls too so double calling doesn't matter (besides different params I guess...)
-    // TTODO Need to throttle/batch syncs, for example junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
+    // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?)
+    /** TTODO Need to throttle/batch syncs, for example discarding multiple cards or junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
+        if (getGS(message).discardCardTimer) {
+          clearTimeout(getGS(message).discardCardTimer);
+        }
+        // TTODO This manual sync batching won't be necessary when sync itself does similar
+        getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
+          action.sync(message.playerId);
+        }, 200);
+     */
 
     function internalSync(playerNum) {
       const playerId = playerIdOrNullForBoth ?? params?.gsMessage?.playerId;
@@ -1047,7 +1048,6 @@ const rawAction = {
       delete updatedGs.campDeck;
       delete updatedGs.deck;
       delete updatedGs.discard;
-      delete updatedGs.discardCardTimer;
       delete updatedGs.turn.startTime;
       delete updatedGs.turn.interactionTime;
       delete updatedGs.punks;
