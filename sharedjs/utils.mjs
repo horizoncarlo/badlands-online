@@ -465,7 +465,7 @@ const utils = {
       action.sendError('Game is a tie! Lobby closing soon...', { gsMessage: message });
       sendS('endScreen', message, { type: 'tie' }, cachedGS.player1.playerId);
       sendS('endScreen', message, { type: 'tie' }, cachedGS.player2.playerId);
-      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId)}" lobby and was a tie!`;
+      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId)}" and was a tie!`;
     } // Check both sets of camps for a winner or loser
     else {
       let winnerId = null;
@@ -486,7 +486,7 @@ const utils = {
       action.sendError(winnerPlayerNum + ' won. Lobby closing soon...', { gsMessage: message });
       sendS('endScreen', message, { type: 'win' }, winnerId);
       sendS('endScreen', message, { type: 'lose' }, loserId);
-      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId).title}" lobby and ${winnerPlayerNum} won against ${
+      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId).title}" and ${winnerPlayerNum} won against ${
         utils.getOppositePlayerNum(winnerPlayerNum)
       }`;
     }
@@ -496,7 +496,7 @@ const utils = {
         action.chat({
           details: {
             text: lobbyText,
-            sender: '',
+            sender: 'lobby',
           },
         }, { fromServerRequest: true });
       }, 5000);

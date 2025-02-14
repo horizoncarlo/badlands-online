@@ -673,6 +673,7 @@ const rawAction = {
 
         action.targetMode(message, {
           help: helpTextOverride ?? 'Select an unprotected person or camp to damage',
+          cursor: 'damageCard',
           colorType: 'danger',
         });
       }

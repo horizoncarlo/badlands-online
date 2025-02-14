@@ -361,7 +361,7 @@ const abilities = {
           ...getGS(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
             String(slot.content.id)
           ),
-          ...getGS(message)[opponentNum].camps.map((camp) => String(camp.id)),
+          ...getGS(message)[opponentNum].camps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id)),
         ];
 
         action.targetMode(message, {
