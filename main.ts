@@ -21,9 +21,11 @@ type PlayerObj = {
 type GameLobby = {
   gameId: string;
   started?: boolean;
+  createdDate: Date;
   idleCheckInterval?: number | null;
   title: string;
   password?: string;
+  kickIdle?: boolean;
   observers: { // TODO Implement observers to the game (and lobby)
     allow: boolean;
     seeAll: boolean;
@@ -44,8 +46,8 @@ const DEFAULT_PLAYER_NAME = 'Anonymous';
 const TEMPLATE_COMPONENTJS = '<component-js />';
 const TEMPLATE_HEADER = '<include-header />';
 const COMPONENT_DIRECTORY = './backendjs/components/';
-const LOBBY_CHAT_CATCHUP_COUNT = 300;
-const IDLE_RULES = {
+const LOBBY_CHAT_CATCHUP_COUNT = 300; // Max number of chat messages to display when first joining the lobby
+const IDLE_RULES = { // All amounts in milliseconds
   intervalDelay: 15 * 1000, // Check for idleness every 15 seconds
   warningAfter: 60 * 2 * 1000, // Default warning after 2 minutes
   kickAfter: 35 * 1000, // Kick after an additional ~30 seconds from the warning
@@ -377,7 +379,7 @@ const receiveServerWebsocketMessage = (message: any) => { // TODO Better typing 
             // Game is set to start
             lobbyObj.started = true;
 
-            if (!DEBUG_NO_IDLE_TIMEOUT) {
+            if (!lobbyObj.kickIdle || !DEBUG_NO_IDLE_TIMEOUT) {
               // Determine if a player is idling too long on their turn
               let errorSent = false;
               lobbyObj.idleCheckInterval = setInterval(() => {
@@ -531,8 +533,10 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
 
   utils.lobbies.set(newGameId, {
     gameId: newGameId,
+    createdDate: new Date(),
     title: gameParams.title ?? 'Unnamed Lobby',
     password: gameParams.password,
+    kickIdle: gameParams.kickIdle ?? true,
     observers: {
       allow: gameParams.observers?.allow ?? false,
       seeAll: gameParams.observers?.seeAll ?? false,

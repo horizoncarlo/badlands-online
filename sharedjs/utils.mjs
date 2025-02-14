@@ -113,8 +113,10 @@ const utils = {
       utils.lobbies.forEach((lobby, key) => {
         toReturn.push({
           gameId: key,
+          createdDate: lobby.createdDate,
           title: lobby.title,
           hasPassword: typeof lobby.password === 'string',
+          kickIdle: lobby.kickIdle,
           observers: {
             ...lobby.observers,
           },
