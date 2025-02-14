@@ -65,6 +65,11 @@ export function createGameState(gameId) {
       highGround: false, // Whether High Ground was played this turn or not
     },
     chat: [],
+    syncBatch: { // Used for tracking the batching of sync calls
+      timer: null,
+      lastPlayerId: null,
+      lastParams: null,
+    },
     pendingTargetAction: null, // Clone of a message that initiated a targetMode
     pendingTargetCancellable: true, // Determine if we allow cancelTarget to the pendingTargetAction
   };

@@ -1017,15 +1017,6 @@ const rawAction = {
      A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
     */
     // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?)
-    /** TTODO Need to throttle/batch syncs, for example discarding multiple cards or junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
-        if (getGS(message).discardCardTimer) {
-          clearTimeout(getGS(message).discardCardTimer);
-        }
-        // TTODO This manual sync batching won't be necessary when sync itself does similar
-        getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
-          action.sync(message.playerId);
-        }, 200);
-     */
 
     function internalSync(playerNum) {
       const playerId = playerIdOrNullForBoth ?? params?.gsMessage?.playerId;
@@ -1048,6 +1039,7 @@ const rawAction = {
       delete updatedGs.campDeck;
       delete updatedGs.deck;
       delete updatedGs.discard;
+      delete updatedGs.syncBatch;
       delete updatedGs.turn.startTime;
       delete updatedGs.turn.interactionTime;
       delete updatedGs.punks;
@@ -1072,13 +1064,52 @@ const rawAction = {
       }, currentPlayerId);
     }
 
-    // Request a sync to both if no ID was specified, as per the wordily named variable implies
-    if (!playerIdOrNullForBoth) {
-      internalSync('player1');
-      internalSync('player2');
-    } else {
-      internalSync(utils.getPlayerNumById(playerIdOrNullForBoth));
+    const cachedGs = getGS(playerIdOrNullForBoth ?? params?.gsMessage?.playerId);
+    // TTODO QUIDEL - Close, but change batching to be by playerId, so that going to player1 doesn't clear a sync to player2
+    console.log('############## REQUEST SYNC', cachedGs !== undefined, playerIdOrNullForBoth, params);
+    if (cachedGs) {
+      // Check if our existing syncBatch matches our current request
+      // If it does, clear the old timer and start a new one
+      // Otherwise leave the old one and start a new timer
+      if (cachedGs.syncBatch.timer) {
+        if (
+          (!cachedGs.syncBatch.lastPlayerId === !playerIdOrNullForBoth ||
+            cachedGs.syncBatch.lastPlayerId === playerIdOrNullForBoth) &&
+          (!cachedGs.syncBatch.lastParams === !params || cachedGs.syncBatch.lastParams === params)
+        ) {
+          console.error('############################## Clear old sync timeout');
+          clearTimeout(cachedGs.syncBatch.timer);
+          cachedGs.syncBatch.timer = null;
+        } else {
+          console.error('############################## Have old timeout but NOT clearing');
+        }
+      }
+
+      cachedGs.syncBatch.lastPlayerId = playerIdOrNullForBoth;
+      cachedGs.syncBatch.lastParams = params;
+      cachedGs.syncBatch.timer = setTimeout(() => {
+        console.error('%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Fire actual sync', playerIdOrNullForBoth);
+        // Request a sync to both if no ID was specified, as per the wordily named variable implies
+        if (!playerIdOrNullForBoth) {
+          internalSync('player1');
+          internalSync('player2');
+        } else {
+          internalSync(utils.getPlayerNumById(playerIdOrNullForBoth));
+        }
+      }, 250);
     }
+
+    console.log('############## End of sync func');
+
+    /** TTODO Need to throttle/batch syncs, for example discarding multiple cards or junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
+        if (getGS(message).discardCardTimer) {
+          clearTimeout(getGS(message).discardCardTimer);
+        }
+        // TTODO This manual sync batching won't be necessary when sync itself does similar
+        getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
+          action.sync(message.playerId);
+        }, 200);
+     */
   },
 
   wait() {
