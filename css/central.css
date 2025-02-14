@@ -44,7 +44,7 @@ body:has(dialog[open]) {
   /* TODO Feels weird or not to slide the move? Might be browser dependent as Firefox does it own d&d animation: transition: top 100ms, left 100ms; */
 }
 
-.center {
+.mcenter {
   margin-left: auto;
   margin-right: auto;
 }
@@ -67,20 +67,25 @@ menu {
   margin: 0;
 }
 
-.lobby-wrap {
-  padding: 20px;
+.fleft {
+  float: left;
 }
 
-.lobby-info {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
+.fright {
+  float: right;
 }
 
-.info-row {
-  display: contents;
+.bright-hover:hover {
+  filter: brightness(120%);
 }
 
-.name-wrap {
-  display: flex;
+.card-friendly:hover {
+  box-shadow: 0 0 20px var(--success);
+}
+.card-opponent:hover {
+  /*
+  TODO Need to flip opponent cards around so we can read them, but this messes up the rest of the mouseover animation
+  transform: rotate(180deg) !important;
+  */
+  box-shadow: 0 0 20px var(--danger);
 }

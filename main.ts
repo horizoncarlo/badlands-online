@@ -30,7 +30,7 @@ type GameLobby = {
     allow: boolean;
     seeAll: boolean;
   };
-  timeLimit?: number; // TODO Implement timeLimit functionality in the actual game
+  timeLimit?: number; // TTODO Implement timeLimit functionality in the actual game
   players: PlayerObj[];
   gs: any;
 };

@@ -6,7 +6,7 @@
     <h2><span x-text="utils.cardImgToName(componentData.abilityCard?.img)"></span> - Choose the ability to use</h2>
   </header>
   <template x-if="componentData.abilityCard">
-    <div class="center" @keyup.window="handleKeyup($event)">
+    <div class="mcenter" @keyup.window="handleKeyup($event)">
       <template x-if="componentData.abilityCard?.img">
         <img
           :alt="componentData.abilityCard.img"

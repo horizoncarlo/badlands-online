@@ -1,0 +1,38 @@
+.lobby-wrap {
+  padding: 20px;
+}
+
+.lobby-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+
+.info-row {
+  display: contents;
+}
+
+.name-wrap {
+  max-width: 200px;
+}
+
+.create-form {
+  max-width: 500px;
+}
+
+.ready-wrap {
+  font-size: 2rem;
+}
+
+.ready-wrap input[type='checkbox'] {
+  transform: scale(1.5);
+}
+
+.created-note {
+  font-size: 0.75rem;
+  font-weight: normal;
+}
+
+.indent {
+  margin-left: 20px;
+}

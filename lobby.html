@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<!-- TODO Bit torn on forcing dark mode, but the app just looks so much better -->
 <html lang="en" data-color-scheme="dark">
-  <!-- TODO Bit torn on forcing dark mode, but the app just looks so much better -->
-  <include-header />
+  <head>
+    <include-header />
+
+    <link rel="stylesheet" href="./css/lobby.css" />
+  </head>
   <body x-data="lobby">
     <div class="lobby-wrap">
       <details>
@@ -41,23 +45,22 @@
             placeholder="Player Name"
             x-model="playerName"
             @keyup.enter="savePlayerName()"
-            class="default"
-            style="max-width: 200px"
+            class="default name-wrap"
           />
         </label>
 
         <!-- Besides looking cool the demo deck reel has the advantage of preloading the cards -->
         <template x-if="demoDeck?.length">
-          <div style="text-align: center" @click="demoCounter++">
+          <div class="centered" @click="demoCounter++">
             <img :src="getDemoCard(demoCounter)" class="bright-hover card-friendly" />
           </div>
         </template>
       </aside>
 
       <fieldset class="bd-active">
-        <legend class="active">Lobbies</legend>
+        <legend class="active">Lobbies <span x-text="`(${lobbies?.length})`"></span></legend>
 
-        <p style="text-align: center">
+        <p class="centered">
           <button
             @click="clickQuickplay()"
             :disabled="(joinedId || readying || creating)"
@@ -97,8 +100,8 @@
             </template>
 
             <template x-if="!readying">
-              <label class="success" style="font-size: 2rem">
-                <input type="checkbox" @click="markReady($el)" style="transform: scale(1.5)">
+              <label class="success ready-wrap">
+                <input type="checkbox" @click="markReady($el)">
                 I'm Ready
               </label>
             </template>
@@ -119,15 +122,15 @@
           <template x-for="(currentLobby, index) in lobbies">
             <article>
               <header>
-                <h2 style="float: left">
+                <h2 class="fleft">
                   <span x-text="`${index+1}. ${currentLobby.title}`"></span>
                   <template x-if="currentLobby.hasPassword">
                     <span>🔒</span>
                   </template>
                 </h2>
 
-                <div style="float: right">
-                  <span style="font-size: 0.75rem; font-weight: normal" x-text="getCreatedNote(currentLobby)"></span>
+                <div class="fright">
+                  <span class="created-note" x-text="getCreatedNote(currentLobby)"></span>
                   <template x-if="!readying">
                     <button
                       @click="clickLobby(currentLobby)"
@@ -185,7 +188,7 @@
         </form>
 
         <template x-if="!joinedId && !readying && creating">
-          <div style="max-width: 500px">
+          <div class="create-form">
             <form @submit.prevent="submitCustomGame()">
               <label>
                 &nbsp;Title
@@ -215,7 +218,7 @@
               </label>
 
               <template x-if="createForm.observers.allow">
-                <label style="margin-left: 20px">
+                <label class="indent">
                   See All
                   <input x-model="createForm.observers.seeAll" type="checkbox" />
                   <small>(hand of cards, etc.)</small>
@@ -236,7 +239,6 @@
         <chat-log />
       </template>
 
-      <!-- TTODO Clean up inline styles here -->
       <!-- TTODO Win/loss screen and proper end of game (show stats, return to lobby, etc.) -->
     </div>
 

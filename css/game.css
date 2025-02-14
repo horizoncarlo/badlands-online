@@ -162,24 +162,9 @@
   padding: var(--card-padding);
 }
 
-.bright-hover:hover {
-  filter: brightness(120%);
-}
-
 .camp-choice:hover,
 .card:hover {
   box-shadow: 0 0 20px var(--accent);
-}
-
-.card-friendly:hover {
-  box-shadow: 0 0 20px var(--success);
-}
-.card-opponent:hover {
-  /*
-  TODO Need to flip opponent cards around so we can read them, but this messes up the rest of the mouseover animation
-  transform: rotate(180deg) !important;
-  */
-  box-shadow: 0 0 20px var(--danger);
 }
 
 .card:hover {
