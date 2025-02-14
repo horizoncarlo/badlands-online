@@ -723,6 +723,9 @@ const rawAction = {
           }
         } else {
           foundRes.cardObj.isDestroyed = true;
+
+          // Check if this was the last camp and someone won/lost
+          utils.checkWinLoss(message);
         }
 
         // Check if we're going to destroy a Punk put the actual card back on top of the deck

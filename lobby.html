@@ -130,7 +130,11 @@
                 </h2>
 
                 <div class="fright">
-                  <span class="created-note" x-text="getCreatedNote(currentLobby)"></span>
+                  <span
+                    class="created-note"
+                    x-text="getCreatedNote(currentLobby)"
+                    :title="new Date(currentLobby.createdDate).toLocaleString()"
+                  ></span>
                   <template x-if="!readying">
                     <button
                       @click="clickLobby(currentLobby)"
@@ -238,8 +242,6 @@
       <template x-if="!readying">
         <chat-log />
       </template>
-
-      <!-- TTODO Win/loss screen and proper end of game (show stats, return to lobby, etc.) -->
     </div>
 
     <script src="./clientjs/lobby.js"></script>

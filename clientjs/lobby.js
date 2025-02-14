@@ -184,6 +184,8 @@ function getCreatedNote(lobbyObj) {
   const minutesAgo = (Date.now() - new Date(lobbyObj.createdDate).getTime()) / 1000 / 60;
   if (minutesAgo < 1) {
     return 'Created just now';
+  } else if (minutesAgo >= 60) {
+    return 'Created ' + new Intl.RelativeTimeFormat('en').format((minutesAgo / 60).toFixed(1) * -1, 'hours');
   }
   return 'Created ' + new Intl.RelativeTimeFormat('en').format(Math.round(minutesAgo) * -1, 'minutes');
 }

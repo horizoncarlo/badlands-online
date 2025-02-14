@@ -19,7 +19,7 @@ globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
 globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
 
 globalThis.DEBUG_NO_IDLE_TIMEOUT = false; // Debugging flag if we want to ignore idle timeout and not kick players, for testing
-globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
+globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = true; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
 globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 
 const utils = {
@@ -455,6 +455,67 @@ const utils = {
     return false;
   },
 
+  checkWinLoss(message) {
+    const cachedGS = getGS(message);
+
+    let lobbyText = null;
+
+    // Marked as a tie from reshuffling too many times
+    if (message.details.isTie) {
+      action.sendError('Game is a tie! Lobby closing soon...', { gsMessage: message });
+      sendS('endScreen', message, { type: 'tie' }, cachedGS.player1.playerId);
+      sendS('endScreen', message, { type: 'tie' }, cachedGS.player2.playerId);
+      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId)}" lobby and was a tie!`;
+    } // Check both sets of camps for a winner or loser
+    else {
+      let winnerId = null;
+      let loserId = null;
+      if (!cachedGS.player1.camps.find((camp) => !camp.isDestroyed)) {
+        winnerId = cachedGS.player2.playerId;
+        loserId = cachedGS.player1.playerId;
+      } else if (!cachedGS.player2.camps.find((camp) => !camp.isDestroyed)) {
+        winnerId = cachedGS.player1.playerId;
+        loserId = cachedGS.player2.playerId;
+      }
+
+      if (!winnerId) {
+        return false;
+      }
+
+      const winnerPlayerNum = utils.getPlayerNumById(winnerId);
+      action.sendError(winnerPlayerNum + ' won. Lobby closing soon...', { gsMessage: message });
+      sendS('endScreen', message, { type: 'win' }, winnerId);
+      sendS('endScreen', message, { type: 'lose' }, loserId);
+      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId).title}" lobby and ${winnerPlayerNum} won against ${
+        utils.getOppositePlayerNum(winnerPlayerNum)
+      }`;
+    }
+
+    if (lobbyText) {
+      setTimeout(() => { // Notify the lobby of the victory
+        action.chat({
+          details: {
+            text: lobbyText,
+            sender: '',
+          },
+        }, { fromServerRequest: true });
+      }, 5000);
+    }
+
+    setTimeout(() => { // Close a lobby automatically after a win/lose resolution
+      sendS('nav', message, {
+        page: 'gotoLobby',
+      }, cachedGS.player1.playerId);
+      sendS('nav', message, {
+        page: 'gotoLobby',
+      }, cachedGS.player2.playerId);
+
+      if (utils.lobbies.has(cachedGS.gameId)) {
+        utils.deleteLobby(cachedGS.gameId);
+      }
+    }, 11000);
+  },
+
   markAllSlotsReady(message) {
     // Set all cards to ready state
     [...getGS(message).player1.slots, ...getGS(message).player2.slots].forEach((slot) => {
@@ -493,15 +554,14 @@ const utils = {
       cachedGS.deckReshuffleCount++;
 
       if (cachedGS.deckReshuffleCount >= 2) {
-        // TODO Actual handling of the draw/tie from a double reshuffle - very rare, but worth covering
         action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)', { gsMessage: message });
         return null;
       }
       // Can't imagine a legitimate situation where the draw deck has run out and there are no discards
       if (cachedGS.discard.length <= 0) {
-        action.sendError('Game is a tie! (Had to reshuffle the draw deck, but there are no discards)', {
-          gsMessage: message,
-        });
+        const toSend = { ...message };
+        toSend.details.isTie = true;
+        utils.checkWinLoss(toSend);
         return null;
       }
 

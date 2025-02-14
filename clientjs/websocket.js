@@ -177,6 +177,9 @@ const receiveClientWebsocketMessage = (message) => {
         events[message.details.effectName](message);
       }
       break;
+    case 'endScreen':
+      showEndScreenDialog(message);
+      break;
   }
 };
 

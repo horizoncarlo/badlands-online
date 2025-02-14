@@ -31,6 +31,8 @@ globalThis.ui = { // Local state
     abilityCard: null, // card obj for multiple choice abilities
     expectedDiscards: 1,
     myCards: [],
+    gameOverType: null,
+    gameOverCountdown: 10,
   },
 };
 

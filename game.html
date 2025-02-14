@@ -355,6 +355,10 @@
         <dialog-camp-prompt />
       </template>
 
+      <template x-if="inGame" x-teleport="body">
+        <dialog-end-screen />
+      </template>
+
       <template x-teleport="body">
         <dialog-scientist-chooser />
       </template>
