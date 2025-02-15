@@ -65,7 +65,7 @@ const rawAction = {
       if (!ai.isAI(utils.getOppositePlayerId(message.playerId))) {
         action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
           gsMessage: message,
-        });
+        }); // QUIDEL This shouldn't send to the person that left, so pass a playerId
       }
 
       sendS('nav', message, {
@@ -573,11 +573,13 @@ const rawAction = {
       let existingRaidersIndex = playerEvents?.findIndex((event) => event?.isRaid);
 
       if (existingRaidersIndex > 0) {
+        console.log('>>>>>>>>>>> RAIDERS WOULD ADVANCE TO', playerEvents[existingRaidersIndex - 1]); // QUIDEL
         if (!playerEvents[existingRaidersIndex - 1]) {
           playerEvents[existingRaidersIndex - 1] = playerEvents[existingRaidersIndex];
           playerEvents[existingRaidersIndex] = undefined;
           existingRaidersIndex--;
         } else {
+          // QUIDEL Bug here where if you play a 0 event THEN try to shove Raiders to the end this fires. Just need to remove 0 events from the queue when done
           action.sendError('Cannot advance Raiders, next event queue spot is full', { gsMessage: message });
           return false;
         }
@@ -1007,15 +1009,6 @@ const rawAction = {
   },
 
   sync(playerIdOrNullForBoth, params) { // params.includeChat (default false), params.gsMessage for getGS
-    /* Dev notes: when to sync vs not
-     Syncing is marginally more expensive both in terms of processing and variable allocation here, and Websocket message size going to the client
-     But that's also a huge worry about premature optimization given that a realistic game state is still under 5kb
-     The best time to sync is if we're doing basically the same calculations on the client and server (which we want to avoid - duplication sucks),
-      such as determining which card was damaged
-     In most cases after a state change we can just call sync followed by a separate message if the UI needs to trigger some animation (like drawing
-      a card or destroying a camp)
-     A sync is overkill if we're literally just updating a single property on our client gamestate, such as myPlayerNum, with no additional logic done
-    */
     // TODO Could just call sync as a post-process feature of the actionHandler instead of scattering it throughout the app? - especially if optimized (maybe do a JSON-diff and just return changes?)
 
     function internalSync(playerNum) {
@@ -1064,52 +1057,50 @@ const rawAction = {
       }, currentPlayerId);
     }
 
+    // Batch our sync messages - ensure that if we have a few sent back to back to back (normally from a single action, like junk card) we only send a single sync
     const cachedGs = getGS(playerIdOrNullForBoth ?? params?.gsMessage?.playerId);
-    // TTODO QUIDEL - Close, but change batching to be by playerId, so that going to player1 doesn't clear a sync to player2
-    console.log('############## REQUEST SYNC', cachedGs !== undefined, playerIdOrNullForBoth, params);
-    if (cachedGs) {
-      // Check if our existing syncBatch matches our current request
-      // If it does, clear the old timer and start a new one
-      // Otherwise leave the old one and start a new timer
-      if (cachedGs.syncBatch.timer) {
-        if (
-          (!cachedGs.syncBatch.lastPlayerId === !playerIdOrNullForBoth ||
-            cachedGs.syncBatch.lastPlayerId === playerIdOrNullForBoth) &&
-          (!cachedGs.syncBatch.lastParams === !params || cachedGs.syncBatch.lastParams === params)
-        ) {
-          console.error('############################## Clear old sync timeout');
-          clearTimeout(cachedGs.syncBatch.timer);
-          cachedGs.syncBatch.timer = null;
-        } else {
-          console.error('############################## Have old timeout but NOT clearing');
-        }
-      }
+    if (!cachedGs) return;
 
-      cachedGs.syncBatch.lastPlayerId = playerIdOrNullForBoth;
-      cachedGs.syncBatch.lastParams = params;
-      cachedGs.syncBatch.timer = setTimeout(() => {
-        console.error('%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Fire actual sync', playerIdOrNullForBoth);
+    const targetPlayerNum = playerIdOrNullForBoth ? utils.getPlayerNumById(playerIdOrNullForBoth) : null;
+
+    // If we have an existing sync timer clear it
+    if (cachedGs.syncBatch.get(targetPlayerNum)) {
+      clearTimeout(cachedGs.syncBatch.get(targetPlayerNum));
+    }
+
+    // Clean up our old sync
+    cachedGs.syncBatch.delete(targetPlayerNum);
+
+    // If we just cleared out an "all" message, aka playerIdOrNullForBoth = null
+    // Then we also want to delete all other sync by playerId (namely the opponent)
+    if (!targetPlayerNum) {
+      cachedGs.syncBatch.forEach((loopSync) => {
+        if (loopSync) {
+          clearTimeout(loopSync);
+        }
+      });
+      cachedGs.syncBatch.clear();
+    }
+
+    // Avoid setting a targeted sync if a global (null) sync is already pending
+    if (!cachedGs.syncBatch.has(null)) {
+      const timerRef = setTimeout(() => { // Batch our sync requests so that multiple in a row go as a single send
         // Request a sync to both if no ID was specified, as per the wordily named variable implies
-        if (!playerIdOrNullForBoth) {
+        if (!targetPlayerNum) {
           internalSync('player1');
           internalSync('player2');
         } else {
-          internalSync(utils.getPlayerNumById(playerIdOrNullForBoth));
+          internalSync(targetPlayerNum);
         }
-      }, 250);
+
+        // After running clean up any matching timer
+        if (cachedGs.syncBatch.get(targetPlayerNum) === timerRef) {
+          cachedGs.syncBatch.delete(targetPlayerNum);
+        }
+      }, 100); // Longer delay means MORE syncs get batched (so better Websocket performance) BUT a more noticeable delay to the user, which isn't worth it
+
+      cachedGs.syncBatch.set(targetPlayerNum, timerRef);
     }
-
-    console.log('############## End of sync func');
-
-    /** TTODO Need to throttle/batch syncs, for example discarding multiple cards or junking a card fires 4 (at time of comment) - wait a few milliseconds and take the last sync to execute
-        if (getGS(message).discardCardTimer) {
-          clearTimeout(getGS(message).discardCardTimer);
-        }
-        // TTODO This manual sync batching won't be necessary when sync itself does similar
-        getGS(message).discardCardTimer = setTimeout(() => { // Sync on a timer, so that if we have multiple requests in a row we just sync once
-          action.sync(message.playerId);
-        }, 200);
-     */
   },
 
   wait() {
