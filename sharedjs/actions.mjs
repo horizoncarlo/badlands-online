@@ -65,7 +65,7 @@ const rawAction = {
       if (!ai.isAI(utils.getOppositePlayerId(message.playerId))) {
         action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
           gsMessage: message,
-        }); // QUIDEL This shouldn't send to the person that left, so pass a playerId
+        }, utils.getOppositePlayerId(message.playerId));
       }
 
       sendS('nav', message, {
@@ -118,7 +118,6 @@ const rawAction = {
             card: structuredClone(eventQueue[0]),
           },
         });
-        eventQueue[0] = undefined;
       }
 
       action.drawCard(message, { fromServerRequest: true });
@@ -190,6 +189,7 @@ const rawAction = {
         // If our event is space 0 we just do the effect immediately
         if (targetSpace === 0) {
           action.triggerEvent(message);
+          return;
         } else {
           // Normally just place in startSpace
           // If that is full, try the one behind it, and so on until either we find an empty space or are outside the queue (and can't play the card)
@@ -338,6 +338,12 @@ const rawAction = {
   triggerEvent(message) {
     if (!onClient) {
       try {
+        // Clear our event that just triggered
+        const eventQueue = getGS(message)[utils.getPlayerNumById(message.playerId)].events;
+        if (eventQueue) {
+          eventQueue[0] = undefined;
+        }
+
         utils.fireAbilityOrJunk(
           message,
           message.details.card.abilityEffect,
@@ -573,13 +579,11 @@ const rawAction = {
       let existingRaidersIndex = playerEvents?.findIndex((event) => event?.isRaid);
 
       if (existingRaidersIndex > 0) {
-        console.log('>>>>>>>>>>> RAIDERS WOULD ADVANCE TO', playerEvents[existingRaidersIndex - 1]); // QUIDEL
         if (!playerEvents[existingRaidersIndex - 1]) {
           playerEvents[existingRaidersIndex - 1] = playerEvents[existingRaidersIndex];
           playerEvents[existingRaidersIndex] = undefined;
           existingRaidersIndex--;
         } else {
-          // QUIDEL Bug here where if you play a 0 event THEN try to shove Raiders to the end this fires. Just need to remove 0 events from the queue when done
           action.sendError('Cannot advance Raiders, next event queue spot is full', { gsMessage: message });
           return false;
         }
