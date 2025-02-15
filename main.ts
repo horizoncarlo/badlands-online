@@ -23,6 +23,7 @@ type GameLobby = {
   started?: boolean;
   createdDate: Date;
   idleCheckInterval?: number | null;
+  isTie?: boolean;
   title: string;
   password?: string;
   kickIdle?: boolean;

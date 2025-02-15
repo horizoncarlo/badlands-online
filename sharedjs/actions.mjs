@@ -63,6 +63,7 @@ const rawAction = {
 
       // Notify (non-AI opponent), navigate, and leave lobby. Ordering is fairly important here as we need to be able to get our Websocket connection
       if (!ai.isAI(utils.getOppositePlayerId(message.playerId))) {
+        // TODO Option to replace opponent that left with AI? Especially if we end up with better/proper AI
         action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
           gsMessage: message,
         }, utils.getOppositePlayerId(message.playerId));

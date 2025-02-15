@@ -16,7 +16,7 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.LOBBY_CHAT_MAX = 10000; // Number of lobbyChat messages to keep in memory
 globalThis.AI_PLAYER_ID_PREFIX = 'autoOpponent_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
-globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO Countdown should be 10, just easier to debug at 2
+globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO TEMPORARY Countdown should be 10, just easier to debug at 2
 
 globalThis.DEBUG_NO_IDLE_TIMEOUT = false; // Debugging flag if we want to ignore idle timeout and not kick players, for testing
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
@@ -465,7 +465,7 @@ const utils = {
       action.sendError('Game is a tie! Lobby closing soon...', { gsMessage: message });
       sendS('endScreen', message, { type: 'tie' }, cachedGS.player1.playerId);
       sendS('endScreen', message, { type: 'tie' }, cachedGS.player2.playerId);
-      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId)}" and was a tie!`;
+      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId).title}" and was a tie!`;
     } // Check both sets of camps for a winner or loser
     else {
       let winnerId = null;
@@ -553,16 +553,20 @@ const utils = {
     if (cachedGS.deck.length <= 0) {
       cachedGS.deckReshuffleCount++;
 
-      if (cachedGS.deckReshuffleCount >= 2) {
-        action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)', { gsMessage: message });
-        return null;
-      }
-      // Can't imagine a legitimate situation where the draw deck has run out and there are no discards
-      if (cachedGS.discard.length <= 0) {
-        const toSend = { ...message };
-        toSend.details.isTie = true;
-        utils.checkWinLoss(toSend);
-        return null;
+      if (cachedGS.deckReshuffleCount >= 2 || cachedGS.discard.length <= 0) {
+        if (!utils.lobbies.get(cachedGS.gameId).isTie) {
+          utils.lobbies.get(cachedGS.gameId).isTie = true;
+          action.sendError('Game is a tie! (Had to reshuffle the draw deck twice)', { gsMessage: message });
+
+          utils.checkWinLoss({
+            ...message,
+            details: {
+              ...message.details,
+              isTie: true,
+            },
+          });
+          return null;
+        }
       }
 
       // TTODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
