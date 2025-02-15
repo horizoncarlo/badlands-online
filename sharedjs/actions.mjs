@@ -40,6 +40,7 @@ const rawAction = {
           action.targetMode(getGS(message).pendingTargetAction, {
             help: 'Targetting interrupted, try again',
             hideCancel: !getGS(message).pendingTargetCancellable,
+            waitUntilNextSync: true, // Ensure the page will be updated before sending, so we have targets available
           });
         }
       }
@@ -937,6 +938,10 @@ const rawAction = {
         validTargets: message.validTargets?.filter((target) => target && target !== null),
         hideCancel: params.hideCancel ?? false,
       };
+
+      if (params.waitUntilNextSync) {
+        toSend.waitUntilNextSync = params.waitUntilNextSync;
+      }
 
       // Little bit jank, but for AI just use the first target
       if (ai.isAI(message.playerId) && toSend.validTargets.length) {

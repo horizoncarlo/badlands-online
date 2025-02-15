@@ -155,8 +155,8 @@ const sendS = (type: string, messageForGs: any, messageDetails?: any, optionalGr
   }
 
   if (
-    type !== 'sync' && type !== 'ping' && type !== 'pong' &&
-    (type === 'lobby' && messageDetails.subtype && messageDetails.subtype !== 'giveDemoDeck')
+    !['sync', 'ping', 'pong'].includes(type) &&
+    !(type === 'lobby' && messageDetails.subtype && messageDetails.subtype === 'giveDemoDeck')
   ) {
     console.log(`SENT to ${socketId}:`, messageObj);
   }
@@ -494,7 +494,7 @@ const handleLobbyWebsocketMessage = (message: any) => {
 
       // Also have the AI join game if we're in a test game
       const aiPlayer = gameObj.players?.find((player) => ai.isAI(player.playerId));
-      if (aiPlayer) {
+      if (aiPlayer && !gameObj.gs?.gameStarted) {
         action.joinGame({
           playerId: aiPlayer.playerId,
           details: {

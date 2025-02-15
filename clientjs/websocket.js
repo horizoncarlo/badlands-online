@@ -3,6 +3,7 @@ const WS_PING_INTERVAL = 30000;
 let socket; // Declared later as a binding for our Websocket
 let pingPongIntervaler;
 let reconnectAttempts = 0;
+let waitingTargetMode = null; // Determine if we have a target mode waiting for the next sync
 
 const receiveClientWebsocketMessage = (message) => {
   if (!message.type || message.type === 'pong') {
@@ -45,6 +46,14 @@ const receiveClientWebsocketMessage = (message) => {
       for (const [key, value] of Object.entries(updatedGs)) {
         gs[key] = value ?? gs[key];
       }
+
+      if (waitingTargetMode) {
+        setTimeout(() => { // Wait until the sync is done before applying the retry targetting
+          enableTargetMode(waitingTargetMode);
+          waitingTargetMode = null;
+        });
+      }
+
       break;
     }
     case 'setPlayer':
@@ -133,7 +142,12 @@ const receiveClientWebsocketMessage = (message) => {
       disableTargetMode();
       break;
     case 'targetMode':
-      enableTargetMode(message.details);
+      // If we're meant to wait until a sync is done, mark that for later
+      if (message.details?.waitUntilNextSync) {
+        waitingTargetMode = structuredClone(message.details);
+      } else {
+        enableTargetMode(message.details);
+      }
       break;
     case 'useCard':
       action.useCard(message);
