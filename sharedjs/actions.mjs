@@ -190,7 +190,6 @@ const rawAction = {
         // If our event is space 0 we just do the effect immediately
         if (targetSpace === 0) {
           action.triggerEvent(message);
-          return;
         } else {
           // Normally just place in startSpace
           // If that is full, try the one behind it, and so on until either we find an empty space or are outside the queue (and can't play the card)
@@ -200,19 +199,19 @@ const rawAction = {
               break;
             }
           }
-        }
 
-        if (targetSpace >= eventQueue.length) {
-          action.sendError('No empty space for this Event', { gsMessage: message }, message.playerId);
-          return;
-        }
+          if (targetSpace >= eventQueue.length) {
+            action.sendError('No empty space for this Event', { gsMessage: message }, message.playerId);
+            return;
+          }
 
-        message.details.card.unReady = true;
-        eventQueue.splice(targetSpace, 1, message.details.card);
-        sendS('events', message, {
-          playerNum: playerNum,
-          events: eventQueue,
-        });
+          message.details.card.unReady = true;
+          eventQueue.splice(targetSpace, 1, message.details.card);
+          sendS('events', message, {
+            playerNum: playerNum,
+            events: eventQueue,
+          });
+        }
       } else {
         // Determine if our column is full or other validity scenarios
         const playerSlots = getGS(message)[playerNum].slots;
