@@ -107,7 +107,7 @@
             </template>
             <template x-if="readying">
               <div>
-                <hr />
+                <progress class="accent" :max="GAME_START_COUNTDOWN_S" :value="countdownSeconds"></progress>
                 You will be going <span class="severe" x-text="isFirst ? 'FIRST' : 'SECOND'"></span>
                 <br />
                 Game starting in <span class="accent" x-text="countdownSeconds + '...'"></span>
@@ -247,6 +247,7 @@
       <!-- TTODO Add the player aid card from the game to somewhere on the UI (top menu or pop out from side or hover a UI floating element?) -->
       <!-- TTODO Handle unReady better as pointer-events: none is causing problems -->
       <!-- TTODO Check animations on Firefox, especially on mouseover -->
+      <!-- TTODO Do a quick smoke test on Edge browser as well -->
       <!-- TTODO Handle rotation of cards better, try to get animations back, figure out camp reversal positioning and damage notes too -->
     </div>
 
