@@ -396,7 +396,7 @@ const handleLobbyWebsocketMessage = (message: any) => {
             // Game is set to start
             lobbyObj.started = true;
 
-            if (!lobbyObj.kickIdle || !DEBUG_NO_IDLE_TIMEOUT) {
+            if (lobbyObj.kickIdle && !DEBUG_NO_IDLE_TIMEOUT) {
               // Determine if a player is idling too long on their turn
               let errorSent = false;
               lobbyObj.idleCheckInterval = setInterval(() => {

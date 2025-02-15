@@ -468,7 +468,6 @@ const rawAction = {
   },
 
   junkCard(message) {
-    // TTODO Can't junk a card to restore a damaged card because pointer-events: none, and the card is grayed out. Maybe turn off Ready/Unready when targetMode is on? Otherwise part of the global pointer-events change
     if (onClient) {
       sendC('junkCard', message);
     } else {
@@ -770,9 +769,10 @@ const rawAction = {
               // Slot and camp are handled similar, except we technically delete a non-existent flag on a slot (shrug)
               delete cardObj.isDestroyed;
               cardObj.damage = Math.min(0, cardObj.damage - 1);
+              cardObj.unReadyCost = 0;
               cardObj.unReady = true; // Mark card unReady after a restore
 
-              action.sync(null, { gsMessage: message }); // TODO Not ideal - restoreCard sync needed for Mutant because it directly calls fireAbilityOrJunk, whereas other approaches (like junkCard) naturally sync afterwards
+              action.sync(null, { gsMessage: message });
             } else {
               action.sendError('No damage to Restore', { gsMessage: message }, message.playerId);
               throw new Error(); // Ditch if we didn't restore (would be an invalid target)

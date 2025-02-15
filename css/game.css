@@ -306,6 +306,16 @@
   box-shadow: 0 0 50px var(--variant) inset;
 }
 
+.invalid-target,
+.unready-card,
+.unready-card:hover {
+  filter: saturate(30%) brightness(30%);
+}
+
+.invalid-target {
+  pointer-events: none;
+}
+
 .valid-target {
   filter: saturate(110%) brightness(110%);
   background-color: var(--bg-success);
@@ -317,12 +327,6 @@
 
 .valid-target-selected {
   outline: 10px solid var(--active);
-}
-
-.invalid-target,
-.unready-card {
-  filter: saturate(10%) brightness(10%);
-  pointer-events: none;
 }
 
 .flip-tray-click {

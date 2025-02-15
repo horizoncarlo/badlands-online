@@ -232,7 +232,7 @@
                     </template>
                     <img
                       :id="`${targetModePrefix}${slot.content.id}`"
-                      @click="isMySlot && !slot.content.unReady && action.useCard({details: { card: slot.content}})"
+                      @click="isMySlot && !slot.content.unReady && !targetMode?.enabled && action.useCard({details: { card: slot.content}})"
                       @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
                       @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
                       draggable="false"

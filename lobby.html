@@ -85,6 +85,8 @@
           >
             Test Game vs AI
           </button>
+
+          <!-- TODO Add basic search/filtering to the lobby list -->
         </p>
 
         <template x-if="joinedId && getJoinedLobby()">
@@ -107,7 +109,12 @@
             </template>
             <template x-if="readying">
               <div>
-                <progress class="accent" :max="GAME_START_COUNTDOWN_S" :value="countdownSeconds"></progress>
+                <progress
+                  :class="countdownSeconds <= 1 ? 'danger' : 'accent'"
+                  :max="GAME_START_COUNTDOWN_S"
+                  :value="countdownSeconds"
+                >
+                </progress>
                 You will be going <span class="severe" x-text="isFirst ? 'FIRST' : 'SECOND'"></span>
                 <br />
                 Game starting in <span class="accent" x-text="countdownSeconds + '...'"></span>
@@ -194,6 +201,7 @@
         <template x-if="!joinedId && !readying && creating">
           <div class="create-form">
             <form @submit.prevent="submitCustomGame()">
+              <!-- TODO Could be fun to choose an icon for the game, to make it stand out in the big list. Could literally be an emoji -->
               <label>
                 &nbsp;Title
                 <input x-model="createForm.title" x-init="$el.focus()" required="true" />
@@ -245,7 +253,6 @@
 
       <!-- TTODO Add better system logging / action.sendError across the ENTIRE app as actions are done -->
       <!-- TTODO Add the player aid card from the game to somewhere on the UI (top menu or pop out from side or hover a UI floating element?) -->
-      <!-- TTODO Handle unReady better as pointer-events: none is causing problems -->
       <!-- TTODO Check animations on Firefox, especially on mouseover -->
       <!-- TTODO Do a quick smoke test on Edge browser as well -->
       <!-- TTODO Handle rotation of cards better, try to get animations back, figure out camp reversal positioning and damage notes too -->
