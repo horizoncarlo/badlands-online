@@ -40,6 +40,7 @@
         <label>
           <span>Your Name</span>
           &nbsp;
+          <!-- TODO Add a tiny save indicator here on success (fading checkmark?) -->
           <a @click="savePlayerName()"><small>Save</small></a>
           <input
             placeholder="Player Name"
@@ -132,7 +133,7 @@
                 <h2 class="fleft">
                   <span x-text="`${index+1}. ${currentLobby.title}`"></span>
                   <template x-if="currentLobby.hasPassword">
-                    <span>🔒</span>
+                    <span title="Lobby is password protected">🔒</span>
                   </template>
                 </h2>
 
@@ -146,11 +147,9 @@
                     <button
                       @click="clickLobby(currentLobby)"
                       :disabled="!isInLobby(currentLobby) && currentLobby.players.length >= 2"
+                      :class="!isInLobby(currentLobby) ? 'default' : 'danger'"
                     >
-                      <span
-                        x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"
-                        :class="!isInLobby(currentLobby) ? 'accent' : 'danger'"
-                      ></span>
+                      <span x-text="!isInLobby(currentLobby) ? 'Join' : 'Leave'"></span>
                     </button>
                   </template>
                   <template x-if="currentLobby.hasPassword && currentLobby.showPasswordEntry">
