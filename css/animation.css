@@ -12,10 +12,10 @@
 
 @keyframes tiltCard {
   0% {
-    transform: rotateY(-5deg) translateY(calc(var(--card-height) * -0.3)) scale(calc(var(--hover-scale) - 0.03));
+    transform: rotateY(-5deg) scale(calc(var(--hover-scale) - 0.02));
   }
   100% {
-    transform: rotateY(5deg) translateY(calc(var(--card-height) * -0.3)) scale(var(--hover-scale));
+    transform: rotateY(5deg) scale(var(--hover-scale));
   }
 }
 

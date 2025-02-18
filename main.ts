@@ -524,6 +524,14 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
       playerId: ai.makeAIPlayerId(),
       playerName: 'Simple AI',
     });
+
+    // Set basic config for an AI game to make it more welcoming
+    gameParams.timeLimit = 0;
+    gameParams.kickIdle = false;
+    gameParams.observers = {
+      allow: false,
+      seeAll: false,
+    };
   }
 
   let parsedTimeLimit = 0;

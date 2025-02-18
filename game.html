@@ -33,6 +33,7 @@
                   <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
                   <span x-text="`Cards: ${cardScale}%`"></span>
 
+                  <!-- TODO Could add different Hover Scale options for EACH type of card - like opponent camps normally would be bigger than slots, likely same with hand, etc. -->
                   <input type="range" min="100" max="400" step="5" x-model="hoverScale" @input="applyHoverScale()" />
                   <span x-text="`Hover: ${hoverScale}%`"></span>
                 </li>
@@ -180,14 +181,13 @@
       <template x-if="inGame && getOpponentCamps().length">
         <div class="slots opponent-camps">
           <template x-for="camp in getOpponentCamps()">
-            <div class="opponent-camp">
-              <!-- TTODO Better damage effect on opponent camps, currently with the built-in rotation the 'turn sideways for damage' style doesn't apply -->
+            <div class="card-opponent">
               <img
                 :id="`${targetModePrefix}${camp.id}`"
                 draggable="false"
                 :alt="camp.img"
                 :src="getCampImage(camp)"
-                class="card-size card-anim"
+                :class="`card-anim card-size ${camp.damage === 1 ? ' damaged-card' : ''}`"
               />
             </div>
           </template>
@@ -208,7 +208,7 @@
             <template x-for="(slot, index) in playerSlots">
               <div
                 :id="isMySlot ? `${targetModePrefix}${SLOT_ID_PREFIX}${index}` : `opponent_${SLOT_ID_PREFIX}${index}`"
-                class="bd-default relative"
+                class="bd-default slot-wrap"
                 @dragleave="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragLeaveHighlight($el)"
                 @dragover.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dragOverSlot(slot, $el)"
                 @drop.prevent="(isMySlot && typeof ui.draggedCard?.startSpace !== 'number') && dropCardInGame(slot, $el)"
@@ -218,7 +218,7 @@
                     <template
                       x-if="slot.content.unReady && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)"
                     >
-                      <span>
+                      <span class="relative fright">
                         <template
                           x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"
                         >
@@ -230,16 +230,18 @@
                         </template>
                       </span>
                     </template>
-                    <img
-                      :id="`${targetModePrefix}${slot.content.id}`"
-                      @click="isMySlot && !slot.content.unReady && !targetMode?.enabled && action.useCard({details: { card: slot.content}})"
-                      @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
-                      @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
-                      draggable="false"
-                      :alt="slot.content.img"
-                      :src="utils.fullCardPath(slot.content)"
-                      :class="`card-size card-anim ${isMySlot ? 'card-friendly' : 'card-opponent' } ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : 'card'}`"
-                    />
+                    <div :class="`${isMySlot ? 'card-friendly' : 'card-opponent' }`">
+                      <img
+                        :id="`${targetModePrefix}${slot.content.id}`"
+                        @click="isMySlot && !slot.content.unReady && !targetMode.enabled && action.useCard({details: { card: slot.content}})"
+                        @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
+                        @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
+                        draggable="false"
+                        :alt="slot.content.img"
+                        :src="utils.fullCardPath(slot.content)"
+                        :class="`card-size ${targetMode.enabled ? 'bright-hover' : 'card-anim'} ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
+                      />
+                    </div>
                   </span>
                 </template>
               </div>
@@ -265,7 +267,7 @@
             <template x-for="(event, index) in playerEvents">
               <!-- Ignore displaying the first (0 index) event space, we use this for tracking immediate events and keeping startSpace sane and 1-based, but we don't show it -->
               <template x-if="index > 0">
-                <div class="bd-default relative">
+                <div class="relative bd-default">
                   <div class="event-number">
                     <img :src="`images/event-${index}.png`" :alt="`Event ${index}`" />
                   </div>
@@ -282,12 +284,14 @@
                           </template>
                         </span>
                       </template>
-                      <img
-                        draggable="false"
-                        :alt="event.img"
-                        :src="utils.fullCardPath(event)"
-                        :class="`card card-size card-anim ${isMyEvent ? 'card-friendly' : 'card-opponent' } ${event.unReady ? ' unready-card' : ''}`"
-                      />
+                      <div :class="`${isMyEvent ? 'card-friendly' : 'card-opponent' }`">
+                        <img
+                          draggable="false"
+                          :alt="event.img"
+                          :src="utils.fullCardPath(event)"
+                          :class="`card-anim card-size ${event.unReady ? ' unready-card' : ''}`"
+                        />
+                      </div>
                     </span>
                   </template>
                 </div>
@@ -314,13 +318,13 @@
             <legend><span x-text="getTrayLegend()"></span></legend>
 
             <template x-for="camp in getMyCamps()">
-              <div x-show="trayIsCamps">
+              <div x-show="trayIsCamps" class="card-friendly">
                 <img
                   :id="`${targetModePrefix}${camp.id}`"
                   draggable="false"
                   :alt="camp.img"
                   :src="getCampImage(camp)"
-                  :class="'card-size card-anim ' + (typeof camp.damage === 'number' && camp.damage === 1 ? ' damaged-card' : '')"
+                  :class="`card-anim card-size card-hand ${typeof camp.damage === 'number' && camp.damage === 1 ? ' damaged-card' : ''}`"
                 />
               </div>
             </template>
@@ -332,7 +336,7 @@
               </div>
             </template>
             <template x-for="card in getMyCards()">
-              <div x-show="trayIsCards && myPlayerNum">
+              <div x-show="trayIsCards && myPlayerNum" class="card-friendly">
                 <img
                   :id="`${targetModePrefix}${card.id}`"
                   :alt="card.img"
@@ -344,7 +348,7 @@
                   @mouseover="showWaterCost(card.cost)"
                   @mouseout="hideWaterCost()"
                   @error="$el.classList.add('card-error')"
-                  class="card card-size"
+                  :class="`${draggedCard ? '' : 'card-anim'} card-size card-hand`"
                 />
               </div>
             </template>

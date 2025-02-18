@@ -67,29 +67,26 @@
 
 .opponent-slots,
 .opponent-camps {
-  /* TTODO Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in game.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
+  /* Cutesey approach to keep the grid maintained in terms of indexes. Otherwise if we reverse in game.js -> getSlots -> getOpponentSlots when a WS push comes in we update the wrong index (as for example index 4 has become index 1) */
   transform: rotate(180deg);
   padding-top: 10px; /* With the rotation this is actually...bottom */
-
-  /* Some different styling ideas, such as desaturating opponent cards ~40% and oversaturating ours at ~120%. Or inverting opponent card colors:
-  filter: saturate(20%);
-  filter: invert(1);
-  */
-}
-
-.opponent-slots div {
-  /* TODO Could optionally allow players to have opponent cards facing them (aka rotated like this) or facing their opponent (no rotation, then the parent slot rotation handles it). OR just rotate on hover? */
-  /* transform: rotate(180deg); */
 }
 
 .opponent-camps {
-  height: calc(var(--card-height) / 2.5);
-  overflow-y: hidden;
+  /* TODO Determine how high up we want the opponent camps - is just the name enough and they can mouseover? Or do we want the full card? */
+  margin-top: calc(var(--card-height) * -1);
+  display: flex;
+  gap: var(--gap);
 }
 
-.opponent-camp:hover {
-  height: var(--card-height);
-  transform: rotate(180deg);
+.opponent-camps > div {
+  padding: var(--card-padding);
+  /* TODO This approach for trying to show the whole card works well with Hover Scale > 100% but falls apart otherwise: `transform-origin: top center;` */
+}
+
+.opponent-camps:hover {
+  position: relative;
+  z-index: 3999; /* Put hovered opponent camps above other cards in the slots */
 }
 
 .count-panel,
@@ -114,9 +111,9 @@
 }
 
 .opponent-card-count {
+  /* Will put in the bottom right with the rotation */
   left: 0;
-  bottom: auto;
-  right: auto;
+  top: 5%;
   transform: rotate(180deg);
 }
 
@@ -156,21 +153,28 @@
   height: var(--card-height);
 }
 
-.slots div {
+.slots .slot-wrap {
   text-align: center;
   vertical-align: middle;
   padding: var(--card-padding);
 }
 
 .camp-choice:hover,
-.card:hover {
+.card-anim:hover {
   box-shadow: 0 0 20px var(--accent);
 }
 
-.card:hover {
-  animation: tiltCard 2s infinite alternate ease-in-out;
-  position: relative;
-  z-index: 5;
+.card-anim:hover {
+  filter: none !important; /* Remove any coloring for damaged/unready when hovering to read */
+  animation: tiltCard 2s infinite alternate
+    ease-in-out; /* TODO Surprisingly can be a performance hit - add an optional basic static `transform: scale(var(--hover-scale);` as a Setting instead */
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.card-hand:hover {
+  /* Raise our card up from our hand on hover */
+  transform-origin: bottom center;
 }
 
 .card-error {
@@ -181,14 +185,8 @@
   background-color: var(--success);
 }
 
-.card-anim {
-  transition: transform 1s;
-}
-
-.damaged-card,
-.damaged-card:hover {
-  filter: none;
-  transform: rotate(90deg) !important;
+.damaged-card {
+  transform: rotate(90deg);
 }
 
 .water-wrap {

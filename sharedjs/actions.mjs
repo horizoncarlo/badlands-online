@@ -704,7 +704,7 @@ const rawAction = {
     if (!onClient) {
       const foundRes = utils.findCardInGame(message, message.details.card);
       if (foundRes) {
-        // TODO Play a destroy animation so the card being removed from the board is less abrupt
+        // TODO Play a destroy animation so the card being removed from the board is less abrupt - also force Flip Tray to camps on client
         if (typeof foundRes.slotIndex === 'number') {
           // Destroy our card
           const playerSlots = getGS(message)[foundRes.playerNum].slots;

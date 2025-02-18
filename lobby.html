@@ -14,8 +14,8 @@
           card synergies...
         </summary>
         <p>
-          This is a fan made adaptation of the amazing Radlands card game - no copyright infringement on art or icons
-          intended!
+          This is an unlicensed fan made adaptation of the amazing Radlands card game - no copyright infringement on art or
+          icons intended!
         </p>
         <i>
           Act as the leader of your post apocalyptic group of survivors in a tooth-and-nail fight to protect your three camps
@@ -52,7 +52,7 @@
         <!-- Besides looking cool the demo deck reel has the advantage of preloading the cards -->
         <template x-if="demoDeck?.length">
           <div class="centered" @click="demoCounter++">
-            <img :src="getDemoCard(demoCounter)" class="bright-hover card-friendly" />
+            <img :src="getDemoCard(demoCounter)" />
           </div>
         </template>
       </aside>
@@ -247,15 +247,14 @@
 
       <br />
 
+      <!-- TODO Could do lobby slash-commands like /join "Somegame" -->
       <template x-if="!readying">
         <chat-log />
       </template>
 
       <!-- TTODO Add better system logging / action.sendError across the ENTIRE app as actions are done -->
       <!-- TTODO Add the player aid card from the game to somewhere on the UI (top menu or pop out from side or hover a UI floating element?) -->
-      <!-- TTODO Check animations on Firefox, especially on mouseover -->
-      <!-- TTODO Do a quick smoke test on Edge browser as well -->
-      <!-- TTODO Handle rotation of cards better, try to get animations back, figure out camp reversal positioning and damage notes too -->
+      <!-- TTODO Do a quick smoke test on Edge browser for animations, Websockets, etc. -->
     </div>
 
     <script src="./clientjs/lobby.js"></script>

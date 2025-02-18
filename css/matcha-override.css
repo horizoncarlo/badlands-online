@@ -8,6 +8,11 @@ img {
 
 header {
   margin: 0;
+  /* TODO Decide if we want the menu bar (with a ton of dead space in the middle) overlapping the opponent camps or not. This would PREVENT the camp overlap
+  position: relative;
+  z-index: 4999;
+  background-color: var(--bg-default);
+  */
 }
 
 fieldset {

@@ -76,16 +76,22 @@ menu {
 }
 
 .bright-hover:hover {
-  filter: brightness(120%);
+  filter: brightness(125%);
 }
 
-.card-friendly:hover {
+.card-friendly:hover,
+.card-opponent:hover {
+  position: relative;
+  z-index: 2999; /* Ensure our hovered cards overlap the UI as the primary focus */
+}
+
+.card-friendly .card-anim:hover {
   box-shadow: 0 0 20px var(--success);
 }
-.card-opponent:hover {
-  /*
-  TTODO Need to flip opponent cards around so we can read them, but this messes up the rest of the mouseover animation
-  transform: rotate(180deg) !important;
-  */
+.card-opponent .card-anim:hover {
   box-shadow: 0 0 20px var(--danger);
+}
+
+.card-opponent:hover {
+  transform: rotate(180deg) !important; /* Flip an opponent card around so it's upright and readable */
 }
