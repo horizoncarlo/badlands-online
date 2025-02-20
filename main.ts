@@ -686,4 +686,15 @@ if (!IS_LIVE) {
     return new Response(null, { status: 403 });
   };
   Deno.serve({ port: 8080, hostname: 'localhost' }, devHandler);
+} else {
+  const keepAlive = () => {
+    try {
+      console.log('Ping host');
+      fetch('http://' + DEFAULT_HOSTNAME, { method: 'GET' });
+    } catch (err) {
+      console.error('Keep alive request failed', err);
+    }
+  };
+
+  setInterval(keepAlive, 5 * 60 * 1000);
 }

@@ -41,8 +41,10 @@
         <label>
           <span>Your Name</span>
           &nbsp;
-          <!-- TTODO Add a tiny save indicator here on success (fading checkmark?) -->
           <a @click="savePlayerName()"><small>Save</small></a>
+          <template x-if="confirmSave">
+            <span class="success">✓</span>
+          </template>
           <input
             placeholder="Player Name"
             x-model="playerName"

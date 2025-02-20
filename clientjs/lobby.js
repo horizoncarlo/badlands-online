@@ -8,6 +8,8 @@ globalThis.lobby = { // Local state
   comparePlayerName: '',
   playerName: '',
   enteredPassword: '',
+  confirmSave: false,
+  confirmSaveTimeout: null,
   createForm: {
     title: null,
     password: null,
@@ -54,7 +56,7 @@ function initLobby(status) {
     lobby.playerName = localStorage.getItem(LOCAL_STORAGE.playerName) ?? 'Anonymous';
     lobby.comparePlayerName = lobby.playerName;
     if (localStorage.getItem(LOCAL_STORAGE.playerName)) {
-      savePlayerName();
+      savePlayerName({ noStatus: true });
     }
 
     getLobbyList();
@@ -152,9 +154,25 @@ function cancelCustomGame() {
   lobby.createForm.password = null;
 }
 
-function savePlayerName() {
+function savePlayerName(params) { // params.noStatus true to not do the checkmark
   lobby.comparePlayerName = lobby.playerName;
   localStorage.setItem(LOCAL_STORAGE.playerName, lobby.playerName);
+
+  if (!params?.noStatus) {
+    // Flicker the checkbox in the case of multiple saves
+    lobby.confirmSave = false;
+    setTimeout(() => {
+      lobby.confirmSave = true;
+    });
+
+    if (lobby.confirmSaveTimeout) {
+      clearTimeout(lobby.confirmSaveTimeout);
+    }
+
+    lobby.confirmSaveTimeout = setTimeout(() => {
+      lobby.confirmSave = false;
+    }, 1500);
+  }
 
   sendC('lobby', {
     subtype: 'setName',
