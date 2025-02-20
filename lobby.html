@@ -56,7 +56,7 @@
         <!-- Besides looking cool the demo deck reel has the advantage of preloading the cards -->
         <template x-if="demoDeck?.length">
           <div class="centered" @click="demoCounter++">
-            <img :src="getDemoCard(demoCounter)" />
+            <img :src="getDemoCard(demoCounter)" class="card-size" />
           </div>
         </template>
 

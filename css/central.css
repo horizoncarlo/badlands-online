@@ -84,6 +84,12 @@ menu {
   filter: brightness(125%);
 }
 
+.card-size {
+  display: inline-block;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
 .card-friendly:hover,
 .card-opponent:hover {
   position: relative;
