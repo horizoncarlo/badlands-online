@@ -215,7 +215,7 @@
               <label>
                 Time Limit (mins)
                 <small>Leave blank for none</small>
-                <input x-model="createForm.timeLimit" type="number" />
+                <input x-model="createForm.timeLimit" type="number" min="10" max="120" />
               </label>
 
               <label title="Check for inactivity on a player's turn and kick them after a couple minutes of sitting around">
@@ -252,8 +252,8 @@
       </template>
 
       <!-- TTODO Add better system logging / action.sendError across the ENTIRE app as actions are done -->
-      <!-- TTODO Add the player aid card from the game to somewhere on the UI (top menu or pop out from side or hover a UI floating element?) -->
       <!-- TTODO Do a quick smoke test on Edge browser for animations, Websockets, etc. -->
+      <!-- TTODO Create a blocking dialog for certain actions like Raiders or Vanguard that let the opponent know something is happening (and prevents interaction) - open/close via WS messages -->
     </div>
 
     <script src="./clientjs/lobby.js"></script>

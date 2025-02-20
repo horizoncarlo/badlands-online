@@ -346,3 +346,12 @@
 .mutant-dialog-wrap > label {
   font-size: x-large;
 }
+
+.time-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  padding: 5px;
+  border-top-right-radius: 5px;
+  z-index: 10;
+}

@@ -56,6 +56,9 @@ const utils = {
       if (lobbyObj.idleCheckInterval) {
         clearInterval(lobbyObj.idleCheckInterval);
       }
+      if (lobbyObj.timeLimitTimeout) {
+        clearInterval(lobbyObj.timeLimitTimeout);
+      }
 
       utils.lobbies.delete(gameId);
     }
@@ -374,7 +377,7 @@ const utils = {
   },
 
   isPlayersTurn(playerId) {
-    return getGS(playerId).turn.currentPlayer && getGS(playerId).turn.currentPlayer === utils.getPlayerNumById(playerId);
+    return getGS(playerId)?.turn?.currentPlayer && getGS(playerId)?.turn?.currentPlayer === utils.getPlayerNumById(playerId);
   },
 
   /**

@@ -22,16 +22,17 @@ type GameLobby = {
   gameId: string;
   started?: boolean;
   createdDate: Date;
-  idleCheckInterval?: number | null;
   isTie?: boolean;
   title: string;
   password?: string;
   kickIdle?: boolean;
+  idleCheckInterval?: number | null;
   observers: { // TODO Implement observers to the game (and lobby)
     allow: boolean;
     seeAll: boolean;
   };
-  timeLimit?: number; // TTODO Implement timeLimit functionality in the actual game
+  timeLimit?: number;
+  timeLimitTimeout?: number | null;
   players: PlayerObj[];
   gs: any;
 };
@@ -396,8 +397,8 @@ const handleLobbyWebsocketMessage = (message: any) => {
             // Game is set to start
             lobbyObj.started = true;
 
+            // Determine if a player is idling too long on their turn
             if (lobbyObj.kickIdle && !DEBUG_NO_IDLE_TIMEOUT) {
-              // Determine if a player is idling too long on their turn
               let errorSent = false;
               lobbyObj.idleCheckInterval = setInterval(() => {
                 if (lobbyObj?.gs?.turn?.currentPlayer) {
@@ -420,6 +421,37 @@ const handleLobbyWebsocketMessage = (message: any) => {
                   lobbyObj.gs.turn.interactionTime = Date.now();
                 }
               }, IDLE_RULES.intervalDelay);
+            }
+
+            // Setup the timeLimit if asked
+            if (typeof lobbyObj.timeLimit === 'number' && lobbyObj.timeLimit > 0) {
+              lobbyObj.timeLimitTimeout = setTimeout(() => {
+                action.sendError('Game reached the time limit, closing...', {
+                  gsMessage: { playerId: lobbyObj.gs?.player1?.playerId || lobbyObj.gs?.player2?.playerId },
+                });
+
+                // Send to the main lobby about the time limit
+                setTimeout(() => {
+                  action.chat({
+                    details: {
+                      text: `Game ended in "${lobbyObj.title}" due to time limit`,
+                      sender: 'lobby',
+                    },
+                  }, { fromServerRequest: true });
+                });
+
+                // Leave the game and kill the lobby after a tiny delay
+                setTimeout(() => {
+                  if (lobbyObj.gs?.player1?.playerId) {
+                    action.leaveGame({ playerId: lobbyObj.gs.player1.playerId, noMessage: true });
+                  }
+                  if (lobbyObj.gs?.player2?.playerId) {
+                    action.leaveGame({ playerId: lobbyObj.gs.player2.playerId, noMessage: true });
+                  }
+
+                  utils.deleteLobby(lobbyObj.gameId);
+                }, 2500);
+              }, lobbyObj.timeLimit * 60 * 1000);
             }
           }
         }
@@ -539,6 +571,12 @@ const createGame = (gameParams: Partial<GameLobby>, status?: { joinAfter?: any /
     parsedTimeLimit = typeof gameParams.timeLimit === 'string'
       ? parseInt(gameParams.timeLimit)
       : (gameParams.timeLimit ?? 0);
+
+    // Ensure we have a reasonable time limit
+    if (parsedTimeLimit !== 0) {
+      parsedTimeLimit = Math.max(parsedTimeLimit, 10);
+      parsedTimeLimit = Math.min(parsedTimeLimit, 120);
+    }
   } catch (ignored) {}
 
   utils.lobbies.set(newGameId, {

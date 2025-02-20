@@ -44,6 +44,16 @@ const rawAction = {
           });
         }
       }
+
+      // If we have a time limit for the lobby start a proper timer on the client
+      const lobbyObj = utils.getLobbyByPlayerId(message.playerId);
+      const timeLimit = lobbyObj?.timeLimit;
+      if (typeof timeLimit === 'number' && timeLimit > 0) {
+        sendS('startTimeLimit', message, {
+          createdDate: lobbyObj.createdDate,
+          timeLimit: timeLimit,
+        }, message.playerId);
+      }
     }
   },
 
@@ -63,7 +73,7 @@ const rawAction = {
       }
 
       // Notify (non-AI opponent), navigate, and leave lobby. Ordering is fairly important here as we need to be able to get our Websocket connection
-      if (!ai.isAI(utils.getOppositePlayerId(message.playerId))) {
+      if (!message?.noMessage && !ai.isAI(utils.getOppositePlayerId(message.playerId))) {
         // TODO Option to replace opponent that left with AI? Especially if we end up with better/proper AI
         action.sendError('Opponent left the game. You can stay and hope someone else joins, or just ditch out', {
           gsMessage: message,

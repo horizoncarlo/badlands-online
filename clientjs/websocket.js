@@ -162,6 +162,16 @@ const receiveClientWebsocketMessage = (message) => {
     case 'endScreen':
       showEndScreenDialog(message);
       break;
+    case 'startTimeLimit':
+      // Determine what our remaining time limit is (since we might have refreshed the page)
+      ui.currentTimeLimit = (message.details.timeLimit * 60 * 1000) -
+        (Date.now() - new Date(message.details.createdDate).getTime());
+
+      // Don't need to clean this interval up, the only way to escape is leaving the page
+      setInterval(() => {
+        ui.currentTimeLimit -= 1000;
+      }, 1000);
+      break;
   }
 };
 

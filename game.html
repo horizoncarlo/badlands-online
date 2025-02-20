@@ -356,6 +356,12 @@
         </footer>
       </template>
 
+      <template x-if="typeof currentTimeLimit === 'number' && currentTimeLimit > 0">
+        <div class="time-wrap bd-severe bg-default">
+          <span x-text="formatTimer(currentTimeLimit)"></span>
+        </div>
+      </template>
+
       <template x-if="inGame">
         <chat-log />
       </template>

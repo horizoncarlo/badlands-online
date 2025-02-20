@@ -13,6 +13,7 @@ globalThis.ui = { // Local state
   trayIsCamps: false,
   trayIsCards: true,
   targetModePrefix: 'target_',
+  currentTimeLimit: null, // In milliseconds
   targetMode: {
     enabled: false,
     type: '',
@@ -445,6 +446,21 @@ function enableTargetMode(targetModeObj) {
   }
 
   setValidTargetsFromIds(ui.targetMode.validTargets);
+}
+
+function formatTimer(toFormat) {
+  function pad(val) {
+    return val >= 10 ? val : ('0' + val);
+  }
+
+  const ms = toFormat % 1000;
+  toFormat = (toFormat - ms) / 1000;
+  const secs = toFormat % 60;
+  toFormat = (toFormat - secs) / 60;
+  const mins = toFormat % 60;
+
+  // Output Minutes only if found, otherwise Seconds
+  return `${mins > 0 ? (pad(mins) + 'm:') : ''}${pad(secs)}s`;
 }
 
 function disableTargetMode() {
