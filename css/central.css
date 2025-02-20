@@ -4,12 +4,13 @@
   --card-padding-full: 10px;
   --gap-full: 30px;
   --card-scale: 1;
+  --water-scale: 1;
   --hover-scale: 1;
   --chat-max-height: 50vh;
   --card-width: calc(var(--card-width-full) * var(--card-scale));
   --card-height: calc(var(--card-height-full) * var(--card-scale));
   --card-padding: calc(var(--card-padding-full) * var(--card-scale));
-  --water-token-size: 100px;
+  --water-token-size: calc(100px * var(--water-scale));
   --gap: calc(var(--gap-full) * var(--card-scale));
   --icon-size: 45px;
   --flip-tray-button-size: 150px;

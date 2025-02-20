@@ -22,3 +22,15 @@ fieldset {
 .menu-right {
   margin-left: auto;
 }
+
+.range-default input[type='range'] {
+  accent-color: var(--default);
+}
+
+.range-accent input[type='range'] {
+  accent-color: var(--accent);
+}
+
+.range-active input[type='range'] {
+  accent-color: var(--active);
+}

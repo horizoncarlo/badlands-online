@@ -8,7 +8,8 @@ globalThis.ui = { // Local state
   repositionZIndex: 0,
   waterTokenEles: [],
   cardScale: 70, // Percent of card and board size
-  hoverScale: 110, // Percent for hovering any card to zoom in
+  waterScale: 100, // Percent of water disc size
+  hoverScale: 125, // Percent for hovering any card to zoom in
   chatMax: 50, // As a view height property
   trayIsCamps: false,
   trayIsCards: true,
@@ -87,13 +88,21 @@ function alpineInit() {
     ui.cardScale = 70;
   }
   try {
+    if (localStorage.getItem(LOCAL_STORAGE.waterScale)) {
+      ui.waterScale = localStorage.getItem(LOCAL_STORAGE.waterScale);
+    }
+  } catch (ls) {
+    ui.waterScale = 100;
+  }
+  try {
     if (localStorage.getItem(LOCAL_STORAGE.hoverScale)) {
       ui.hoverScale = localStorage.getItem(LOCAL_STORAGE.hoverScale);
     }
   } catch (ls) {
-    ui.hoverScale = 110;
+    ui.hoverScale = 125;
   }
   applyCardScale();
+  applyWaterScale();
   applyHoverScale();
 
   Alpine.effect(() => {
@@ -104,6 +113,9 @@ function alpineInit() {
 
   Alpine.effect(() => {
     localStorage.setItem(LOCAL_STORAGE.cardScale, ui.cardScale);
+  });
+  Alpine.effect(() => {
+    localStorage.setItem(LOCAL_STORAGE.waterScale, ui.waterScale);
   });
   Alpine.effect(() => {
     localStorage.setItem(LOCAL_STORAGE.hoverScale, ui.hoverScale);
@@ -250,6 +262,10 @@ function getPlayerData() {
 
 function applyCardScale() {
   document.documentElement.style.setProperty('--card-scale', ui.cardScale / 100);
+}
+
+function applyWaterScale() {
+  document.documentElement.style.setProperty('--water-scale', ui.waterScale / 100);
 }
 
 function applyHoverScale() {

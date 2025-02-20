@@ -27,15 +27,24 @@
           -->
           <template x-if="inGame">
             <li>
-              Card Scale
+              Display Scale
               <menu>
                 <li>
-                  <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
-                  <span x-text="`Cards: ${cardScale}%`"></span>
+                  <div class="active range-active">
+                    <input type="range" min="5" max="300" step="5" x-model="cardScale" @input="applyCardScale()" />
+                    <span x-text="`Cards: ${cardScale}%`"></span>
+                  </div>
+
+                  <div class="accent range-accent">
+                    <input type="range" min="5" max="300" step="5" x-model="waterScale" @input="applyWaterScale()" />
+                    <span x-text="`Water: ${waterScale}%`"></span>
+                  </div>
 
                   <!-- TODO Could add different Hover Scale options for EACH type of card - like opponent camps normally would be bigger than slots, likely same with hand, etc. -->
-                  <input type="range" min="100" max="400" step="5" x-model="hoverScale" @input="applyHoverScale()" />
-                  <span x-text="`Hover: ${hoverScale}%`"></span>
+                  <div class="default range-default">
+                    <input type="range" min="100" max="400" step="5" x-model="hoverScale" @input="applyHoverScale()" />
+                    <span x-text="`Hover: ${hoverScale}%`"></span>
+                  </div>
                 </li>
               </menu>
             </li>
@@ -239,7 +248,7 @@
                         draggable="false"
                         :alt="slot.content.img"
                         :src="utils.fullCardPath(slot.content)"
-                        :class="`card-size ${targetMode.enabled ? 'bright-hover' : 'card-anim'} ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
+                        :class="`card-size ${(targetMode.enabled || slot.content.isPunk) ? 'bright-hover' : 'card-anim'} ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
                       />
                     </div>
                   </span>
