@@ -21,9 +21,9 @@
 
 @keyframes tiltToken {
   0% {
-    transform: rotate(-5deg) rotateY(-10deg) scale(var(--water-scale));
+    transform: rotate(-5deg) rotateY(-10deg) scale(calc(var(--hover-scale) - 0.02));
   }
   100% {
-    transform: rotate(5deg) rotateY(10deg) scale(calc(var(--water-scale) + 0.02));
+    transform: rotate(5deg) rotateY(10deg) scale(var(--hover-scale));
   }
 }

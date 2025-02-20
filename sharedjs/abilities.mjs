@@ -102,7 +102,7 @@ const abilities = {
       }
 
       // We explicitly set noSlideDown here as we're looping through cards and don't want to start modifying the slots while we are
-      // TODO After Exterminator finishes destroying cards we need to slide down to any empty spaces (will need a new "settleCards" function or similar)
+      // TODO BUG After Exterminator finishes destroying cards we need to slide down to any empty spaces (will need a new "settleCards" function or similar)
       damagedSlots.forEach((slot) => {
         action.destroyCard({
           type: message.type,

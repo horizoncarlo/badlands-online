@@ -193,7 +193,8 @@
   left: 2%;
   bottom: 5%;
   display: flex;
-  gap: 15px;
+  gap: 5px;
+  line-height: 1;
 }
 
 .water-token {

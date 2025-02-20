@@ -30,7 +30,8 @@
         <ul>
           <li><a href="https://roxley.com/products/radlands" target="_blank">Roxley (publisher)</a></li>
           <li><a href="https://danielpiechnick.com/" target="_blank">Daniel Piechnick (designer)</a></li>
-          <li><a href="https://boardgamegeek.com/boardgame/329082/radlands" target="_blank">BoardGameGeek</a></li>
+          <li><a href="https://boardgamegeek.com/boardgame/329082/radlands" target="_blank">BoardGameGeek page</a></li>
+          <li><a href="https://www.roxley.com/radlands-rulebook" target="_blank">Rulebook pdf</a></li>
           <li><a href="https://www.youtube.com/watch?v=00HDPb-BrLA" target="_blank">How to Play video</a></li>
           <li><a href="https://github.com/horizoncarlo" target="_blank">Carlo Guglielmin (online adaptation)</a></li>
         </ul>
@@ -40,7 +41,7 @@
         <label>
           <span>Your Name</span>
           &nbsp;
-          <!-- TODO Add a tiny save indicator here on success (fading checkmark?) -->
+          <!-- TTODO Add a tiny save indicator here on success (fading checkmark?) -->
           <a @click="savePlayerName()"><small>Save</small></a>
           <input
             placeholder="Player Name"
@@ -56,6 +57,17 @@
             <img :src="getDemoCard(demoCounter)" />
           </div>
         </template>
+
+        <p class="default">
+          <b>TODO Missing</b>
+          <ul>
+            <li>Camp usage</li>
+            <li>Traits</li>
+            <li>Game Observers</li>
+            <li>Expansion cards</li>
+            <li>Bugfixes and tweaks</li>
+          </ul>
+        </p>
       </aside>
 
       <fieldset class="bd-active">
@@ -82,7 +94,7 @@
             @click="clickTestGame()"
             :disabled="(joinedId || readying || creating)"
             class="default"
-            title="Play against a passive AI opponent to try out the game and website"
+            title="Play against a (mostly) passive AI opponent to try out the game and website"
           >
             Test Game vs AI
           </button>
@@ -200,7 +212,7 @@
         <template x-if="!joinedId && !readying && creating">
           <div class="create-form">
             <form @submit.prevent="submitCustomGame()">
-              <!-- TODO Could be fun to choose an icon for the game, to make it stand out in the big list. Could literally be an emoji -->
+              <!-- TODO Could be fun to choose an icon for the game, to make it stand out in the big list. Could literally be an emoji - also technically can put a Unicode lock character in the title and make it LOOK password protected -->
               <label>
                 &nbsp;Title
                 <input x-model="createForm.title" x-init="$el.focus()" required="true" />

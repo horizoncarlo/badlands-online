@@ -17,7 +17,7 @@
     >
       <header>
         <menu :class="targetMode.enabled ? 'invalid-target' : ''">
-          <!-- TODO Just remove debug menu eventually
+          <!-- TODO Just remove debug menu and related functions eventually
           <li>
             Debug Menu
             <menu>
@@ -171,15 +171,13 @@
           draggable="true"
           @dragstart="repositionStart($event)"
           @dragend="repositionEnd($event, $el, [repositionOffsetX, repositionOffsetY])"
-          class="repositionable panel water-wrap bd-accent"
+          class="repositionable panel panel-small water-wrap bd-accent"
           x-init="repositionFromStorage($el.id)"
         >
           <template x-if="getPlayerData().waterCount > 0">
-            <div>
-              <template x-for="water in getPlayerData().waterCount">
-                <img x-init="waterTokenEles.push($el)" src="images/water.png" class="water-token" draggable="false" />
-              </template>
-            </div>
+            <template x-for="water in getPlayerData().waterCount">
+              <img x-init="waterTokenEles.push($el)" src="images/water.png" class="water-token" draggable="false" />
+            </template>
           </template>
           <template x-if="getPlayerData().waterCount <= 0">
             <span>No Water remains</span>

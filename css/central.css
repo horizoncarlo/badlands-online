@@ -42,7 +42,7 @@ body:has(dialog[open]) {
 .repositionable {
   position: absolute;
   cursor: move;
-  /* TODO Feels weird or not to slide the move? Might be browser dependent as Firefox does it own d&d animation: transition: top 100ms, left 100ms; */
+  transition: top 100ms, left 100ms;
 }
 
 .mcenter {
@@ -54,6 +54,10 @@ body:has(dialog[open]) {
   padding: 10px;
   background-color: var(--bg-accent);
   border-radius: 20px;
+}
+
+.panel-small {
+  padding: 5px;
 }
 
 .icon {
