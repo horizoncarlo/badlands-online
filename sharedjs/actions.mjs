@@ -355,6 +355,11 @@ const rawAction = {
           eventQueue[0] = undefined;
         }
 
+        action.sendError(
+          `${utils.cardImgToName(message.details.card.img)} event fired for ${utils.getPlayerNameById(message.playerId)}`,
+          { gsMessage: message },
+        );
+
         utils.fireAbilityOrJunk(
           message,
           message.details.card.abilityEffect,
@@ -911,7 +916,7 @@ const rawAction = {
         }
         text = message.details.sender;
       } else {
-        text = utils.getPlayerNumById(message.playerId);
+        text = utils.getPlayerNameById(message.playerId);
       }
       text += ': ' + message.details.text;
 

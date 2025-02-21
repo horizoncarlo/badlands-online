@@ -50,6 +50,18 @@ const utils = {
     return utils.lobbies?.get(utils.getGameIdByPlayerId(messageOrPlayerId));
   },
 
+  getPlayerNameById(playerId) {
+    const lobbyObj = utils.lobbies?.get(utils.getGameIdByPlayerId(playerId));
+    if (lobbyObj) {
+      for (const player of lobbyObj.players) {
+        if (player.playerId === playerId) {
+          return player.playerName;
+        }
+      }
+    }
+    return utils.getPlayerNumById(playerId);
+  },
+
   deleteLobby(gameId) {
     const lobbyObj = utils.lobbies?.get(gameId);
     if (lobbyObj) {
@@ -485,13 +497,14 @@ const utils = {
         return false;
       }
 
-      const winnerPlayerNum = utils.getPlayerNumById(winnerId);
-      action.sendError(winnerPlayerNum + ' won. Lobby closing soon...', { gsMessage: message });
+      const winnerPlayerName = utils.getPlayerNameById(winnerId);
+      const loserPlayerName = utils.getPlayerNameById(loserId);
+      action.sendError(winnerPlayerName + ' won. Lobby closing soon...', { gsMessage: message });
       sendS('endScreen', message, { type: 'win' }, winnerId);
       sendS('endScreen', message, { type: 'lose' }, loserId);
-      lobbyText = `Game ended in "${utils.lobbies.get(cachedGS.gameId).title}" and ${winnerPlayerNum} won against ${
-        utils.getOppositePlayerNum(winnerPlayerNum)
-      }`;
+      lobbyText = `Game ended in "${
+        utils.lobbies.get(cachedGS.gameId).title
+      }" and ${winnerPlayerName} won against ${loserPlayerName}`;
     }
 
     if (lobbyText) {

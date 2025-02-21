@@ -11,7 +11,7 @@ export function createGameState(gameId) {
     myPlayerNum: null, // player1 or player2 as a string, only used on client
     opponentPlayerNum: null,
     player1: {
-      playerId: null,
+      playerId: null, // Note that playerId is an internal field that SHOULD NOT be shared with the client - as it can allow spoofing actions by the other player
       waterCount: 3,
       hasWaterSilo: false,
       cards: [],

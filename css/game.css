@@ -1,7 +1,11 @@
 .junk-pile {
-  position: absolute;
+  position: fixed;
   text-align: center;
+  bottom: 5%;
+  left: 0;
   padding: var(--gap);
+  border-radius: var(--bd-radius);
+  opacity: 0.9;
 }
 
 .draw-animation {
@@ -139,7 +143,7 @@
 .flip-tray {
   position: fixed;
   right: 0;
-  bottom: 0;
+  bottom: 5%;
   width: var(--flip-tray-button-size);
   height: var(--flip-tray-button-size);
   background-color: var(--bg-default);
@@ -353,6 +357,8 @@
   bottom: 0;
   left: 0;
   padding: 5px;
-  border-top-right-radius: 5px;
+  border-top-right-radius: var(--bd-radius);
+  border-left: 0;
+  border-bottom: 0;
   z-index: 10;
 }

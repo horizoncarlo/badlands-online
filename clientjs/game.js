@@ -476,7 +476,7 @@ function formatTimer(toFormat) {
   const mins = toFormat % 60;
 
   // Output Minutes only if found, otherwise Seconds
-  return `${mins > 0 ? (pad(mins) + 'm:') : ''}${pad(secs)}s`;
+  return `${mins > 0 ? (pad(mins) + 'm : ') : ''}${pad(secs)}s`;
 }
 
 function disableTargetMode() {

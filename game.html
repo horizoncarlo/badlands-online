@@ -142,9 +142,10 @@
               <img class="bd-accent" :src="utils.fullCardPath('water_silo')" @click="userTakeWaterSilo()" />
             </div>
           </template>
+          <br />
           <template x-if="draggedCard">
             <div
-              class="junk-pile card-size bd-attention"
+              class="junk-pile card-size bd-attention bg-muted"
               title="Drag your card here to use the Junk effect"
               @dragleave="dragLeaveHighlight($el, 'fg-attention')"
               @dragover.prevent="dragOverHighlight($el, 'fg-attention')"

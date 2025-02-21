@@ -157,6 +157,7 @@
                     x-text="getCreatedNote(currentLobby)"
                     :title="new Date(currentLobby.createdDate).toLocaleString()"
                   ></span>
+                  <!-- TODO Must not be resetting a flag, as in a human lobby if both players leave then rejoin and ONE pressed "I'm Ready" the game starts -->
                   <template x-if="!readying">
                     <button
                       @click="clickLobby(currentLobby)"
