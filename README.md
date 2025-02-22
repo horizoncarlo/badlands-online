@@ -1,7 +1,7 @@
 # Badlands Online
 
 This is an unlicensed fan made adaptation of the amazing [Radlands](https://boardgamegeek.com/boardgame/329082/radlands) card
-game - no copyright infringement on art or icons intended!
+game
 
 Can see the live running version at 🔗[https://badlands.deno.dev/](https://badlands.deno.dev/)🔗
 
