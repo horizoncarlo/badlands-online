@@ -1,6 +1,6 @@
 <dialog
   id="discardDialog"
-  class="three-card-dialog"
+  class="four-card-dialog"
   @close="doneDiscard ? null : showDiscardDialog()"
   x-data="{ selectedDiscards: [] }"
 >
@@ -14,7 +14,7 @@
           :alt="card.img"
           :src="utils.fullCardPath(card)"
           draggable="false"
-          :class="'card-size card-choice' + (isSelectedDiscard(card, selectedDiscards) ? ' card-choice-sel' : '')"
+          :class="'card-choice' + (isSelectedDiscard(card, selectedDiscards) ? ' card-choice-sel' : '')"
         />
       </div>
     </template>

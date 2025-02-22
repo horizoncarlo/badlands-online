@@ -16,7 +16,7 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.LOBBY_CHAT_MAX = 10000; // Number of lobbyChat messages to keep in memory
 globalThis.AI_PLAYER_ID_PREFIX = 'autoOpponent_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
-globalThis.GAME_START_COUNTDOWN_S = 2; // TTODO TEMPORARY Countdown should be 10, just easier to debug at 2
+globalThis.GAME_START_COUNTDOWN_S = 10;
 
 globalThis.DEBUG_NO_IDLE_TIMEOUT = false; // Debugging flag if we want to ignore idle timeout and not kick players, for testing
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
@@ -585,7 +585,7 @@ const utils = {
         }
       }
 
-      // TTODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
+      // TODO Better UI handling of reshuffling - block UI interaction (dialog?), play an animation, etc.
       const reshuffledDeck = utils.shuffleDeck(cachedGS.discard);
       cachedGS.deck = reshuffledDeck;
       cachedGS.deckCount = cachedGS.deck.length;
@@ -692,7 +692,7 @@ const utils = {
     }
   },
 
-  cardImgToName(img) {
+  getCardImgToName(img) {
     if (!img) {
       return img;
     }

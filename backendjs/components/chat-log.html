@@ -21,7 +21,7 @@
   <div
     id="chatScroll"
     x-effect="scrollChatToBottom($el, chat.length)"
-    :class="gamePage ? 'chat-wrap-game' : 'chat-wrap-lobby'"
+    class="chat-wrap"
   >
     <template x-for="message in chat">
       <div x-text="message"></div>

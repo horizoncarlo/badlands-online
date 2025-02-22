@@ -1,7 +1,6 @@
 import { serveFile } from 'jsr:@std/http/file-server';
 import { v4 as uuidv4 } from 'npm:uuid'; // Couldn't use Deno UUID because v4 just recommends crypto.randomUUID, which is only in HTTPS envs
 import { createCampDeck, createDemoDeck, createNewDeck } from './backendjs/deck.ts';
-import { startScraper } from './backendjs/scraper.ts';
 import { abilities } from './sharedjs/abilities.mjs';
 import { action } from './sharedjs/actions.mjs';
 import { createGameState } from './sharedjs/gamestate.mjs';
@@ -658,9 +657,8 @@ function setupComponents() {
 }
 setupComponents();
 
-// TTODO TEMPORARY Some default lobbies to populate the list
-createGame({ title: 'Test Game 1' });
-createGame({ title: 'Private Game', password: 'test' });
+// Some default lobbies to populate the list
+createGame({ title: "Baby's First Lobby" });
 
 /* TODO HTTPS support example for a self hosted setup with our own certs
   port: 443,
@@ -671,30 +669,3 @@ Deno.serve({ port: DEFAULT_PORT, hostname: DEFAULT_HOSTNAME }, handler);
 
 // Pseudo exports for use in sharedjs and other places
 globalThis.sendS = sendS;
-
-// Dev-specific APIs
-if (!IS_LIVE) {
-  const devHandler = (req: Request) => {
-    const url = new URL(req.url);
-    const filePath = url.pathname;
-
-    if (filePath === '/scraper/start') {
-      return new Response(startScraper(), {
-        headers: { 'Content-Type': 'text/html' },
-      });
-    }
-    return new Response(null, { status: 403 });
-  };
-  Deno.serve({ port: 8080, hostname: 'localhost' }, devHandler);
-} else {
-  const keepAlive = () => {
-    try {
-      console.log('Ping host');
-      fetch('http://' + DEFAULT_HOSTNAME, { method: 'GET' });
-    } catch (err) {
-      console.error('Keep alive request failed', err);
-    }
-  };
-
-  setInterval(keepAlive, 5 * 60 * 1000);
-}

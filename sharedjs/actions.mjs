@@ -103,6 +103,10 @@ const rawAction = {
       getGS(message).turn[nextPlayerNum].turnCount++;
       getGS(message).turn.currentPlayer = nextPlayerNum;
       getGS(message).turn.startTime = Date.now();
+      action.sendError(
+        `>> ${utils.getPlayerNameById(message.playerId)} turn ${getGS(message).turn[nextPlayerNum].turnCount} started <<`,
+        { gsMessage: message },
+      );
 
       // Reset ready state of cards, then apply for our damaged cards
       utils.markAllSlotsReady(message);
@@ -216,6 +220,11 @@ const rawAction = {
             return;
           }
 
+          action.sendError(
+            `${utils.getPlayerNameById(message.playerId)} used event ${utils.getCardImgToName(message.details.card.img)}`,
+            { gsMessage: message },
+          );
+
           message.details.card.unReady = true;
           eventQueue.splice(targetSpace, 1, message.details.card);
           sendS('events', message, {
@@ -268,6 +277,11 @@ const rawAction = {
             targetSlot = slotBelow;
           }
         }
+
+        action.sendError(
+          `${utils.getPlayerNameById(message.playerId)} played ${utils.getCardImgToName(message.details.card.img)}`,
+          { gsMessage: message },
+        );
 
         targetSlot.content = message.details.card;
         sendS('slot', message, {
@@ -328,6 +342,11 @@ const rawAction = {
 
       // Use our chosen ability
       try {
+        action.sendError(
+          `${utils.getPlayerNameById(message.playerId)} used ${utils.getCardImgToName(checkCardReturn.cardObj.img)} ability`,
+          { gsMessage: message },
+        );
+
         const returnStatus = utils.fireAbilityOrJunk(
           message,
           abilityObj.abilityEffect,
@@ -356,7 +375,7 @@ const rawAction = {
         }
 
         action.sendError(
-          `${utils.cardImgToName(message.details.card.img)} event fired for ${utils.getPlayerNameById(message.playerId)}`,
+          `${utils.getCardImgToName(message.details.card.img)} event fired for ${utils.getPlayerNameById(message.playerId)}`,
           { gsMessage: message },
         );
 
@@ -457,6 +476,8 @@ const rawAction = {
           return false;
         }
 
+        action.sendError(`${utils.getPlayerNameById(message.playerId)} drew a card`, { gsMessage: message });
+
         action.reduceWater(message, 2, { ignoreUnready: true });
       }
 
@@ -487,6 +508,13 @@ const rawAction = {
       sendC('junkCard', message);
     } else {
       try {
+        action.sendError(
+          `${utils.getPlayerNameById(message.playerId)} junked ${
+            utils.getCardImgToName(message.details.card.img)
+          } for ${message?.details?.card?.junkEffect}`,
+          { gsMessage: message },
+        );
+
         const returnStatus = utils.fireAbilityOrJunk(message, message?.details?.card?.junkEffect);
 
         // If we aren't targetting, we can just remove the card that initiated the junk effect now
@@ -497,6 +525,7 @@ const rawAction = {
         } else {
           action.sync(message.playerId);
         }
+
         return returnStatus;
       } catch (err) {
         console.error('Error junking card', err);
@@ -517,6 +546,8 @@ const rawAction = {
         action.sendError('Not enough Water to take Water Silo', { gsMessage: message }, message.playerId);
         return;
       }
+
+      action.sendError(`${utils.getPlayerNameById(message.playerId)} took their Water Silo`, { gsMessage: message });
 
       // Consistently keep Water Silo at the front of your hand
       playerData.cards.unshift(utils.makeWaterSiloCard());
@@ -737,6 +768,8 @@ const rawAction = {
             }
           }
         } else {
+          action.sendError(`Camp ${utils.getCardImgToName(foundRes.cardObj.img)} destroyed!`, { gsMessage: message });
+
           foundRes.cardObj.isDestroyed = true;
 
           // Check if this was the last camp and someone won/lost

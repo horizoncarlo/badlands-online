@@ -226,6 +226,12 @@
   text-align: center;
 }
 
+.four-card-dialog,
+.four-card-dialog > div:first-of-type {
+  min-width: calc(var(--card-width-full) * 4 + 200px);
+  text-align: center;
+}
+
 .camps-dialog {
   text-align: center;
 }
@@ -251,25 +257,11 @@
 .chat-game {
   top: 5%;
   right: 2%;
-}
-
-.chat-wrap-lobby,
-.chat-wrap-game {
-  scroll-behavior: smooth;
-  max-height: var(--chat-max-height);
-}
-
-.chat-wrap-lobby {
-  overflow-y: scroll;
-}
-
-.chat-wrap-game {
   max-width: 20vw;
-  overflow-y: hidden;
 }
 
-.chat-wrap-game:hover {
-  overflow-y: scroll;
+.chat-wrap {
+  word-break: break-word;
 }
 
 .target-mode-help {

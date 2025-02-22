@@ -4,21 +4,12 @@ function focusChatIn() {
 
 function scrollChatToBottom(ele) {
   Alpine?.nextTick(() => {
-    // If we're calling without an element, aka from outside, we just want to force the scroll
-    // This would be used when doing the initial chat load
-    let forceScroll = false;
     if (!ele) {
       ele = document.getElementById('chatScroll');
-      forceScroll = true;
     }
 
     if (ele) {
-      // Check if we're already at (or near) the bottom, in which case we autoscroll
-      // Otherwise the user might have intentionally scrolled up to read something
-      const isScrolledToBottom = ele.scrollHeight - ele.clientHeight <= ele.scrollTop + 50;
-      if (isScrolledToBottom || forceScroll) {
-        ele.scrollTop = ele.scrollHeight;
-      }
+      ele.scrollTop = ele.scrollHeight;
     }
   });
 }

@@ -3,7 +3,7 @@
   class="three-card-dialog"
 >
   <header>
-    <h2><span x-text="utils.cardImgToName(componentData.abilityCard?.img)"></span> - Choose the ability to use</h2>
+    <h2><span x-text="utils.getCardImgToName(componentData.abilityCard?.img)"></span> - Choose the ability to use</h2>
   </header>
   <template x-if="componentData.abilityCard">
     <div class="mcenter" @keyup.window="handleKeyup($event)">

@@ -195,7 +195,7 @@
                 draggable="false"
                 :alt="camp.img"
                 :src="getCampImage(camp)"
-                :class="`card-anim card-size ${camp.damage === 1 ? ' damaged-card' : ''}`"
+                :class="`card-size ${camp.isDestroyed ? 'bright-hover' : 'card-anim'} ${camp.damage === 1 ? ' damaged-card' : ''}`"
               />
             </div>
           </template>

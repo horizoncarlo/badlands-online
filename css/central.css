@@ -20,7 +20,8 @@
 }
 
 html,
-body {
+body,
+section {
   padding: 0;
   margin: 0;
   width: 100%;
@@ -82,6 +83,12 @@ menu {
 
 .bright-hover:hover {
   filter: brightness(125%);
+}
+
+.chat-wrap {
+  scroll-behavior: smooth;
+  max-height: var(--chat-max-height);
+  overflow-y: scroll;
 }
 
 .card-size {
