@@ -23,19 +23,19 @@
     <!-- TODO Show game stats on the end screen (once, you know...we track stacks and all) -->
     <template x-if="isWin()">
       <div>
-        <img src="images/ai-art/radlands-ai-winner.webp" />
+        <img src="images/ai-art/ai-winner.webp" />
         <p>You have crushed the opposition and rule the wasteland</p>
       </div>
     </template>
     <template x-if="isLose()">
       <div>
-        <img src="images/ai-art/radlands-ai-loser.webp" />
+        <img src="images/ai-art/ai-loser.webp" />
         <p>You have been routed and destroyed by your stronger opponent</p>
       </div>
     </template>
     <template x-if="isTie()">
       <div>
-        <img src="images/ai-art/radlands-ai-tie.webp" />
+        <img src="images/ai-art/ai-tie.webp" />
         <p>You and your opponent were evenly matched and have tied</p>
         <i>(Had to reshuffle the draw deck, but there are no discards)</i>
       </div>

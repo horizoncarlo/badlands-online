@@ -1,10 +1,12 @@
 # Badlands Online
 
-This is an unlicensed fan made adaptation of the amazing [Radlands](https://boardgamegeek.com/boardgame/329082/radlands) card game - no copyright infringement on art or icons intended!
+This is an unlicensed fan made adaptation of the amazing [Radlands](https://boardgamegeek.com/boardgame/329082/radlands) card
+game - no copyright infringement on art or icons intended!
 
 Can see the live running version at 🔗[https://badlands.deno.dev/](https://badlands.deno.dev/)🔗
 
-![image](https://github.com/user-attachments/assets/346a8107-a630-4287-ba85-4cf3313a0beb)
+<a href="./images/readme-lobby.png" target="_blank"><img style="width: 640px;" src="./images/readme-lobby.png"/></a>
+<a href="./images/readme-game.png" target="_blank"><img style="width: 640px;" src="./images/readme-game.png"/></a>
 
 Built with [Deno](https://deno.com/) and [Alpine.js](https://alpinejs.dev/) and a _lot_ of manual Websocket messaging.
 Launching steps:
