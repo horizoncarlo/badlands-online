@@ -195,7 +195,7 @@ function getDemoCard() {
       return utils.fullCardPath(demoCard);
     } catch (ignored) {}
   }
-  return utils.fullCardPath('punk');
+  return utils.fullCardPath('prototype');
 }
 
 function getCreatedNote(lobbyObj) {

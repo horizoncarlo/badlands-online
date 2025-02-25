@@ -1,6 +1,6 @@
 import { utils } from '../sharedjs/utils.mjs';
 
-let currentCardId = 10; // Start with some breathing room for special case cards like Water Silo
+let currentCardId = 10; // Start with some breathing room for special case cards like Archive
 
 const createCampDeck = (): Array<any> => { // TODO Camp typing
   return _shuffleNewDeck([
@@ -47,54 +47,54 @@ const createDemoDeck = (): Array<any> => {
 
 const createNewDeck = (params?: { isDemo?: boolean }): Array<any> => { // TODO Card typing
   const dupePeople = [
-    { img: 'assassin', cost: 1, junkEffect: 'raid', abilities: [{ cost: 2, abilityEffect: 'assassin' }] },
-    { img: 'cult_leader', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 0, abilityEffect: 'cultLeader' }] },
-    { img: 'doomsayer', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 1, abilityEffect: 'doomsayer' }] },
-    { img: 'exterminator', cost: 1, junkEffect: 'drawCard', abilities: [{ cost: 1, abilityEffect: 'exterminator' }] },
-    { img: 'gunner', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'gunner' }] },
-    { img: 'holdout', cost: 2, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
-    { img: 'looter', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 2, abilityEffect: 'looter' }] },
-    { img: 'mimic', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'mimic' }] },
-    { img: 'muse', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'gainWater' }] },
-    { img: 'mutant', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'mutant' }] },
-    { img: 'pyromaniac', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 1, abilityEffect: 'pyromaniac' }] },
+    { img: 'assassin', cost: 1, recycleEffect: 'virus', abilities: [{ cost: 2, abilityEffect: 'assassin' }] },
+    { img: 'cult_leader', cost: 1, recycleEffect: 'drawCard', abilities: [{ cost: 0, abilityEffect: 'cultLeader' }] },
+    { img: 'doomsayer', cost: 1, recycleEffect: 'drawCard', abilities: [{ cost: 1, abilityEffect: 'doomsayer' }] },
+    { img: 'exterminator', cost: 1, recycleEffect: 'drawCard', abilities: [{ cost: 1, abilityEffect: 'exterminator' }] },
+    { img: 'gunner', cost: 1, recycleEffect: 'patchCard', abilities: [{ cost: 2, abilityEffect: 'gunner' }] },
+    { img: 'holdout', cost: 2, recycleEffect: 'virus', abilities: [{ cost: 1, abilityEffect: 'bugCard' }] },
+    { img: 'looter', cost: 1, recycleEffect: 'gainMemory', abilities: [{ cost: 2, abilityEffect: 'looter' }] },
+    { img: 'mimic', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 0, abilityEffect: 'mimic' }] },
+    { img: 'muse', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 0, abilityEffect: 'gainMemory' }] },
+    { img: 'mutant', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 0, abilityEffect: 'mutant' }] },
+    { img: 'pyromaniac', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 1, abilityEffect: 'pyromaniac' }] },
     {
       img: 'rabble_rouser',
       cost: 1,
-      junkEffect: 'raid',
-      abilities: [{ cost: 1, abilityEffect: 'gainPunk' }, { cost: 1, abilityEffect: 'rabbleRouser' }],
+      recycleEffect: 'virus',
+      abilities: [{ cost: 1, abilityEffect: 'gainPrototype' }, { cost: 1, abilityEffect: 'rabbleRouser' }],
     },
-    { img: 'repair_bot', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 2, abilityEffect: 'restoreCard' }] },
-    { img: 'rescue_team', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 0, abilityEffect: 'rescueTeam' }] },
-    { img: 'scientist', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'scientist' }] },
-    { img: 'scout', cost: 1, junkEffect: 'gainWater', abilities: [{ cost: 1, abilityEffect: 'raid' }] },
-    { img: 'sniper', cost: 1, junkEffect: 'restoreCard', abilities: [{ cost: 2, abilityEffect: 'sniper' }] },
-    { img: 'vanguard', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'vanguard' }] },
-    { img: 'vigilante', cost: 1, junkEffect: 'raid', abilities: [{ cost: 1, abilityEffect: 'injurePerson' }] },
-    { img: 'wounded_soldier', cost: 1, junkEffect: 'injurePerson', abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
+    { img: 'repair_bot', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 2, abilityEffect: 'patchCard' }] },
+    { img: 'rescue_team', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 0, abilityEffect: 'rescueTeam' }] },
+    { img: 'scientist', cost: 1, recycleEffect: 'virus', abilities: [{ cost: 1, abilityEffect: 'scientist' }] },
+    { img: 'scout', cost: 1, recycleEffect: 'gainMemory', abilities: [{ cost: 1, abilityEffect: 'virus' }] },
+    { img: 'sniper', cost: 1, recycleEffect: 'patchCard', abilities: [{ cost: 2, abilityEffect: 'sniper' }] },
+    { img: 'vanguard', cost: 1, recycleEffect: 'virus', abilities: [{ cost: 1, abilityEffect: 'vanguard' }] },
+    { img: 'vigilante', cost: 1, recycleEffect: 'virus', abilities: [{ cost: 1, abilityEffect: 'exploitProgram' }] },
+    { img: 'wounded_soldier', cost: 1, recycleEffect: 'exploitProgram', abilities: [{ cost: 1, abilityEffect: 'bugCard' }] },
   ];
   const uniqPeople = [
-    { img: 'argo_yesky', cost: 3, abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
-    { img: 'karli_blaze', cost: 3, abilities: [{ cost: 1, abilityEffect: 'damageCard' }] },
+    { img: 'argo_yesky', cost: 3, abilities: [{ cost: 1, abilityEffect: 'bugCard' }] },
+    { img: 'karli_blaze', cost: 3, abilities: [{ cost: 1, abilityEffect: 'bugCard' }] },
     { img: 'magnus_karv', cost: 3, abilities: [{ cost: 2, abilityEffect: 'magnusKarv' }] },
     { img: 'molgur_stang', cost: 4, abilities: [{ cost: 1, abilityEffect: 'molgurStang' }] },
-    { img: 'vera_vosh', cost: 3, abilities: [{ cost: 1, abilityEffect: 'injurePerson' }] },
+    { img: 'vera_vosh', cost: 3, abilities: [{ cost: 1, abilityEffect: 'exploitProgram' }] },
     { img: 'zeto_khan', cost: 3, abilities: [{ cost: 1, abilityEffect: 'zetoKhan' }] },
   ].map((uniq) => {
-    uniq['junkEffect'] = 'gainPunk';
+    uniq['recycleEffect'] = 'gainPrototype';
     return uniq;
   });
   const dupeEvents = [
-    { img: 'banish', cost: 1, startSpace: 1, junkEffect: 'raid', abilityEffect: 'banish' },
-    { img: 'bombardment', cost: 4, startSpace: 3, junkEffect: 'restoreCard', abilityEffect: 'bombardment' },
-    { img: 'famine', cost: 1, startSpace: 1, junkEffect: 'injurePerson', abilityEffect: 'famine' },
-    { img: 'high_ground', cost: 0, startSpace: 1, junkEffect: 'gainWater', abilityEffect: 'highGround' },
-    { img: 'interrogate', cost: 1, startSpace: 0, junkEffect: 'gainWater', abilityEffect: 'interrogate' },
-    { img: 'napalm', cost: 2, startSpace: 1, junkEffect: 'restoreCard', abilityEffect: 'napalm' },
-    { img: 'radiation', cost: 2, startSpace: 1, junkEffect: 'raid', abilityEffect: 'radiation' },
-    { img: 'strafe', cost: 2, startSpace: 0, junkEffect: 'drawCard', abilityEffect: 'strafe' },
-    { img: 'truce', cost: 2, startSpace: 0, junkEffect: 'injurePerson', abilityEffect: 'truce' },
-    { img: 'uprising', cost: 1, startSpace: 2, junkEffect: 'injurePerson', abilityEffect: 'uprising' },
+    { img: 'banish', cost: 1, startSpace: 1, recycleEffect: 'virus', abilityEffect: 'banish' },
+    { img: 'bombardment', cost: 4, startSpace: 3, recycleEffect: 'patchCard', abilityEffect: 'bombardment' },
+    { img: 'famine', cost: 1, startSpace: 1, recycleEffect: 'exploitProgram', abilityEffect: 'famine' },
+    { img: 'high_ground', cost: 0, startSpace: 1, recycleEffect: 'gainMemory', abilityEffect: 'highGround' },
+    { img: 'interrogate', cost: 1, startSpace: 0, recycleEffect: 'gainMemory', abilityEffect: 'interrogate' },
+    { img: 'napalm', cost: 2, startSpace: 1, recycleEffect: 'patchCard', abilityEffect: 'napalm' },
+    { img: 'radiation', cost: 2, startSpace: 1, recycleEffect: 'virus', abilityEffect: 'radiation' },
+    { img: 'strafe', cost: 2, startSpace: 0, recycleEffect: 'drawCard', abilityEffect: 'strafe' },
+    { img: 'truce', cost: 2, startSpace: 0, recycleEffect: 'exploitProgram', abilityEffect: 'truce' },
+    { img: 'uprising', cost: 1, startSpace: 2, recycleEffect: 'exploitProgram', abilityEffect: 'uprising' },
   ];
 
   let deck = [];

@@ -116,7 +116,7 @@
             title="Number of discarded cards"
           ></span>
           <div
-            :class="'card-size bright-hover bd-variant' + (targetMode.enabled ? ' invalid-target' : '')"
+            :class="'card-size bright-hover bd-attention' + (targetMode.enabled ? ' invalid-target' : '')"
             title="Draw a card for 2 Water (hotkey 'D')"
             @mouseover="showWaterCost(2)"
             @mouseout="hideWaterCost()"
@@ -125,34 +125,34 @@
             <template x-if="deckCount > 0">
               <img
                 @click="userDrawCard()"
-                :src="utils.fullCardPath('punk')"
+                :src="utils.fullCardPath('card-back')"
                 draggable="false"
                 class="card-size"
               />
             </template>
           </div>
-          <template x-if="!getPlayerData().hasWaterSilo">
+          <template x-if="!getPlayerData().hasArchive">
             <div
-              :class="'bright-hover take-water-silo' + (targetMode.enabled ? ' invalid-target' : '')"
+              :class="'bright-hover take-archive' + (targetMode.enabled ? ' invalid-target' : '')"
               @mouseover="showWaterCost(1)"
               @mouseout="hideWaterCost()"
               @click="hideWaterCost()"
-              title="Take the Water Silo for 1 Water (hotkey 'W')"
+              title="Take the Archive for 1 Memory (hotkey 'A')"
             >
-              <img class="bd-accent" :src="utils.fullCardPath('water_silo')" @click="userTakeWaterSilo()" />
+              <img class="bd-accent" :src="utils.fullCardPath('archive')" @click="userTakeArchive()" />
             </div>
           </template>
           <br />
           <template x-if="draggedCard">
             <div
-              class="junk-pile card-size bd-attention bg-muted"
-              title="Drag your card here to use the Junk effect"
-              @dragleave="dragLeaveHighlight($el, 'fg-attention')"
-              @dragover.prevent="dragOverHighlight($el, 'fg-attention')"
-              @drop.prevent="dropCardInJunk($el)"
+              class="recycle-pile card-size bd-attention bg-muted"
+              title="Drag your card here to use the Recycle effect"
+              @dragleave="dragLeaveHighlight($el, 'fg-severe')"
+              @dragover.prevent="dragOverHighlight($el, 'fg-severe')"
+              @drop.prevent="dropCardInRecycle($el)"
             >
-              <!-- TODO When hovering the Junk Card slot the trash icon could change to match an icon for draggedCard.junkEffect icon -->
-              Junk Card
+              <!-- TODO When hovering the Recycle Card slot the trash icon could change to match an icon for draggedCard.recycleEffect icon -->
+              Recycle Card
               <div class="icon">🗑</div>
             </div>
           </template>
@@ -160,7 +160,7 @@
       </template>
       <template x-if="drawAnimationCount > 0">
         <template x-for="anim in drawAnimationCount">
-          <img :src="utils.fullCardPath('punk')" class="draw-animation card-size" />
+          <img :src="utils.fullCardPath('prototype')" class="draw-animation card-size" />
         </template>
       </template>
 
@@ -177,7 +177,7 @@
         >
           <template x-if="getPlayerData().waterCount > 0">
             <template x-for="water in getPlayerData().waterCount">
-              <img x-init="waterTokenEles.push($el)" src="images/water.png" class="water-token" draggable="false" />
+              <img x-init="waterTokenEles.push($el)" src="images/memory.png" class="water-token" draggable="false" />
             </template>
           </template>
           <template x-if="getPlayerData().waterCount <= 0">
@@ -195,7 +195,7 @@
                 draggable="false"
                 :alt="camp.img"
                 :src="getCampImage(camp)"
-                :class="`card-size ${camp.isDestroyed ? 'bright-hover' : 'card-anim'} ${camp.damage === 1 ? ' damaged-card' : ''}`"
+                :class="`card-size ${camp.isCrashed ? 'bright-hover' : 'card-anim'} ${camp.damage === 1 ? ' damaged-card' : ''}`"
               />
             </div>
           </template>
@@ -224,14 +224,14 @@
                 <template x-if="slot.content">
                   <span>
                     <template
-                      x-if="slot.content.unReady && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)"
+                      x-if="slot.content.inactive && (typeof slot.content.damage !== 'number' || slot.content.damage <= 0)"
                     >
                       <span class="relative fright">
                         <template
-                          x-for="(water, index) in (slot.content.unReadyCost === 0 ? 1 : (slot.content.unReadyCost ?? 1))"
+                          x-for="(water, index) in (slot.content.inactiveCost === 0 ? 1 : (slot.content.inactiveCost ?? 1))"
                         >
                           <img
-                            :src="`images/${(slot.content.unReadyCost === 0 || !slot.content.unReadyCost) ? 'water_back' : 'water'}.png`"
+                            :src="`images/${(slot.content.inactiveCost === 0 || !slot.content.inactiveCost) ? 'memory_back' : 'memory'}.png`"
                             class="water-token-overlay"
                             :style="`top: ${index*10}px; right: ${index*10}px;`"
                           />
@@ -241,13 +241,13 @@
                     <div :class="`${isMySlot ? 'card-friendly' : 'card-opponent' }`">
                       <img
                         :id="`${targetModePrefix}${slot.content.id}`"
-                        @click="isMySlot && !slot.content.unReady && !targetMode.enabled && action.useCard({details: { card: slot.content}})"
-                        @mouseover="isMySlot && !slot.content.unReady && showWaterCost(getCheapestAbility(slot.content))"
-                        @mouseout="isMySlot && !slot.content.unReady && hideWaterCost()"
+                        @click="isMySlot && !slot.content.inactive && !targetMode.enabled && action.useCard({details: { card: slot.content}})"
+                        @mouseover="isMySlot && !slot.content.inactive && showWaterCost(getCheapestAbility(slot.content))"
+                        @mouseout="isMySlot && !slot.content.inactive && hideWaterCost()"
                         draggable="false"
                         :alt="slot.content.img"
                         :src="utils.fullCardPath(slot.content)"
-                        :class="`card-size ${(targetMode.enabled || slot.content.isPunk) ? 'bright-hover' : 'card-anim'} ${slot.content.unReady ? ' unready-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
+                        :class="`card-size ${(targetMode.enabled || slot.content.isPrototype) ? 'bright-hover' : 'card-anim'} ${slot.content.inactive ? ' inactive-card' : ''} ${slot.content.damage >= 1 ? ' damaged-card' : ''}`"
                       />
                     </div>
                   </span>
@@ -281,11 +281,11 @@
                   </div>
                   <template x-if="event">
                     <span>
-                      <template x-if="event.unReady">
+                      <template x-if="event.inactive">
                         <span>
                           <template x-for="(water, index) in (event.cost === 0 ? 1 : (event.cost ?? 1))">
                             <img
-                              :src="`images/${(event.cost === 0 || !event.cost) ? 'water_back' : 'water'}.png`"
+                              :src="`images/${(event.cost === 0 || !event.cost) ? 'memory_back' : 'memory'}.png`"
                               class="water-token-overlay"
                               :style="`top: ${index*10}px; right: ${index*10}px;`"
                             />
@@ -297,7 +297,7 @@
                           draggable="false"
                           :alt="event.img"
                           :src="utils.fullCardPath(event)"
-                          :class="`card-anim card-size ${event.unReady ? ' unready-card' : ''}`"
+                          :class="`card-anim card-size ${event.inactive ? ' inactive-card' : ''}`"
                         />
                       </div>
                     </span>
@@ -314,7 +314,7 @@
           <button
             x-ref="flipTray"
             @click="flipTray()"
-            :class="'flip-tray ' + (trayIsCamps ? 'variant' : 'active')"
+            :class="'flip-tray ' + (trayIsCamps ? 'attention' : 'active')"
             title="Flip tray between your camps and hand"
           >
             <u>F</u>lip Tray
@@ -322,7 +322,7 @@
             <span class="tray-subtext" x-text="trayIsCamps ? 'to Hand' : 'to Camps'"></span>
           </button>
 
-          <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'variant')">
+          <fieldset :class="'panel tray ' + (trayIsCamps ? 'active' : 'attention')">
             <legend><span x-text="getTrayLegend()"></span></legend>
 
             <template x-for="camp in getMyCamps()">

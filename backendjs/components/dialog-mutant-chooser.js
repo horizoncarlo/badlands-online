@@ -1,7 +1,7 @@
 const MUTANT_CHOICES = {
   Both: 'Both',
   Damage: 'Damage',
-  Restore: 'Restore',
+  Patch: 'Patch',
 };
 let doneMutant = false;
 

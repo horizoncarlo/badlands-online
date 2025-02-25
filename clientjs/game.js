@@ -123,7 +123,7 @@ function alpineInit() {
 }
 
 function preloadImages() {
-  new Image().src = getCampImage({ isDestroyed: true });
+  new Image().src = getCampImage({ isCrashed: true });
 }
 
 function leaveGame() {
@@ -211,7 +211,7 @@ function getMyCamps() {
 }
 
 function getCampImage(camp) {
-  return utils.fullCardPath(camp.isDestroyed ? { img: 'DESTROYED.png', drawCount: 0 } : camp);
+  return utils.fullCardPath(camp.isCrashed ? { img: 'DESTROYED.png', drawCount: 0 } : camp);
 }
 
 function getOpponentCardCount() {
@@ -291,15 +291,15 @@ function setupHotkeys() {
     if (ui.inGame) {
       if (key === 'f') flipTray();
       else if (key === 'd') userDrawCard();
-      else if (key === 'w') {
-        // Junk our Water Silo if we have it in hand, otherwise take it
-        const hasWaterSilo = getMyCards()?.find((card) => card.isWaterSilo);
-        if (hasWaterSilo) {
-          action.junkCard({
-            card: hasWaterSilo,
+      else if (key === 'a') {
+        // Recycle our Archive if we have it in hand, otherwise take it
+        const hasArchive = getMyCards()?.find((card) => card.isArchive);
+        if (hasArchive) {
+          action.recycleCard({
+            card: hasArchive,
           });
         } else {
-          userTakeWaterSilo();
+          userTakeArchive();
         }
       } else if (key === 'u') userUndo(); // TODO Also have Ctrl+Z as an Undo hotkey?
       else if (key === 'e') userEndTurn();
@@ -318,9 +318,9 @@ function flipTray() {
   }
 }
 
-function userTakeWaterSilo() {
-  if (!getPlayerData().hasWaterSilo) {
-    action.takeWaterSilo();
+function userTakeArchive() {
+  if (!getPlayerData().hasArchive) {
+    action.takeArchive();
   }
 }
 
@@ -389,10 +389,10 @@ function dragLeaveHighlight(ele, overrideHighlight) {
   ele.classList.remove(overrideHighlight ?? 'slot-highlight');
 }
 
-function dropCardInJunk(ele) {
+function dropCardInRecycle(ele) {
   dragLeaveHighlight(ele, 'fg-attention');
 
-  action.junkCard({
+  action.recycleCard({
     card: ui.draggedCard,
   });
 }

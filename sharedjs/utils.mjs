@@ -16,11 +16,11 @@ globalThis.SLOT_ID_PREFIX = 'slot_';
 globalThis.LOBBY_CHAT_MAX = 10000; // Number of lobbyChat messages to keep in memory
 globalThis.AI_PLAYER_ID_PREFIX = 'autoOpponent_';
 globalThis.MSG_INVALID_TARGETS = 'No valid targets for card effect';
-globalThis.GAME_START_COUNTDOWN_S = 10;
+globalThis.GAME_START_COUNTDOWN_S = 1; // QUIDEL
 
 globalThis.DEBUG_NO_IDLE_TIMEOUT = false; // Debugging flag if we want to ignore idle timeout and not kick players, for testing
 globalThis.DEBUG_AUTO_SELECT_CAMPS_START_TURN = false; // Debugging flag to automatically choose camps and start the turn for easier refresh -> test behaviour
-globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger initial hand of cards, to better test junk effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
+globalThis.DEBUG_DRAW_SO_MANY_CARDS = 0; // Debugging flag to draw a bigger initial hand of cards, to better test recycle effects. Put above 0 to enable. 30 is good for solo testing, 15 is good for two people
 
 const utils = {
   // TODO Probably split up the utils file so it doesn't grow to a crazy size
@@ -177,7 +177,7 @@ const utils = {
     }, []);
   },
 
-  fireAbilityOrJunk(message, effectName) {
+  fireAbilityOrRecycle(message, effectName) {
     if (!onClient && effectName) {
       // Check if we have a matching action for the requested effect
       const toCallFunc = action[effectName];
@@ -198,7 +198,7 @@ const utils = {
             effectName === 'drawCard' ? { fromServerRequest: true } : undefined,
           );
         } catch (err) {
-          console.error('Error firing ability or junk', err);
+          console.error('Error firing ability or recycle', err);
           action.sendError(err?.message, { gsMessage: message }, message.playerId);
           return false;
         }
@@ -215,11 +215,11 @@ const utils = {
   },
 
   effectRequiresTarget(effectName) {
-    return ['gainPunk', 'restoreCard', 'injurePerson', 'damageCard'].includes(effectName);
+    return ['gainPrototype', 'patchCard', 'exploitProgram', 'bugCard'].includes(effectName);
   },
 
   /**
-   * Determine targets for the basic effects that require a target: gainPunk, restoreCard, injurePerson, damageCard
+   * Determine targets for the basic effects that require a target: gainPrototype, patchCard, exploitProgram, bugCard
    */
   determineGenericTargets(message, effectName) {
     if (!message) {
@@ -228,13 +228,13 @@ const utils = {
 
     // Returns a relevant list of validTargets as an array of string IDs of the targets
     const fromPlayerNum = utils.getPlayerNumById(message.playerId);
-    if (effectName === 'gainPunk') {
-      // TODO Should reshuffle here automatically. As part of the targetting we should only count a Punk as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
+    if (effectName === 'gainPrototype') {
+      // TODO Should reshuffle here automatically. As part of the targetting we should only count a Prototype as a valid option if there's a card left in the deck to draw - technically wouldn't happen in a real game due to reshuffling rules
       if (!onClient && getGS(message).deck?.length < 1) {
         return [];
       }
 
-      // Determine where our Punk can go
+      // Determine where our Prototype can go
       // If ALL our slots are full then we can place anywhere and destroy the occupant
       let filteredSlots = [];
       if (utils.areAllSlotsFull(getGS(message)[fromPlayerNum].slots)) {
@@ -245,7 +245,7 @@ const utils = {
             // if our target is an empty slot we can place
             if (!slot.content) {
               return true;
-            } // Determine if we're dropping a Punk on a card that has a slot above, in which case we can push that card up
+            } // Determine if we're dropping a Prototype on a card that has a slot above, in which case we can push that card up
             else if (utils.isBottomRow(index)) {
               if (!getGS(message)[fromPlayerNum].slots[utils.indexAbove(index)].content) {
                 return true;
@@ -257,7 +257,7 @@ const utils = {
       return filteredSlots.map((slot) => {
         return slot.content ? String(slot.content.id) : SLOT_ID_PREFIX + slot.index;
       });
-    } else if (effectName === 'restoreCard') {
+    } else if (effectName === 'patchCard') {
       let targets = [
         ...utils.getContentFromSlots(getGS(message)[fromPlayerNum].slots),
         ...utils.getPlayerDataById(message.playerId).camps,
@@ -270,12 +270,12 @@ const utils = {
       targets = targets.map((target) => String(target.id));
 
       return targets;
-    } else if (effectName === 'injurePerson') {
-      // Look for unprotected people
-      return utils.getUnprotectedCards(message, { peopleOnly: true });
-    } else if (effectName === 'damageCard') {
-      // Look for unprotected people AND camps
-      return utils.getUnprotectedCards(message);
+    } else if (effectName === 'exploitProgram') {
+      // Look for external people
+      return utils.getExternalCards(message, { peopleOnly: true });
+    } else if (effectName === 'bugCard') {
+      // Look for external people AND camps
+      return utils.getExternalCards(message);
     }
   },
 
@@ -293,7 +293,7 @@ const utils = {
   },
 
   determineValidDropSlot(targetSlot, allSlots) {
-    if (onClient && (!ui.draggedCard || ui.draggedCard.isWaterSilo)) {
+    if (onClient && (!ui.draggedCard || ui.draggedCard.isArchive)) {
       return false;
     }
     if (!targetSlot || !allSlots || !allSlots.length === 0) {
@@ -326,9 +326,9 @@ const utils = {
     return true;
   },
 
-  getUnprotectedCards(message, params) { // params are campsOnly (boolean) and peopleOnly (boolean)
-    // Get the outermost unprotected opponent card in each column and return their IDs as targets
-    const unprotectedCardIds = [];
+  getExternalCards(message, params) { // params are campsOnly (boolean) and peopleOnly (boolean)
+    // Get the outermost external opponent card in each column and return their IDs as targets
+    const externalCardIds = [];
     const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
     const opponentSlots = getGS(message)[opponentPlayerNum]?.slots;
     const opponentCamps = getGS(message)[opponentPlayerNum]?.camps;
@@ -336,27 +336,27 @@ const utils = {
     // Special case juuuuuuuust for High Ground event
     if (getGS(message).universal.highGround) {
       if (!params?.campsOnly) {
-        unprotectedCardIds.push(...opponentSlots.filter((slot) => slot.content).map((slot) => String(slot.content.id)));
+        externalCardIds.push(...opponentSlots.filter((slot) => slot.content).map((slot) => String(slot.content.id)));
       }
       if (!params?.peopleOnly) {
-        unprotectedCardIds.push(...opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id)));
+        externalCardIds.push(...opponentCamps.filter((camp) => !camp.isCrashed).map((camp) => String(camp.id)));
       }
-      return unprotectedCardIds;
+      return externalCardIds;
     }
 
     for (let i = 0; i <= SLOT_NUM_ROWS; i++) {
       if (!params?.campsOnly && opponentSlots[i].content !== null) {
-        unprotectedCardIds.push(String(opponentSlots[i].content.id));
+        externalCardIds.push(String(opponentSlots[i].content.id));
       } else if (!params?.campsOnly && opponentSlots[i + SLOT_NUM_COLS].content !== null) {
-        unprotectedCardIds.push(String(opponentSlots[i + SLOT_NUM_COLS].content.id));
+        externalCardIds.push(String(opponentSlots[i + SLOT_NUM_COLS].content.id));
       } else if (
         !params?.peopleOnly &&
-        !opponentCamps[i].isDestroyed && utils.isColumnEmpty(message, i, opponentPlayerNum)
+        !opponentCamps[i].isCrashed && utils.isColumnEmpty(message, i, opponentPlayerNum)
       ) {
-        unprotectedCardIds.push(String(opponentCamps[i].id));
+        externalCardIds.push(String(opponentCamps[i].id));
       }
     }
-    return unprotectedCardIds;
+    return externalCardIds;
   },
 
   areAllSlotsFull(slots) {
@@ -432,39 +432,39 @@ const utils = {
     return findCardInPlayerSlots(card, 'player1') || findCardInPlayerSlots(card, 'player2');
   },
 
-  makeWaterSiloCard() {
-    return { id: 1, img: `water_silo${DECK_IMAGE_EXTENSION}`, cost: 1, junkEffect: 'gainWater', isWaterSilo: true };
+  makeArchiveCard() {
+    return { id: 1, img: `archive${DECK_IMAGE_EXTENSION}`, cost: 1, recycleEffect: 'gainMemory', isArchive: true };
   },
 
-  convertCardToPunk(message, cardObj) {
-    getGS(message).punks.push(structuredClone(cardObj));
+  convertCardToPrototype(message, cardObj) {
+    getGS(message).prototypes.push(structuredClone(cardObj));
 
     return {
       id: cardObj.id,
-      img: 'punk.png',
-      isPunk: true,
+      img: 'prototype.png',
+      isPrototype: true,
     };
   },
 
-  convertPunkToCard(message, punkId) {
+  convertPrototypeToCard(message, prototypeId) {
     if (!onClient) {
-      const matchingPunkIndex = getGS(message).punks.findIndex((punk) => punkId === punk.id);
-      if (matchingPunkIndex !== -1) {
-        return getGS(message).punks.splice(matchingPunkIndex, 1)[0];
+      const matchingPrototypeIndex = getGS(message).prototypes.findIndex((prototype) => prototypeId === prototype.id);
+      if (matchingPrototypeIndex !== -1) {
+        return getGS(message).prototypes.splice(matchingPrototypeIndex, 1)[0];
       }
     }
     return null;
   },
 
-  getRaidersEvent() {
-    return { isRaid: true, img: 'raiders.png', cost: 0, startSpace: 2, abilityEffect: 'doRaid' };
+  getVirusEvent() {
+    return { isVirus: true, img: 'virus.png', cost: 0, startSpace: 2, abilityEffect: 'doVirus' };
   },
 
-  playerHasPunk(playerId) {
+  playerHasPrototype(playerId) {
     if (playerId && utils.getPlayerNumById(playerId)) {
       const slots = getGS(playerId)[utils.getPlayerNumById(playerId)].slots;
       if (slots) {
-        return slots.some((slot) => slot.content?.isPunk);
+        return slots.some((slot) => slot.content?.isPrototype);
       }
     }
     return false;
@@ -485,10 +485,10 @@ const utils = {
     else {
       let winnerId = null;
       let loserId = null;
-      if (!cachedGS.player1.camps.find((camp) => !camp.isDestroyed)) {
+      if (!cachedGS.player1.camps.find((camp) => !camp.isCrashed)) {
         winnerId = cachedGS.player2.playerId;
         loserId = cachedGS.player1.playerId;
-      } else if (!cachedGS.player2.camps.find((camp) => !camp.isDestroyed)) {
+      } else if (!cachedGS.player2.camps.find((camp) => !camp.isCrashed)) {
         winnerId = cachedGS.player1.playerId;
         loserId = cachedGS.player2.playerId;
       }
@@ -532,16 +532,16 @@ const utils = {
     }, 11000);
   },
 
-  markAllSlotsReady(message) {
-    // Set all cards to ready state
+  markAllSlotsActive(message) {
+    // Set all cards to active state
     [...getGS(message).player1.slots, ...getGS(message).player2.slots].forEach((slot) => {
       if (slot.content) {
-        delete slot.content.unReady;
+        delete slot.content.inactive;
       }
     });
     [...getGS(message).player1.events, ...getGS(message).player2.events].forEach((event) => {
       if (event) {
-        delete event.unReady;
+        delete event.inactive;
       }
     });
   },
@@ -611,9 +611,9 @@ const utils = {
       return false;
     }
 
-    // If we're a Punk convert to the actual card (was hidden information before)
-    if (foundCard.cardObj.isPunk) {
-      foundCard.cardObj = utils.convertPunkToCard(playerId, foundCard.cardObj.id);
+    // If we're a Prototype convert to the actual card (was hidden information before)
+    if (foundCard.cardObj.isPrototype) {
+      foundCard.cardObj = utils.convertPrototypeToCard(playerId, foundCard.cardObj.id);
     }
 
     const playerData = utils.getPlayerDataById(playerId);
@@ -672,18 +672,18 @@ const utils = {
       let dir = 'people';
 
       if (card.img) {
-        if (card.isWaterSilo) {
-          dir = 'silo';
+        if (card.isArchive) {
+          dir = 'archive';
         } else if (utils.cardIsEvent(card)) {
           dir = 'events';
         } else if (utils.cardIsCamp(card)) {
           dir = 'camps';
         }
       } else {
-        if (card === 'punk') {
+        if (card === 'prototype' || card === 'card-back') {
           card += DECK_IMAGE_EXTENSION;
-        } else if (card === 'water_silo') {
-          dir = 'silo';
+        } else if (card === 'archive') {
+          dir = 'archive';
           card += DECK_IMAGE_EXTENSION;
         }
       }

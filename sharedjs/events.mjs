@@ -8,13 +8,13 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 // Events work similar to abilities (which were implemented first)
 // The function can be called twice - once to do any targetting, and the second to apply the effect
 const events = {
-  // destroy any enemy person
+  // crash any enemy program
   banish(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
         targets.forEach((targetId) => {
-          action.destroyCard({ ...message, details: { card: { id: targetId } } });
+          action.crashCard({ ...message, details: { card: { id: targetId } } });
         });
       } else {
         const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
@@ -27,7 +27,7 @@ const events = {
         if (message.validTargets?.length) {
           action.targetMode(message, {
             help: 'Select a card to destroy with Banish',
-            cursor: 'destroyCard',
+            cursor: 'crashCard',
             colorType: 'danger',
             hideCancel: true,
           });
@@ -42,10 +42,10 @@ const events = {
   bombardment(message) {
     const opponentCamps = getGS(message)[utils.getOpponentNumById(message.playerId)].camps;
     opponentCamps.forEach((camp) => {
-      action.doDamageCard({ ...message, details: { card: { id: camp.id } } });
+      action.doBugCard({ ...message, details: { card: { id: camp.id } } });
     });
 
-    const drawCount = opponentCamps.filter((camp) => camp.isDestroyed)?.length;
+    const drawCount = opponentCamps.filter((camp) => camp.isCrashed)?.length;
     if (drawCount > 0) {
       action.drawCard({
         ...message,
@@ -77,7 +77,7 @@ const events = {
         const famineList = utils.getPlayerDataById(message.playerId).slots
           .filter((slot) => slot.content && slot.content.id !== +message.details.targets[0]);
         famineList.forEach((slot) => {
-          action.destroyCard({
+          action.crashCard({
             playerId: message.playerId,
             details: {
               card: slot.content,
@@ -100,7 +100,7 @@ const events = {
     }
   },
 
-  // rearrange your people, then this turn all opponent cards (including camps) are unprotected
+  // rearrange your people, then this turn all opponent cards (including camps) are external
   highGround(message) {
     if (!onClient) {
       getGS(message).universal.highGround = true;
@@ -182,7 +182,7 @@ const events = {
       getGS(message).pendingTargetAction = structuredClone(abilityMessage);
       sendS('useAbility', message, abilityMessage, message.playerId);
     } else {
-      showDiscardDialog(message, { allowWaterSilo: false });
+      showDiscardDialog(message, { allowArchive: false });
     }
   },
 
@@ -191,19 +191,19 @@ const events = {
     abilities.blowUpColumn(message, { isDamageAbility: false });
   },
 
-  // injurePerson ALL people
+  // exploitProgram ALL people
   radiation(message) {
     if (!onClient) {
       const giveEmTheFallout = [...getGS(message).player1.slots, ...getGS(message).player2.slots];
       giveEmTheFallout.forEach((slot) => {
         if (slot.content) {
-          action.doDamageCard({ ...message, details: { card: { id: +slot.content.id } } });
+          action.doBugCard({ ...message, details: { card: { id: +slot.content.id } } });
         }
       });
     }
   },
 
-  // injurePerson all unprotected enemy people
+  // exploitProgram all external enemy people
   strafe(message) {
     if (!onClient) {
       // Psst Strafe is just the Gunner ability
@@ -211,7 +211,7 @@ const events = {
     }
   },
 
-  // return all people (including punks) to their owners' hands
+  // return all people (including prototypes) to their owners' hands
   truce(message) {
     function performTruceForPlayer(playerId) {
       const playerNum = utils.getPlayerNumById(playerId);
@@ -228,17 +228,17 @@ const events = {
     action.sync(null, { gsMessage: message });
   },
 
-  // gain 3 punks (or as many free slots as there are)
+  // gain 3 prototypes (or as many free slots as there are)
   uprising(message) {
     if (!onClient) {
       // Determine how many empty slots we have
       const playerData = utils.getPlayerDataById(message.playerId);
-      const numPunks = Math.min(3, playerData.slots.filter((slot) => !slot.content).length);
+      const numPrototypes = Math.min(3, playerData.slots.filter((slot) => !slot.content).length);
 
-      for (let i = 0; i < numPunks; i++) {
+      for (let i = 0; i < numPrototypes; i++) {
         codeQueue.add(
           i === 0 ? null : 'doneTargets',
-          () => utils.fireAbilityOrJunk(message, 'gainPunk'),
+          () => utils.fireAbilityOrRecycle(message, 'gainPrototype'),
         );
       }
       codeQueue.start();

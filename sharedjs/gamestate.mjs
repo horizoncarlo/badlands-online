@@ -13,7 +13,7 @@ export function createGameState(gameId) {
     player1: {
       playerId: null, // Note that playerId is an internal field that SHOULD NOT be shared with the client - as it can allow spoofing actions by the other player
       waterCount: 3,
-      hasWaterSilo: false,
+      hasArchive: false,
       cards: [],
       camps: [],
       doneCamps: false,
@@ -23,7 +23,7 @@ export function createGameState(gameId) {
     player2: {
       playerId: null,
       waterCount: 3,
-      hasWaterSilo: false,
+      hasArchive: false,
       cards: [],
       camps: [],
       doneCamps: false,
@@ -42,7 +42,7 @@ export function createGameState(gameId) {
       },
     },
     deck: [
-      /* cardObj: { id, img, damage, unReady, unReadyCost (water tokens to show on UI, such as from play or ability cost) } */
+      /* cardObj: { id, img, damage, inactive, inactiveCost (water tokens to show on UI, such as from play or ability cost) } */
     ],
     discard: [
       /* { same as ... deck} */
@@ -50,16 +50,16 @@ export function createGameState(gameId) {
     deckReshuffleCount: 0,
     deckCount: -1,
     discardCount: -1,
-    punks: [
-      /* Full cardObj only on server, to map client Punks to actual cards by ID */
+    prototypes: [
+      /* Full cardObj only on server, to map client Prototypes to actual cards by ID */
     ],
     campDeck: [
       /*
     Deck that camps are drawn from at the start of the game
-    Format is { id, img, drawCount, selected: boolean, damage: number | undefined, isDestroyed: true | undefined },
+    Format is { id, img, drawCount, selected: boolean, damage: number | undefined, isCrashed: true | undefined },
     */
     ],
-    // TODO Can we leverage the 'universal' concept for Trait (always on) flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
+    // TODO Can we leverage the 'universal' concept for Daemon (always on) flags? Should we segment by "endOfTurn" or similar and clear flags as needed in those actions?
     universal: {
       // TODO Show universal effects somewhere on the UI - such as High Ground being in effect
       highGround: false, // Whether High Ground was played this turn or not

@@ -7,7 +7,7 @@ globalThis.onClient = typeof window !== 'undefined' && typeof Deno === 'undefine
 /**
  * Internal function to centralize handling targetting
  * Returns true if still need to do targetting, false if we had targets and handled them
- * By default calls doDamageCard, but can pass an optionalFunc string name to use instead (such as destroyCard)
+ * By default calls doBugCard, but can pass an optionalFunc string name to use instead (such as crashCard)
  */
 function _needTargets(message, optionalFunc) {
   const targets = utils.checkSelectedTargets(message);
@@ -16,7 +16,7 @@ function _needTargets(message, optionalFunc) {
       if (typeof optionalFunc === 'string') {
         action[optionalFunc]({ ...message, details: { card: { id: targetId } } });
       } else {
-        action.doDamageCard({ ...message, details: { card: { id: targetId } } });
+        action.doBugCard({ ...message, details: { card: { id: targetId } } });
       }
     });
     return false;
@@ -26,21 +26,21 @@ function _needTargets(message, optionalFunc) {
 
 // Abilities that require targetting or special cases are generally called twice
 // Once without targets, when we turn targetMode on, then again after the client has chosen
-// On the second call we should apply our effect, such as doDamageCard from Sniper
+// On the second call we should apply our effect, such as doBugCard from Sniper
 const abilities = {
-  // destroyCard an unprotected enemy person
+  // crashCard an external enemy program
   assassin(message) {
     if (!onClient) {
-      if (_needTargets(message, 'destroyCard')) {
-        // Get a list of valid targets for injurePerson, then when we target destroyCard instead
-        const unprotectedPeopleIds = utils.determineGenericTargets(message, 'injurePerson');
+      if (_needTargets(message, 'crashCard')) {
+        // Get a list of valid targets for exploitProgram, then when we target crashCard instead
+        const externalPeopleIds = utils.determineGenericTargets(message, 'exploitProgram');
 
-        if (unprotectedPeopleIds?.length) {
-          message.validTargets = unprotectedPeopleIds;
+        if (externalPeopleIds?.length) {
+          message.validTargets = externalPeopleIds;
 
           action.targetMode(message, {
-            help: 'Select an unprotected person to destroy with Assassin',
-            cursor: 'destroyCard',
+            help: 'Select an external program to crash with Assassin',
+            cursor: 'crashCard',
             colorType: 'danger',
           });
         } else {
@@ -50,45 +50,45 @@ const abilities = {
     }
   },
 
-  // destroy one of your people, then damageCard
+  // destroy one of your people, then bugCard
   cultLeader(message) {
     if (!onClient) {
-      if (_needTargets(message, 'destroyCard')) {
-        // Target your own person to destroy first
+      if (_needTargets(message, 'crashCard')) {
+        // Target your own program to destroy first
         const validTargets = utils.determineOwnSlotTargets(message);
         if (validTargets?.length) {
           message.validTargets = validTargets;
 
           action.targetMode(message, {
-            help: 'Select a person to destroy for Cult Leader',
-            cursor: 'destroyCard',
+            help: 'Select a program to crash for Cult Leader',
+            cursor: 'crashCard',
             colorType: 'danger',
           });
         } else {
           throw new Error(MSG_INVALID_TARGETS);
         }
-      } // Once our targets are done we continue with Cult Leader to a simple damageCard
+      } // Once our targets are done we continue with Cult Leader to a simple bugCard
       else {
-        return action.damageCard({
-          type: 'damageCard',
+        return action.bugCard({
+          type: 'bugCard',
           playerId: message.playerId,
         });
       }
     }
   },
 
-  // if opponent has an event, damageCard
+  // if opponent has an event, bugCard
   doomsayer(message) {
     if (!onClient) {
       if (getGS(message)[utils.getOpponentNumById(message.playerId)].events.find((event) => event !== undefined)) {
-        action.damageCard(message, 'Select an unprotected card to damage with Doomsayer');
+        action.bugCard(message, 'Select an external card to damage with Doomsayer');
       } else {
         throw new Error('No opponent Event, so cannot use card ability');
       }
     }
   },
 
-  // destroyCard to all damaged enemy people
+  // crashCard to all damaged enemy people
   exterminator(message) {
     if (!onClient) {
       const opponentNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
@@ -104,7 +104,7 @@ const abilities = {
       // We explicitly set noSlideDown here as we're looping through cards and don't want to start modifying the slots while we are
       // TODO BUG After Exterminator finishes destroying cards we need to slide down to any empty spaces (will need a new "settleCards" function or similar)
       damagedSlots.forEach((slot) => {
-        action.destroyCard({
+        action.crashCard({
           type: message.type,
           playerId: message.playerId,
           details: {
@@ -116,15 +116,15 @@ const abilities = {
     }
   },
 
-  // injurePerson all unprotected enemy people
+  // exploitProgram all external enemy people
   gunner(message) {
     if (!onClient) {
-      // Get a list of valid targets for injurePerson, instead of targetting these we just injure them all
-      const unprotectedPeopleIds = utils.determineGenericTargets(message, 'injurePerson');
+      // Get a list of valid targets for exploitProgram, instead of targetting these we just exploit them all
+      const externalPeopleIds = utils.determineGenericTargets(message, 'exploitProgram');
 
-      if (unprotectedPeopleIds?.length) {
-        unprotectedPeopleIds.forEach((targetId) => {
-          action.doDamageCard({ ...message, details: { card: { id: +targetId } } });
+      if (externalPeopleIds?.length) {
+        externalPeopleIds.forEach((targetId) => {
+          action.doBugCard({ ...message, details: { card: { id: +targetId } } });
         });
       } else {
         throw new Error(MSG_INVALID_TARGETS);
@@ -132,10 +132,10 @@ const abilities = {
     }
   },
 
-  // damageCard unprotected card, if it's a camp, draw a card
+  // bugCard external card, if it's a camp, draw a card
   looter(message) {
     if (!onClient) {
-      if (action.damageCard(message, 'Select an unprotected card to damage with Looter')) {
+      if (action.bugCard(message, 'Select an external card to damage with Looter')) {
         // If we just handled our targets, check if any were a camp and draw
         const opponentCamps = utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.camps;
         const targets = utils.checkSelectedTargets(message);
@@ -146,7 +146,7 @@ const abilities = {
     }
   },
 
-  // use ability of one of your ready people, or any undamaged enemy
+  // use ability of one of your active programs, or any bugfree enemy
   mimic(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
@@ -155,7 +155,7 @@ const abilities = {
           const target = utils.findCardInGame(message, { id: targetId });
           if (target) {
             /* TODO Mimic issues (global "processingMimic=boolean" flag to handle some of this? Ugly though...):
-            Mimic marks the used target as unReady instead of herself
+            Mimic marks the used target as inactive instead of herself
             Mutant self damage hits the target Mutant (even if it's the opponent) instead of Mimic
             */
             // Act as if the user directly used this card
@@ -165,10 +165,10 @@ const abilities = {
           }
         });
       } else {
-        // Mimic can target ANY person that is undamaged and ready (and obviously not themselves)
+        // Mimic can target ANY program that is bugfree and active (and obviously not themselves)
         const validTargets = [...getGS(message).player1.slots, ...getGS(message).player2.slots]
           .filter((slot) =>
-            slot.content && slot.content.id !== message.details.card.id && !slot.content.unReady &&
+            slot.content && slot.content.id !== message.details.card.id && !slot.content.inactive &&
             (!slot.content.damage || slot.content.damage <= 0)
           )
           .map((slot) => String(slot.content.id));
@@ -177,7 +177,7 @@ const abilities = {
           message.validTargets = validTargets;
 
           action.targetMode(message, {
-            help: 'Select a ready and undamaged person to Mimic the ability of',
+            help: 'Select an active and bugfree program to Mimic the subroutine of',
             colorType: 'active',
           });
         } else {
@@ -187,7 +187,7 @@ const abilities = {
     }
   },
 
-  // damage and/or restore, then damage self
+  // damage and/or patch, then damage self
   mutant(message) {
     if (!onClient) {
       message.details.effectName = message.type;
@@ -216,32 +216,34 @@ const abilities = {
       if (choice === 'Both' || choice === 'Damage') {
         codeQueue.add(
           null,
-          () =>
-            action.damageCard({ ...mutantMessage, type: 'damageCard' }, 'Select an unprotected card to damage with Mutant'),
+          () => action.bugCard({ ...mutantMessage, type: 'bugCard' }, 'Select an external card to damage with Mutant'),
         );
       }
-      if (choice === 'Both' || choice === 'Restore') {
-        codeQueue.add(choice === 'Both' ? 'doneTargets' : null, () => utils.fireAbilityOrJunk(mutantMessage, 'restoreCard'));
+      if (choice === 'Both' || choice === 'Patch') {
+        codeQueue.add(
+          choice === 'Both' ? 'doneTargets' : null,
+          () => utils.fireAbilityOrRecycle(mutantMessage, 'patchCard'),
+        );
       }
       codeQueue.add(null, () => action.reduceWater(mutantMessage, mutantMessage.details.card.abilities[0].cost));
-      codeQueue.add(null, () => action.doDamageCard(mutantMessage));
+      codeQueue.add(null, () => action.doBugCard(mutantMessage));
       codeQueue.start();
     } else {
       sendC('doneMutant', message.details);
     }
   },
 
-  // damageCard an unprotected enemy camp
+  // bugCard an external enemy camp
   pyromaniac(message) {
     if (!onClient) {
       if (_needTargets(message)) {
-        const unprotectedCampIds = utils.getUnprotectedCards(message, { campsOnly: true });
-        if (unprotectedCampIds?.length) {
-          message.validTargets = unprotectedCampIds;
+        const externalCampIds = utils.getExternalCards(message, { campsOnly: true });
+        if (externalCampIds?.length) {
+          message.validTargets = externalCampIds;
 
           action.targetMode(message, {
-            help: 'Select an unprotected camp to damage with Pyromaniac',
-            cursor: 'damageCard',
+            help: 'Select an external camp to damage with Pyromaniac',
+            cursor: 'bugCard',
             colorType: 'danger',
           });
         } else {
@@ -251,13 +253,13 @@ const abilities = {
     }
   },
 
-  // if you have a punk, damageCard (second ability)
+  // if you have a prototype, bugCard (second ability)
   rabbleRouser(message) {
     if (!onClient) {
-      if (utils.playerHasPunk(message.playerId)) {
-        action.damageCard(message, 'Select an unprotected card to damage with Rabble Rouser');
+      if (utils.playerHasPrototype(message.playerId)) {
+        action.bugCard(message, 'Select an external card to damage with Rabble Rouser');
       } else {
-        throw new Error('No Punk, so cannot use card ability');
+        throw new Error('No Prototype, so cannot use card ability');
       }
     }
   },
@@ -277,7 +279,7 @@ const abilities = {
           message.validTargets = validTargets;
 
           action.targetMode(message, {
-            help: 'Select your person to return to hand (Punks are people too)',
+            help: 'Select your program to return to hand (Prototypes are programs too)',
           });
         } else {
           throw new Error(MSG_INVALID_TARGETS);
@@ -286,7 +288,7 @@ const abilities = {
     }
   },
 
-  // discard top 3 cards of the deck, MAY use the junk effect from 1 of them
+  // discard top 3 cards of the deck, MAY use the recycle effect from 1 of them
   scientist(message) {
     if (!onClient) {
       const cardOptions = [];
@@ -333,14 +335,14 @@ const abilities = {
       ) {
         getGS(message).pendingTargetAction = null;
 
-        // Do the junk effect
+        // Do the recycle effect
         const chosenCard = message.details.cardOptions[message.details.chosenCardIndex];
-        const returnStatus = action.junkCard({ ...message, details: { card: chosenCard } });
+        const returnStatus = action.recycleCard({ ...message, details: { card: chosenCard } });
 
         if (returnStatus === false) {
-          // TODO Convert junkEffect to readable text for scientist error note
+          // TODO Convert recycleEffect to readable text for scientist error note
           action.sendError(
-            `Drastic misuse of scientific resources (${chosenCard.junkEffect})`,
+            `Drastic misuse of scientific resources (${chosenCard.recycleEffect})`,
             { gsMessage: message },
             message.playerId,
           );
@@ -353,7 +355,7 @@ const abilities = {
     }
   },
 
-  // damageCard to ANY card
+  // bugCard to ANY card
   sniper(message) {
     if (!onClient) {
       if (_needTargets(message)) {
@@ -362,35 +364,34 @@ const abilities = {
           ...getGS(message)[opponentNum].slots.filter((slot) => slot.content ? true : false).map((slot) =>
             String(slot.content.id)
           ),
-          ...getGS(message)[opponentNum].camps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id)),
+          ...getGS(message)[opponentNum].camps.filter((camp) => !camp.isCrashed).map((camp) => String(camp.id)),
         ];
 
         action.targetMode(message, {
           help: 'Select a card to damage with Sniper',
-          cursor: 'damageCard',
+          cursor: 'bugCard',
           colorType: 'danger',
         });
       }
     }
   },
 
-  // damageCard, then opponent does damageCard
+  // bugCard, then opponent does bugCard
   vanguard(message) {
     if (!onClient) {
       const opponentMessage = { ...message };
       opponentMessage.playerId = utils.getOppositePlayerId(message.playerId);
 
-      // TODO BUG with Vanguard, a card your opponent damages out of turn can still use their ability - do we need a general check not just on Ready state but on damage in action.useCard?
-      // TODO For Vanguard when the opponent is doing the damage back we should put a blocking dialog to prevent interaction - in general this would be a handy feature (such as during Raid). Could clear on next sync?
+      // TODO BUG with Vanguard, a card your opponent damages out of turn can still use their ability - do we need a general check not just on Active state but on damage in action.useCard?
+      // TODO For Vanguard when the opponent is doing the damage back we should put a blocking dialog to prevent interaction - in general this would be a handy feature (such as during Virus). Could clear on next sync?
       codeQueue.add(
         null,
-        () => action.damageCard({ ...message, type: 'damageCard' }, 'Select an unprotected card to damage with Vanguard'),
+        () => action.bugCard({ ...message, type: 'bugCard' }, 'Select an external card to damage with Vanguard'),
       );
-      // TODO codeQueue improvement - multiple triggers: for Vanguard we need to also trigger on cancelTarget (for both of these), otherwise the follow up breaks - maybe pass trigger into the added anonymous func as a param and behave accordingly? Also likely for Mutant if you cancel target on damageCard step?
+      // TODO codeQueue improvement - multiple triggers: for Vanguard we need to also trigger on cancelTarget (for both of these), otherwise the follow up breaks - maybe pass trigger into the added anonymous func as a param and behave accordingly? Also likely for Mutant if you cancel target on bugCard step?
       codeQueue.add(
         'reduceWater',
-        () =>
-          action.damageCard({ ...opponentMessage, type: 'damageCard' }, "Use your opponent's Vanguard to do damage back"),
+        () => action.bugCard({ ...opponentMessage, type: 'bugCard' }, "Use your opponent's Vanguard to do damage back"),
       );
       codeQueue.add('reduceWater', () => action.wait());
       codeQueue.start({ skipPreprocess: true }); // Skip our preprocessing to allow the out of turn Vanguard damage
@@ -398,12 +399,12 @@ const abilities = {
   },
 
   /*********************** UNIQUE CARDS ***********************/
-  // damageCard all cards in one opponent column
+  // bugCard all cards in one opponent column
   magnusKarv(message) {
     abilities.blowUpColumn(message, { isDamageAbility: true });
   },
 
-  blowUpColumn(message, params) { // params.isDamageAbility: boolean - Used between Magnus Karv (unique person) and Napalm (event). The former has isDamageAbility=true
+  blowUpColumn(message, params) { // params.isDamageAbility: boolean - Used between Magnus Karv (unique program) and Napalm (event). The former has isDamageAbility=true
     if (!onClient) {
       // TODO Do a proxy/raw style for abilities and store a bunch of local convenience variables from our utility functions, like playerNum, opponentNum, etc. so we don't have to do long chains like the next line in each function?
       const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
@@ -417,7 +418,7 @@ const abilities = {
           if (slots?.length) {
             slots.forEach((slot) => {
               if (slot.content !== null) {
-                const actionType = params?.isDamageAbility ? action.doDamageCard : action.destroyCard;
+                const actionType = params?.isDamageAbility ? action.doBugCard : action.crashCard;
                 const details = !params?.isDamageAbility
                   ? { noSlideDown: true, card: { id: String(slot.content.id) } }
                   : { card: { id: String(slot.content.id) } };
@@ -425,8 +426,8 @@ const abilities = {
               }
             });
           }
-          if (params?.isDamageAbility && !opponentCamps[columnCampTargetIndex].isDestroyed) {
-            action.doDamageCard({ ...message, details: { card: { id: String(opponentCamps[columnCampTargetIndex].id) } } });
+          if (params?.isDamageAbility && !opponentCamps[columnCampTargetIndex].isCrashed) {
+            action.doBugCard({ ...message, details: { card: { id: String(opponentCamps[columnCampTargetIndex].id) } } });
           }
         }
       } else {
@@ -435,7 +436,7 @@ const abilities = {
           for (let i = 0; i < opponentCamps.length; i++) {
             if (
               params?.isDamageAbility &&
-                (!opponentCamps[i].isDestroyed || !utils.isColumnEmpty(message, i, opponentPlayerNum)) ||
+                (!opponentCamps[i].isCrashed || !utils.isColumnEmpty(message, i, opponentPlayerNum)) ||
               !params?.isDamageAbility && !utils.isColumnEmpty(message, i, opponentPlayerNum)
             ) {
               message.validTargets.push(String(opponentCamps[i].id));
@@ -447,7 +448,7 @@ const abilities = {
             help: params?.isDamageAbility
               ? 'Select an entire column to damage everything with Magnus Karv'
               : 'Select an entire column to Napalm and destroy all enemy people',
-            cursor: params?.isDamageAbility ? 'damageCard' : 'destroyCard',
+            cursor: params?.isDamageAbility ? 'bugCard' : 'crashCard',
             colorType: 'danger',
           });
         } else {
@@ -457,19 +458,19 @@ const abilities = {
     }
   },
 
-  // destroyCard to ANY camp
+  // crashCard to ANY camp
   molgurStang(message) {
     if (!onClient) {
-      if (_needTargets(message, 'destroyCard')) {
+      if (_needTargets(message, 'crashCard')) {
         const opponentCamps = utils.getPlayerDataById(utils.getOppositePlayerId(message.playerId))?.camps;
         if (opponentCamps?.length) {
-          message.validTargets = opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id));
+          message.validTargets = opponentCamps.filter((camp) => !camp.isCrashed).map((camp) => String(camp.id));
         }
 
         if (message.validTargets?.length) {
           action.targetMode(message, {
             help: 'Select a camp to destroy with Molgur Stang',
-            cursor: 'destroyCard',
+            cursor: 'crashCard',
             colorType: 'danger',
           });
         } else {
@@ -479,7 +480,7 @@ const abilities = {
     }
   },
 
-  // draw 3 cards, then discard 3 cards (not Water Silo)
+  // draw 3 cards, then discard 3 cards (not Archive)
   zetoKhan(message) {
     if (!onClient) {
       for (let i = 0; i < 3; i++) {
@@ -499,7 +500,7 @@ const abilities = {
       getGS(message).pendingTargetAction = structuredClone(abilityMessage);
       sendS('useAbility', message, abilityMessage, message.playerId);
     } else {
-      showDiscardDialog(message, { allowWaterSilo: false });
+      showDiscardDialog(message, { allowArchive: false });
     }
   },
 };

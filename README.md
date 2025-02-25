@@ -1,6 +1,6 @@
-# Badlands Online
+# Server Sunset
 
-This is an fan made adaptation of the amazing [Radlands](https://boardgamegeek.com/boardgame/329082/radlands) card game
+This is an fan made adaptation and retheme (to software and hacking) of the Radlands card game
 
 Can see the live running version at 🔗[https://badlands.deno.dev/](https://badlands.deno.dev/)🔗
 

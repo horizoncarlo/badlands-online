@@ -1,13 +1,13 @@
 let doneDiscard = false;
 
-function showDiscardDialog(message, params) { // params.allowWaterSilo: boolean to let Water Silo be discarded or not
+function showDiscardDialog(message, params) { // params.allowArchive: boolean to let Archive be discarded or not
   doneDiscard = false;
   ui.componentData.expectedDiscards = message.details.expectedDiscards ?? 1;
   ui.componentData.myCards = message.details.cardChoices ?? getMyCards();
 
-  // Filter out the Water Silo as an option if requested
-  if (!params || !params.allowWaterSilo) {
-    ui.componentData.myCards = ui.componentData.myCards.filter((card) => !card.isWaterSilo);
+  // Filter out the Archive as an option if requested
+  if (!params || !params.allowArchive) {
+    ui.componentData.myCards = ui.componentData.myCards.filter((card) => !card.isArchive);
   }
 
   document.getElementById('discardDialog')?.showModal();

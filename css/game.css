@@ -1,4 +1,4 @@
-.junk-pile {
+.recycle-pile {
   position: fixed;
   text-align: center;
   bottom: 5%;
@@ -169,7 +169,7 @@
 }
 
 .card-anim:hover {
-  filter: none !important; /* Remove any coloring for damaged/unready when hovering to read */
+  filter: none !important; /* Remove any coloring for damaged/inactive when hovering to read */
   animation: tiltCard 2s infinite alternate
     ease-in-out; /* TODO Surprisingly can be a performance hit - add an optional basic static `transform: scale(var(--hover-scale);` as a Setting instead */
   backface-visibility: hidden;
@@ -283,27 +283,27 @@
   cursor: crosshair;
 }
 
-.target-mode-section-damageCard {
-  cursor: url('../images/cursors/cursor-damage.png') 0 0, crosshair;
+.target-mode-section-bugCard {
+  cursor: url('../images/cursors/cursor-bug.png') 0 0, crosshair;
 }
-.target-mode-section-destroyCard {
-  cursor: url('../images/cursors/cursor-destroy.png') 0 0, crosshair;
+.target-mode-section-crashCard {
+  cursor: url('../images/cursors/cursor-crash.png') 0 0, crosshair;
 }
-.target-mode-section-injurePerson {
-  cursor: url('../images/cursors/cursor-injure.png') 0 0, crosshair;
+.target-mode-section-exploitProgram {
+  cursor: url('../images/cursors/cursor-exploit.png') 0 0, crosshair;
 }
-.target-mode-section-restoreCard {
-  cursor: url('../images/cursors/cursor-restore.png') 0 0, crosshair;
+.target-mode-section-patchCard {
+  cursor: url('../images/cursors/cursor-patch.png') 0 0, crosshair;
   box-shadow: 0 0 50px var(--success) inset;
 }
-.target-mode-section-gainPunk {
-  cursor: url('../images/cursors/cursor-punk.png') 0 0, crosshair;
+.target-mode-section-gainPrototype {
+  cursor: url('../images/cursors/cursor-prototype.png') 0 0, crosshair;
   box-shadow: 0 0 50px var(--variant) inset;
 }
 
 .invalid-target,
-.unready-card,
-.unready-card:hover {
+.inactive-card,
+.inactive-card:hover {
   filter: saturate(30%) brightness(30%);
 }
 
@@ -329,13 +329,13 @@
   transform: rotateY(360deg);
 }
 
-.take-water-silo {
+.take-archive {
   position: absolute;
   top: calc(50% - var(--card-height) / 4);
   right: calc(var(--card-width) / -1.5);
 }
 
-.take-water-silo img {
+.take-archive img {
   width: calc(var(--card-width) / 2);
   height: calc(var(--card-height) / 2);
 }

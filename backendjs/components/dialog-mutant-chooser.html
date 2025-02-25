@@ -4,7 +4,7 @@
   @close="doneMutant ? null : showMutantDialog()"
 >
   <header>
-    <h2>Mutant - Choose to Damage and/or Restore</h2>
+    <h2>Mutant - Choose to Damage and/or Patch</h2>
   </header>
   <div class="mutant-dialog-wrap center">
     <template x-if="componentData.mutantCardImage">
@@ -33,11 +33,11 @@
     <label class="inline">
       <input
         type="radio"
-        :value="MUTANT_CHOICES.Restore"
+        :value="MUTANT_CHOICES.Patch"
         x-model="componentData.mutantChoice"
         @click="$nextTick(() => {chooseMutantAbility()})"
       />
-      Restore
+      Patch
     </label>
   </div>
 </dialog>

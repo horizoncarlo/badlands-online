@@ -108,14 +108,14 @@ const rawAction = {
         { gsMessage: message },
       );
 
-      // Reset ready state of cards, then apply for our damaged cards
-      utils.markAllSlotsReady(message);
+      // Reset active state of cards, then apply for our bugged cards
+      utils.markAllSlotsActive(message);
       getGS(message)[nextPlayerNum].slots.forEach((slot) => {
         if (slot.content) {
           if (slot.content.damage > 0) {
-            slot.content.unReady = true;
+            slot.content.inactive = true;
           } else {
-            delete slot.content.unReady;
+            delete slot.content.inactive;
           }
         }
       });
@@ -149,7 +149,7 @@ const rawAction = {
       sendC('endTurn');
     } else {
       utils.clearUniversal(message);
-      utils.markAllSlotsReady(message);
+      utils.markAllSlotsActive(message);
 
       const currentPlayerNum = utils.getPlayerNumById(message.playerId);
       const nextPlayerNum = utils.getOppositePlayerNum(currentPlayerNum);
@@ -160,7 +160,7 @@ const rawAction = {
         action.startTurn({
           playerId: nextPlayerId,
         }, { fromServerRequest: true });
-        action.sync(null, { gsMessage: message }); // For applying the reset of slot ready state
+        action.sync(null, { gsMessage: message }); // For applying the reset of slot active state
       } else {
         action.sendError('No opponent yet', { gsMessage: message }, message.playerId);
         return;
@@ -184,8 +184,8 @@ const rawAction = {
     if (onClient) {
       sendC('playCard', message);
     } else {
-      // Abort if we're playing a Water Silo onto the board haha
-      if (message.details.card.isWaterSilo) {
+      // Abort if we're playing a Archive onto the board haha
+      if (message.details.card.isArchive) {
         return;
       }
 
@@ -225,7 +225,7 @@ const rawAction = {
             { gsMessage: message },
           );
 
-          message.details.card.unReady = true;
+          message.details.card.inactive = true;
           eventQueue.splice(targetSpace, 1, message.details.card);
           sendS('events', message, {
             playerNum: playerNum,
@@ -258,9 +258,9 @@ const rawAction = {
         }
 
         // If we have content in our targetSlot still, that means we're trying to destroy and replace the card in question due to having ALL our slots filled
-        // Instead of just nullifying the card (like we do when pushing a card up) we want to destroyCard it, so if it was a Punk it'll go in the deck properly
-        if (targetSlot.content?.isPunk) {
-          action.destroyPunk({
+        // Instead of just nullifying the card (like we do when pushing a card up) we want to crashCard it, so if it was a Prototype it'll go in the deck properly
+        if (targetSlot.content?.isPrototype) {
+          action.destroyPrototype({
             ...message,
             details: {
               ...message.details,
@@ -297,13 +297,13 @@ const rawAction = {
   },
 
   useCard(message, userAbilityIndex) { // userAbilityIndex: optional array index of message.details.card.abilities for subsequent calls to this function
-    // Check if card is ready before trying to use a card ability (on both client and server)
+    // Check if card is active before trying to use a card subroutine (on both client and server)
     const checkCardReturn = utils.findCardInGame(message, message.details?.card);
-    if (!checkCardReturn?.cardObj || checkCardReturn.cardObj.unReady || checkCardReturn.cardObj.damage > 0) {
+    if (!checkCardReturn?.cardObj || checkCardReturn.cardObj.inactive || checkCardReturn.cardObj.damage > 0) {
       if (onClient) {
-        console.error('Card is not ready to be used');
+        console.error('Card is not active and cannot be used');
       } else {
-        action.sendError('Card is not ready to be used', { gsMessage: message }, message.playerId);
+        action.sendError('Card is not active and cannot be used', { gsMessage: message }, message.playerId);
       }
       return;
     }
@@ -347,12 +347,12 @@ const rawAction = {
           { gsMessage: message },
         );
 
-        const returnStatus = utils.fireAbilityOrJunk(
+        const returnStatus = utils.fireAbilityOrRecycle(
           message,
           abilityObj.abilityEffect,
         );
 
-        // If we aren't targetting, we can just mark the card not ready when it initiated the effect
+        // If we aren't targetting, we can just mark the card not active when it initiated the effect
         if (!getGS(message).pendingTargetAction && returnStatus !== false) {
           action.reduceWater(message, abilityObj.cost);
         } else {
@@ -379,7 +379,7 @@ const rawAction = {
           { gsMessage: message },
         );
 
-        utils.fireAbilityOrJunk(
+        utils.fireAbilityOrRecycle(
           message,
           message.details.card.abilityEffect,
         );
@@ -390,41 +390,41 @@ const rawAction = {
     }
   },
 
-  gainWater(message) {
+  gainMemory(message) {
     if (!onClient) {
       const playerData = utils.getPlayerDataById(message.playerId);
 
-      // Handle if we're junking the Water Silo
-      if (message.details.card.isWaterSilo) {
-        const foundIndex = playerData.cards.findIndex((card) => card.isWaterSilo);
+      // Handle if we're recycling the Archive
+      if (message.details.card.isArchive) {
+        const foundIndex = playerData.cards.findIndex((card) => card.isArchive);
 
-        if (!playerData.hasWaterSilo || foundIndex === -1) {
-          action.sendError('No Water Silo taken to junk', { gsMessage: message }, message.playerId);
+        if (!playerData.hasArchive || foundIndex === -1) {
+          action.sendError('No Archive taken to recycle', { gsMessage: message }, message.playerId);
           return false;
         }
 
         playerData.cards.splice(foundIndex, 1);
-        playerData.hasWaterSilo = false;
+        playerData.hasArchive = false;
         action.sync(null, { gsMessage: message });
       }
 
       playerData.waterCount += 1;
 
-      sendS('gainWater', message, message.playerId);
+      sendS('gainMemory', message, message.playerId);
     }
   },
 
-  reduceWater(message, overrideCost, params) { // params.ignoreUnready: boolean true for draw card, silo, etc. where we don't need to mark the card as not ready
+  reduceWater(message, overrideCost, params) { // params.ignoreInactive: boolean true for draw card, etc. where we don't need to mark the card as not active
     if (!onClient) {
       const waterCost = overrideCost ?? message.details.cost;
 
-      // Manage our ready state, specifically around cost
-      if (!params?.ignoreUnready && message.details.card) {
+      // Manage our active state, specifically around cost
+      if (!params?.ignoreInactive && message.details.card) {
         const card = utils.findCardInGame(message, message.details.card);
         if (card?.cardObj && !utils.cardIsEvent(card?.cardObj)) {
-          card.cardObj.unReady = true;
-          card.cardObj.unReadyCost = waterCost;
-          action.sync(null, { gsMessage: message }); // Needed for the unReady to apply
+          card.cardObj.inactive = true;
+          card.cardObj.inactiveCost = waterCost;
+          action.sync(null, { gsMessage: message }); // Needed for the inactive to apply
         }
       }
 
@@ -478,12 +478,12 @@ const rawAction = {
 
         action.sendError(`${utils.getPlayerNameById(message.playerId)} drew a card`, { gsMessage: message });
 
-        action.reduceWater(message, 2, { ignoreUnready: true });
+        action.reduceWater(message, 2, { ignoreInactive: true });
       }
 
       const newCard = utils.drawFromDeck(message);
       if (newCard) {
-        // TODO Sort hand to have Water Silo at the front, then people, then events (and eventually a setting to toggle this option off)
+        // TODO Sort hand to have Archive at the front, then people, then events (and eventually a setting to toggle this option off)
         utils.getPlayerDataById(message.playerId).cards.push(newCard);
 
         const newMessage = {
@@ -503,24 +503,24 @@ const rawAction = {
     }
   },
 
-  junkCard(message) {
+  recycleCard(message) {
     if (onClient) {
-      sendC('junkCard', message);
+      sendC('recycleCard', message);
     } else {
       try {
         action.sendError(
-          `${utils.getPlayerNameById(message.playerId)} junked ${
+          `${utils.getPlayerNameById(message.playerId)} recycled ${
             utils.getCardImgToName(message.details.card.img)
-          } for ${message?.details?.card?.junkEffect}`,
+          } for ${message?.details?.card?.recycleEffect}`,
           { gsMessage: message },
         );
 
-        const returnStatus = utils.fireAbilityOrJunk(message, message?.details?.card?.junkEffect);
+        const returnStatus = utils.fireAbilityOrRecycle(message, message?.details?.card?.recycleEffect);
 
-        // If we aren't targetting, we can just remove the card that initiated the junk effect now
+        // If we aren't targetting, we can just remove the card that initiated the recycle effect now
         // Assuming of course our action was valid
         if (!getGS(message).pendingTargetAction && returnStatus !== false) {
-          // TODO Bit of a known issue - if you drawCard via a junk effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the junked card will stay in our hand
+          // TODO Bit of a known issue - if you drawCard via a recycle effect, then because of this sync the new card is added immediately on the UI, instead of waiting for the animation to complete. But if we don't sync in the removeCard call, the recycled card will stay in our hand
           action.discardCard(message);
         } else {
           action.sync(message.playerId);
@@ -528,50 +528,50 @@ const rawAction = {
 
         return returnStatus;
       } catch (err) {
-        console.error('Error junking card', err);
+        console.error('Error recycling card', err);
         action.sendError(err?.message, { gsMessage: message }, message.playerId);
       }
     }
   },
 
-  takeWaterSilo(message) {
+  takeArchive(message) {
     if (onClient) {
-      sendC('takeWaterSilo');
+      sendC('takeArchive');
     } else {
       const playerData = utils.getPlayerDataById(message.playerId);
-      if (playerData.hasWaterSilo) {
-        action.sendError('Already have Water Silo', { gsMessage: message }, message.playerId);
+      if (playerData.hasArchive) {
+        action.sendError('Already have an Archive', { gsMessage: message }, message.playerId);
         return;
       } else if (playerData.waterCount < 1) {
-        action.sendError('Not enough Water to take Water Silo', { gsMessage: message }, message.playerId);
+        action.sendError('Not enough Memory to take Archive', { gsMessage: message }, message.playerId);
         return;
       }
 
-      action.sendError(`${utils.getPlayerNameById(message.playerId)} took their Water Silo`, { gsMessage: message });
+      action.sendError(`${utils.getPlayerNameById(message.playerId)} took their Archive`, { gsMessage: message });
 
-      // Consistently keep Water Silo at the front of your hand
-      playerData.cards.unshift(utils.makeWaterSiloCard());
-      playerData.hasWaterSilo = true;
+      // Consistently keep Archive at the front of your hand
+      playerData.cards.unshift(utils.makeArchiveCard());
+      playerData.hasArchive = true;
 
-      action.reduceWater(message, 1, { ignoreUnready: true });
+      action.reduceWater(message, 1, { ignoreInactive: true });
       action.sync(message.playerId);
     }
   },
 
-  gainPunk(message) {
+  gainPrototype(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
 
       if (targets?.length) {
-        let newPunk = utils.drawFromDeck(message);
-        if (!newPunk) {
+        let newPrototype = utils.drawFromDeck(message);
+        if (!newPrototype) {
           action.sendError('No cards left to draw', { gsMessage: message }, message.playerId);
           return false;
         }
 
-        newPunk = utils.convertCardToPunk(message, newPunk);
+        newPrototype = utils.convertCardToPrototype(message, newPrototype);
 
-        // Determine if we're putting our Punk in an empty slot OR dropping a Punk back to an empty slot below OR on a card that we push upwards OR replace entirely
+        // Determine if we're putting our Prototype in an empty slot OR dropping a Prototype back to an empty slot below OR on a card that we push upwards OR replace entirely
         const targetId = targets[0];
         const playerSlots = getGS(message)[utils.getPlayerNumById(message.playerId)].slots;
         if (targetId.startsWith(SLOT_ID_PREFIX)) {
@@ -580,22 +580,22 @@ const rawAction = {
           if (utils.isTopRow(targetSlotIndex)) {
             const slotBelow = playerSlots[utils.indexBelow(targetSlotIndex)];
             if (!slotBelow.content) {
-              slotBelow.content = newPunk;
+              slotBelow.content = newPrototype;
               action.sync(null, { gsMessage: message });
               return;
             }
           }
 
-          playerSlots[targetSlotIndex].content = newPunk;
+          playerSlots[targetSlotIndex].content = newPrototype;
           action.sync(null, { gsMessage: message });
         } else {
           const inTargetSlot = utils.findCardInGame(message, { id: targetId });
 
           // If all our slots are full replace the card in our slot
-          // Obviously if that is also a Punk we return it to the deck properly
+          // Obviously if that is also a Prototype we return it to the deck properly
           if (utils.areAllSlotsFull(playerSlots)) {
-            if (inTargetSlot.cardObj.isPunk) {
-              action.destroyPunk({
+            if (inTargetSlot.cardObj.isPrototype) {
+              action.destroyPrototype({
                 ...message,
                 details: {
                   ...message.details,
@@ -608,34 +608,38 @@ const rawAction = {
             playerSlots[utils.indexAbove(inTargetSlot.slotIndex)].content = inTargetSlot.cardObj;
           }
 
-          // And add the new punk
-          playerSlots[inTargetSlot.slotIndex].content = newPunk;
+          // And add the new prototype
+          playerSlots[inTargetSlot.slotIndex].content = newPrototype;
           action.sync(null, { gsMessage: message });
         }
       } else {
-        action.targetMode(message, { help: 'Choose a slot to put your Punk in', colorType: 'variant', hideCancel: true });
+        action.targetMode(message, {
+          help: 'Choose a slot to put your Prototype in',
+          colorType: 'variant',
+          hideCancel: true,
+        });
       }
     }
   },
 
-  raid(message) {
+  virus(message) {
     if (!onClient) {
-      // If we have raiders in play advance them a space
+      // If we have a virus in play advance them a space
       const playerEvents = utils.getPlayerDataById(message.playerId)?.events;
-      let existingRaidersIndex = playerEvents?.findIndex((event) => event?.isRaid);
+      let existingVirusIndex = playerEvents?.findIndex((event) => event?.isVirus);
 
-      if (existingRaidersIndex > 0) {
-        if (!playerEvents[existingRaidersIndex - 1]) {
-          playerEvents[existingRaidersIndex - 1] = playerEvents[existingRaidersIndex];
-          playerEvents[existingRaidersIndex] = undefined;
-          existingRaidersIndex--;
+      if (existingVirusIndex > 0) {
+        if (!playerEvents[existingVirusIndex - 1]) {
+          playerEvents[existingVirusIndex - 1] = playerEvents[existingVirusIndex];
+          playerEvents[existingVirusIndex] = undefined;
+          existingVirusIndex--;
         } else {
-          action.sendError('Cannot advance Raiders, next event queue spot is full', { gsMessage: message });
+          action.sendError('Cannot advance Virus, next event queue spot is full', { gsMessage: message });
           return false;
         }
 
-        if (existingRaidersIndex === 0) {
-          // Queue here to ensure we finish our potential junk (that started this raid) before targetting
+        if (existingVirusIndex === 0) {
+          // Queue here to ensure we finish our potential recycle (that started this virus) before targetting
           const toTrigger = structuredClone(playerEvents[0]);
           codeQueue.add('sync', () =>
             action.triggerEvent({
@@ -652,7 +656,7 @@ const rawAction = {
         action.playCard({
           ...message,
           details: {
-            card: utils.getRaidersEvent(),
+            card: utils.getVirusEvent(),
           },
         });
       }
@@ -660,12 +664,12 @@ const rawAction = {
     }
   },
 
-  doRaid(message) {
+  doVirus(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
         targets.forEach((targetId) => {
-          action.doDamageCard({ ...message, details: { card: { id: targetId } } });
+          action.doBugCard({ ...message, details: { card: { id: targetId } } });
         });
       } else {
         const opponentPlayerNum = utils.getOppositePlayerNum(utils.getPlayerNumById(message.playerId));
@@ -673,12 +677,12 @@ const rawAction = {
         const opponentCamps = getGS(message)[opponentPlayerNum]?.camps;
 
         // We use a queue here even though it's a single action specifically to skip preprocessing so we can do the out of turn opponent choice
-        message.validTargets = opponentCamps.filter((camp) => !camp.isDestroyed).map((camp) => String(camp.id));
+        message.validTargets = opponentCamps.filter((camp) => !camp.isCrashed).map((camp) => String(camp.id));
         message.playerId = opponentPlayerId;
         codeQueue.add(null, () =>
           action.targetMode(message, {
-            help: 'Raiders hit! Choose your camp to damage',
-            cursor: 'damageCard',
+            help: 'Virus hit! Choose your camp to damage',
+            cursor: 'bugCard',
             colorType: 'danger',
             hideCancel: true,
           }));
@@ -688,65 +692,65 @@ const rawAction = {
     }
   },
 
-  injurePerson(message) {
+  exploitProgram(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
         targets.forEach((targetId) => {
-          action.doDamageCard({ ...message, details: { card: { id: targetId } } });
+          action.doBugCard({ ...message, details: { card: { id: targetId } } });
         });
       } else {
-        action.targetMode(message, { help: 'Select an unprotected person to Injure', colorType: 'danger' });
+        action.targetMode(message, { help: 'Select an external program to Exploit', colorType: 'danger' });
       }
     }
   },
 
-  // Target a card for damage, then doDamageCard to it once valid
-  damageCard(message, helpTextOverride) {
+  // Target a card for damage, then doBugCard to it once valid
+  bugCard(message, helpTextOverride) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
         targets.forEach((targetId) => {
-          action.doDamageCard({ ...message, details: { card: { id: targetId } } });
+          action.doBugCard({ ...message, details: { card: { id: targetId } } });
         });
         return true;
       } else {
         // If we don't have validTargets, which can happen from an ability not an action, just set them
         if (!message.validTargets) {
-          message.validTargets = utils.getUnprotectedCards(message);
+          message.validTargets = utils.getExternalCards(message);
         }
 
         action.targetMode(message, {
-          help: helpTextOverride ?? 'Select an unprotected person or camp to damage',
-          cursor: 'damageCard',
+          help: helpTextOverride ?? 'Select an external program or server to bug',
+          cursor: 'bugCard',
           colorType: 'danger',
         });
       }
     }
   },
 
-  // Directly damage the passed message.details.card (normally meant to be called through damageCard for targetting first)
-  doDamageCard(message) {
+  // Directly damage the passed message.details.card (normally meant to be called through bugCard for targetting first)
+  doBugCard(message) {
     if (!onClient) {
       const { cardObj } = utils.findCardInGame(message, message.details.card);
       if (cardObj) {
         cardObj.damage = (cardObj.damage ?? 0) + (message.details.amount ?? 1);
 
         if (
-          (cardObj.isPunk && cardObj.damage >= 1) ||
+          (cardObj.isPrototype && cardObj.damage >= 1) ||
           cardObj.damage >= 2
         ) {
-          action.destroyCard(message);
+          action.crashCard(message);
         } else {
           action.sync(null, { gsMessage: message });
         }
       }
 
-      // TODO Send a separate message to request for injure and damage animations (explosions?) on the client
+      // TODO Send a separate message to request for exploit and bug animations on the client
     }
   },
 
-  destroyCard(message) {
+  crashCard(message) {
     if (!onClient) {
       const foundRes = utils.findCardInGame(message, message.details.card);
       if (foundRes) {
@@ -770,15 +774,15 @@ const rawAction = {
         } else {
           action.sendError(`Camp ${utils.getCardImgToName(foundRes.cardObj.img)} destroyed!`, { gsMessage: message });
 
-          foundRes.cardObj.isDestroyed = true;
+          foundRes.cardObj.isCrashed = true;
 
           // Check if this was the last camp and someone won/lost
           utils.checkWinLoss(message);
         }
 
-        // Check if we're going to destroy a Punk put the actual card back on top of the deck
-        if (foundRes.cardObj.isPunk) {
-          action.destroyPunk({
+        // Check if we're going to destroy a Prototype put the actual card back on top of the deck
+        if (foundRes.cardObj.isPrototype) {
+          action.destroyPrototype({
             ...message,
             details: {
               ...message.details,
@@ -794,19 +798,19 @@ const rawAction = {
     }
   },
 
-  destroyPunk(message) {
+  destroyPrototype(message) {
     if (!onClient) {
       const cardObj = message.details.card;
-      if (cardObj?.isPunk) {
-        const matchingPunkIndex = getGS(message).punks.findIndex((punk) => cardObj.id === punk.id);
-        if (matchingPunkIndex !== -1) {
-          getGS(message).deck.unshift(getGS(message).punks.splice(matchingPunkIndex, 1)[0]);
+      if (cardObj?.isPrototype) {
+        const matchingPrototypeIndex = getGS(message).prototypes.findIndex((prototype) => cardObj.id === prototype.id);
+        if (matchingPrototypeIndex !== -1) {
+          getGS(message).deck.unshift(getGS(message).prototypes.splice(matchingPrototypeIndex, 1)[0]);
         }
       }
     }
   },
 
-  restoreCard(message) {
+  patchCard(message) {
     if (!onClient) {
       const targets = utils.checkSelectedTargets(message);
       if (targets?.length) {
@@ -815,15 +819,15 @@ const rawAction = {
             const { cardObj } = utils.findCardInGame(message, { id: targetId });
             if (cardObj && typeof cardObj.damage === 'number') {
               // Slot and camp are handled similar, except we technically delete a non-existent flag on a slot (shrug)
-              delete cardObj.isDestroyed;
+              delete cardObj.isCrashed;
               cardObj.damage = Math.min(0, cardObj.damage - 1);
-              cardObj.unReadyCost = 0;
-              cardObj.unReady = true; // Mark card unReady after a restore
+              cardObj.inactiveCost = 0;
+              cardObj.inactive = true; // Mark card inactive after a patch
 
               action.sync(null, { gsMessage: message });
             } else {
-              action.sendError('No damage to Restore', { gsMessage: message }, message.playerId);
-              throw new Error(); // Ditch if we didn't restore (would be an invalid target)
+              action.sendError('No damage to Patch', { gsMessage: message }, message.playerId);
+              throw new Error(); // Ditch if we didn't patch (would be an invalid target)
             }
           });
         } catch (ignored) {
@@ -831,7 +835,7 @@ const rawAction = {
         }
       } else {
         action.targetMode(message, {
-          help: 'Select a damaged card to restore and rotate. Note a person will not be ready this turn.',
+          help: 'Select a bugged card to patch and rotate. Note a program will not be active this turn.',
           colorType: 'success',
         });
       }
@@ -1044,7 +1048,7 @@ const rawAction = {
           if (pendingTargetActionClone.details?.card && returnStatus !== false) {
             if (utils.cardIsEvent(pendingTargetActionClone.details?.card)) {
               // No extra handling needed for a triggered event
-            } // If we don't have a chosenAbilityIndex that means we junked and should discard
+            } // If we don't have a chosenAbilityIndex that means we recycled and should discard
             else if (typeof pendingTargetActionClone.details?.card?.chosenAbilityIndex !== 'number') {
               action.discardCard(pendingTargetActionClone);
             } // Otherwise reduce the water cost of a used ability from a played card
@@ -1092,7 +1096,7 @@ const rawAction = {
       delete updatedGs.syncBatch;
       delete updatedGs.turn.startTime;
       delete updatedGs.turn.interactionTime;
-      delete updatedGs.punks;
+      delete updatedGs.prototypes;
       delete updatedGs.pendingTargetAction;
       delete updatedGs.pendingTargetCancellable;
 
@@ -1102,7 +1106,7 @@ const rawAction = {
 
       // Strip out any sensitive information from the opponent
       const { [opponentNum]: opponentData } = updatedGs;
-      opponentData.cards = Array.from({ length: opponentData.cards.length }, (_, index) => index * -1); // Just fill with numbered junk, but negative in case this ever gets looped over looking for IDs
+      opponentData.cards = Array.from({ length: opponentData.cards.length }, (_, index) => index * -1); // Just fill with numbered recycle, but negative in case this ever gets looped over looking for IDs
       if (!opponentData.doneCamps) {
         opponentData.camps = [];
       }
@@ -1114,7 +1118,7 @@ const rawAction = {
       }, currentPlayerId);
     }
 
-    // Batch our sync messages - ensure that if we have a few sent back to back to back (normally from a single action, like junk card) we only send a single sync
+    // Batch our sync messages - ensure that if we have a few sent back to back to back (normally from a single action, like recycle card) we only send a single sync
     const cachedGs = getGS(playerIdOrNullForBoth ?? params?.gsMessage?.playerId);
     if (!cachedGs) return;
 
@@ -1180,9 +1184,9 @@ rawAction.wait.skipPreprocess = true;
 
 // Certain actions can be Undone - basically anything that doesn't reveal new information (such as drawing cards)
 rawAction.playCard.recordUndo = true;
-rawAction.junkCard.recordUndo = true;
+rawAction.recycleCard.recordUndo = true;
 rawAction.useCard.recordUndo = true;
-rawAction.takeWaterSilo.recordUndo = true;
+rawAction.takeArchive.recordUndo = true;
 
 // Certain actions also clear the undo queue
 rawAction.joinGame.clearUndo = true;

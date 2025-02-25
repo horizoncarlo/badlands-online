@@ -98,7 +98,7 @@ const receiveClientWebsocketMessage = (message) => {
     case 'reduceWater':
       getPlayerData().waterCount -= message.details.cost;
       break;
-    case 'gainWater':
+    case 'gainMemory':
       getPlayerData().waterCount += 1;
       break;
     case 'promptCamps':
