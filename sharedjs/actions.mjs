@@ -1075,7 +1075,9 @@ const rawAction = {
         return;
       }
 
-      const updatedGs = structuredClone(getGS(currentPlayerId));
+      const gs = getGS(currentPlayerId);
+      const { syncBatch, ...serializableGs } = gs; // Strip out the syncBatch, as it has Timer function references so structuredClone will choke on it
+      const updatedGs = structuredClone(serializableGs);
       const opponentNum = utils.getOppositePlayerNum(playerNum);
 
       updatedGs.deckCount = updatedGs.deck.length;

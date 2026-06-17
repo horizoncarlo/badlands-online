@@ -37,10 +37,10 @@ type GameLobby = {
 };
 
 const IS_LIVE = Deno.env.get('isLive');
-const DEFAULT_PORT = IS_LIVE ? 80 : 2000;
-const DEFAULT_HOSTNAME = IS_LIVE ? 'badlands.deno.dev' : 'localhost'; // Or 0.0.0.0 for local public / self hosting
+const DEFAULT_PORT = 2000;
+const DEFAULT_HOSTNAME = '0.0.0.0';
 const DEFAULT_PATH = '/lobby.html';
-const CLIENT_WEBSOCKET_ADDRESS = IS_LIVE ? `wss://${DEFAULT_HOSTNAME}/ws` : `ws://${DEFAULT_HOSTNAME}:${DEFAULT_PORT}/ws`;
+const CLIENT_WEBSOCKET_ADDRESS = IS_LIVE ? 'wss://badlands.gugs.dev/ws' : `ws://localhost:${DEFAULT_PORT}/ws`;
 const PRIVATE_FILE_LIST = ['deno.jsonc', 'deno.lock', 'main.ts', '/backendjs/'];
 const DEFAULT_PLAYER_ID = 'newPlayer';
 const DEFAULT_PLAYER_NAME = 'Anonymous';
