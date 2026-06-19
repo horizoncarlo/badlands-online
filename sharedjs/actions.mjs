@@ -1234,7 +1234,7 @@ const actionHandler = {
         const applyOriginalMethod = (originalMethod, context, args) => {
           if (!onClient) {
             try {
-              const toClone = getGS(gsPlayerId);
+              const { syncBatch, ...toClone } = getGS(gsPlayerId); // Strip out the syncBatch, as it has Timer function references so structuredClone will choke on it
               if (toClone) {
                 const beforeGS = structuredClone(toClone);
                 actionHandler.manageUndo(originalMethod, beforeGS, gsPlayerId);
