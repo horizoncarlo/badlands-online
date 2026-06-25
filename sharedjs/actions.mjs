@@ -1232,15 +1232,19 @@ const actionHandler = {
         }
 
         const applyOriginalMethod = (originalMethod, context, args) => {
-          if (!onClient) {
+          if (!onClient && gsPlayerId) {
             try {
-              const { syncBatch, ...toClone } = getGS(gsPlayerId); // Strip out the syncBatch, as it has Timer function references so structuredClone will choke on it
-              if (toClone) {
-                const beforeGS = structuredClone(toClone);
-                actionHandler.manageUndo(originalMethod, beforeGS, gsPlayerId);
+              const gs = getGS(gsPlayerId);
+              if (gs) {
+                // Strip out the syncBatch, as it has Timer function references so structuredClone will choke on it
+                const { syncBatch, ...toClone } = gs;
+                if (toClone) {
+                  const beforeGS = structuredClone(toClone);
+                  actionHandler.manageUndo(originalMethod, beforeGS, gsPlayerId);
+                }
               }
             } catch (err) {
-              console.warn('Failed to store undo state');
+              console.warn('Failed to store undo state', err);
             }
           }
 
